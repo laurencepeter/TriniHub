@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/widgets/responsive_button.dart';
 
 class InternalServices extends StatelessWidget {
   final List<String> services = [
@@ -54,7 +55,7 @@ class InternalServices extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,          
           children: [
             Text(
               'INTERNAL SERVICES',
@@ -62,13 +63,13 @@ class InternalServices extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ...services.map((service) => Container(
-              width: double.infinity,
+              width: double.maxFinite,
               margin: EdgeInsets.symmetric(vertical: 5),
-              child: ElevatedButton(
+              child: ResponsiveButton(
+                label: (service.toUpperCase()),
                 onPressed: () {
                   // Add specific navigation logic here
                 },
-                child: Text(service.toUpperCase()),
               ),
             )),
           ],

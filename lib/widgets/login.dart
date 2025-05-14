@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+
+   final String device;
+
+  const LoginScreen({
+    super.key,
+    required this.device,
+    });
 
   @override
   // ignore: library_private_types_in_public_api
@@ -44,8 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           children: [
             Image.asset(
-              'lib/assets/images/RDLG3.png',
-              height: 150,
+              'lib/assets/images/RDLG2.1.png',
+              width: 350,
+              height: 400,
+              fit: BoxFit.cover, 
             ),
             TextField(
               controller: _usernameController,

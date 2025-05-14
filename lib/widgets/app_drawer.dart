@@ -17,7 +17,7 @@ class AppDrawer extends StatelessWidget {
         children: [
           const DrawerHeader(
             decoration: BoxDecoration(color: Colors.blue),
-            child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+            child: Text('Add More to Your List', style: TextStyle(color: Colors.white, fontSize: 24)),
           ),
           SwitchListTile(
             title: const Text('Dark Mode'),
