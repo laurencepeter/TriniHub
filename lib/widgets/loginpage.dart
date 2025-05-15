@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/widgets/responsive_wrapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
@@ -25,8 +26,6 @@ class _LoginPageState extends State<LoginPage> {
   final email = emailController.text.trim();
   final password = passwordController.text;
 
-  bool shouldSetState = true;
-
   try {
     final response = await Supabase.instance.client.auth
         .signInWithPassword(email: email, password: password);
@@ -36,9 +35,14 @@ class _LoginPageState extends State<LoginPage> {
     final user = response.user;
 
     if (user != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login successful!')),
-      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+        builder: (_) => ResponsiveWrapper(
+        isDarkMode: false, // or pass your actual dark mode state
+        onThemeToggle: (_) {}, // or your toggle logic
+        ),
+  ),
+);
     }
   } on AuthException catch (e) {
     if (mounted) {
@@ -49,11 +53,12 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => errorMessage = 'Unexpected error: $e');
     }
   } finally {
-    if (mounted && shouldSetState) {
+    if (mounted) {
       setState(() => isLoading = false);
     }
   }
 }
+
 
   @override
   Widget build(BuildContext context) {
