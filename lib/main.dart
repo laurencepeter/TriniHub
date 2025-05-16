@@ -11,8 +11,8 @@ void main() async{
   //await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
-    url: 'https://pqhuovyzslksghnkffdv.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxaHVvdnl6c2xrc2dobmtmZmR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxODczNTUsImV4cCI6MjA2Mjc2MzM1NX0.o5sy-JI-fM1Ep5W8cSzfJ2AVmQ1dF1aUrrtE3fKwtZQ',
+    url: 'http://localhost:8000',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
   );
   runApp(const MyApp());
 }
