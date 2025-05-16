@@ -14,7 +14,13 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
-
+ThemeMode _themeMode = ThemeMode.light;
+  
+  void toggleTheme(bool isDark) {
+    setState(() {
+      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
  Future<void> signIn() async {
   if (!mounted) return;
 
@@ -38,8 +44,8 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
         builder: (_) => ResponsiveWrapper(
-        isDarkMode: false, // or pass your actual dark mode state
-        onThemeToggle: (_) {}, // or your toggle logic
+        isDarkMode: _themeMode == ThemeMode.dark, // or pass your actual dark mode state
+        onThemeToggle: toggleTheme, // or your toggle logic
         ),
   ),
 );
@@ -63,11 +69,22 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Supabase Login')),
+      appBar: AppBar(title: const Text('SignIn')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            Image.asset(
+              'lib/assets/images/RDLG2.1.png',
+              width: 350,
+              height: 400,
+              fit: BoxFit.cover, 
+            ),
+            Row(
+                children: [
+                  Text("Ministry of Rural Development \n&\nLocal Governement",textAlign: TextAlign.center,)
+                ],
+                ),            
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: 'Email'),
