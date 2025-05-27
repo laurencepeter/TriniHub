@@ -18,7 +18,7 @@
 
 
 ## Server Setup 
-!Due to lack of accessibility to resources at the Organization I could no longer wait to implement a real life service!
+:exclamation:Due to lack of accessibility to resources at the Organization I could no longer wait to implement a real life service:exclamation:
 1. Hosted a Virtual Machine (VM) that would be the backbone for the Application.
 2. The VM would host host Docker to containerize services services which would handle Authentication and Databases.
 3. Next would be to setting up the web server.
