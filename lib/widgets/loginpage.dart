@@ -70,21 +70,28 @@ ThemeMode _themeMode = ThemeMode.light;
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('SignIn')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Image.asset(
               'lib/assets/images/RDLG2.1.png',
-              width: 350,
-              height: 400,
+              width: 280,
+              height: 375,
               fit: BoxFit.cover, 
             ),
-            Row(
-                children: [
-                  Text("Ministry of Rural Development \n&\nLocal Governement",textAlign: TextAlign.center,)
-                ],
-                ),            
+            Text(
+              "Ministry of Rural Development \n&\nLocal Government",
+              textAlign: TextAlign.center,
+              style: 
+              TextStyle(
+                fontSize: 34, // Change the size to whatever you need
+                fontWeight: FontWeight.bold, // Optional: You can also add fontWeight if needed
+                fontFamily: 'Arial',  // You can specify a custom font family if needed
+                //color: Colors.blue,  // Set the color of the text
+                letterSpacing: 2.0,  // Adjust the space between letters
+              ),
+            ),                
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: 'Email'),

@@ -11,8 +11,8 @@ void main() async{
   //await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
-        url: 'http://localhost:8000',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
+    url: 'https://557vqlf4-8000.use.devtunnels.ms',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ3ODAwMDAwLCJleHAiOjE5MDU1NjY0MDB9.p1EsjRn78dCG-6x4EoCZHH5zTE9IY2eUyaVco_J2PTk',
   );
   runApp(const MyApp());
 }

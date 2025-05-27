@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/widgets/bottom_tab_nav.dart';
 import 'package:flutter_application_1/widgets/responsive_button.dart';
 
-class InternalServices extends StatelessWidget {
+class ExternalServices extends StatelessWidget {
   final List<String> services = [
     'Find File',
     'Scan File',
@@ -11,7 +11,7 @@ class InternalServices extends StatelessWidget {
     'Software Bugs',
   ];
 
-  InternalServices({super.key});
+  ExternalServices({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +49,7 @@ class InternalServices extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,          
           children: [
             Text(
-              'INTERNAL SERVICES',
+              'EXTERNAL SERVICES',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
