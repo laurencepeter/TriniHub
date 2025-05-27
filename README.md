@@ -15,3 +15,10 @@
 3. Should have a range of other forms in one place for the persons outside the intranet to be able to fill so they can easily submit and electronic copy of the document.
 4. Oversight to ensure reports submission reflects the correct Corporation and for the most accurate reason.
 5. Reports will be reviewed bi-weekly generated reports to determine the overall efficiency and effectiveness of the respective Corporations.
+
+
+##Server Setup 
+!Due to lack of accessibility to resources at the Organization I could no longer wait to implement a real life service!
+1. Hosted a Virtual Machine (VM) that would be the backbone for the Application.
+2. The VM would host host Docker to containerize services services which would handle Authentication and Databases.
+3. Next would be to setting up the web server.
