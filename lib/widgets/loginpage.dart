@@ -3,7 +3,14 @@ import 'package:flutter_application_1/widgets/responsive_wrapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool isDarkMode;
+  final void Function(bool) onThemeToggle;
+
+  const LoginPage({
+    super.key,
+    required this.isDarkMode,
+    required this.onThemeToggle,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -14,13 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
-ThemeMode _themeMode = ThemeMode.light;
   
-  void toggleTheme(bool isDark) {
-    setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
  Future<void> signIn() async {
   if (!mounted) return;
 
@@ -41,14 +42,15 @@ ThemeMode _themeMode = ThemeMode.light;
     final user = response.user;
 
     if (user != null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-        builder: (_) => ResponsiveWrapper(
-        isDarkMode: _themeMode == ThemeMode.dark, // or pass your actual dark mode state
-        onThemeToggle: toggleTheme, // or your toggle logic
-        ),
-  ),
-);
+    Navigator.of(context).pushReplacement(
+    MaterialPageRoute(
+      builder: (_) => ResponsiveWrapper(
+        key: ValueKey(widget.isDarkMode),
+        isDarkMode: widget.isDarkMode,
+        onThemeToggle: widget.onThemeToggle,
+      ),
+    ),
+  );
     }
   } on AuthException catch (e) {
     if (mounted) {

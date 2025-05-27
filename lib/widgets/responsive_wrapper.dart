@@ -1,6 +1,7 @@
+// responsive_wrapper.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/home.dart';
 import 'responsive_scaffold.dart';
+import 'package:flutter_application_1/screens/home.dart';
 
 class ResponsiveWrapper extends StatelessWidget {
   final bool isDarkMode;
@@ -17,7 +18,10 @@ class ResponsiveWrapper extends StatelessWidget {
     return ResponsiveScaffold(
       isDarkMode: isDarkMode,
       onThemeToggle: onThemeToggle,
-      childBuilder: (device) => HomePage(device: device),
+      childBuilder: (device) => HomePage(
+        device: device,
+        onThemeToggle: () {}, // or pass actual callback
+      ),
     );
   }
 }

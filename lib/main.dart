@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-//import 'package:flutter_application_1/screens/home.dart';
-//import 'package:flutter_application_1/widgets/login.dart';
 import 'package:flutter_application_1/widgets/loginpage.dart';
-import 'package:flutter_application_1/widgets/responsive_scaffold.dart';
-//import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async{
@@ -26,7 +22,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.light;
-  
+
   void toggleTheme(bool isDark) {
     setState(() {
       _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
@@ -36,15 +32,14 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'LocalAppTT',
+      title: 'RDLG App',
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: _themeMode,
-      debugShowCheckedModeBanner: false,
-      home: ResponsiveScaffold(
+      home: LoginPage(
+        key: ValueKey(_themeMode),
         isDarkMode: _themeMode == ThemeMode.dark,
         onThemeToggle: toggleTheme,
-        childBuilder: (device) => LoginPage(),
       ),
     );
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 class AppDrawer extends StatelessWidget {
   final bool isDarkMode;
   final void Function(bool) onThemeToggle;
@@ -31,7 +31,7 @@ class AppDrawer extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24, 
                     fontWeight: FontWeight.bold,
-                    //color: Colors.white,  // You can adjust the text color
+                    color: Colors.white,  // You can adjust the text color
                   ),
                 ),
               ],            
@@ -50,7 +50,7 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.home),
             onTap: () {
               // Navigate to Home Screen
-              Navigator.pushReplacementNamed(context, '/');
+              Navigator.pushReplacementNamed(context, '/home');
             },
           ),
           ListTile(
@@ -81,10 +81,21 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             title: const Text('Log Out'),
             leading: const Icon(Icons.logout),
-            onTap: () {
-              // Handle log out logic here
-              Navigator.pushReplacementNamed(context, '/login');
-            },
+            onTap: () async {
+            try {
+              await Supabase.instance.client.auth.signOut(scope: SignOutScope.global);
+              if (context.mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Logged out successfully')),
+                );
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Logout failed: $e')),
+              );
+            }
+          },
           ),
         ],
       ),

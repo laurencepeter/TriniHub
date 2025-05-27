@@ -4,15 +4,18 @@ import 'package:flutter_application_1/screens/internalservices.dart';
 class HomePage extends StatelessWidget {
 
   final String device;
-  const HomePage({
-    super.key,
-    required this.device,
-    
+  final VoidCallback onThemeToggle;
+
+  const HomePage(
+    {super.key, 
+    required this.device,     
+    required this.onThemeToggle,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      
       appBar: AppBar(
         title: const Text('Home Page'),
       ),
