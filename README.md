@@ -18,7 +18,7 @@
 
 
 ## Server Setup 
-:exclamation:Due to lack of accessibile resourcess and time constraints at the Organization I could no longer wait to implement a real life service:exclamation:
+:exclamation:Due to lack of accessibile resourcess and finite time constraints at the Organization I had to push through using my own resources :exclamation:
 1. Hosted a Virtual Machine (VM) that would be the backbone for the Application.
 2. The VM would host host Docker to containerize services services which would handle Authentication and Databases.
 3. Next would be to setting up the web server.
