@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/widgets/bottom_tab_nav.dart';
-import 'package:flutter_application_1/widgets/responsive_button.dart';
+import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
+import 'package:local_app_tt/widgets/responsive_button.dart';
 
 class InternalServices extends StatelessWidget {
   final List<String> services = [

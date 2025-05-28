@@ -35,9 +35,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
       setState(() {
         isScanned = true;
         scanResult = code;
-      });
-
-     
+      }); 
       print('Scanned QR Code: $code');
     }
   }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/internalservices.dart';
+import 'package:local_app_tt/screens/internalservices.dart';
 
 class HomePage extends StatelessWidget {
 
