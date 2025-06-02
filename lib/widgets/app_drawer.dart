@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 class AppDrawer extends StatelessWidget {
   final bool isDarkMode;
@@ -31,7 +33,7 @@ class AppDrawer extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24, 
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,  // You can adjust the text color
+                    //color: Colors.white,  // You can adjust the text color
                   ),
                 ),
               ],            
@@ -79,6 +81,36 @@ class AppDrawer extends StatelessWidget {
           ),
           const Divider(),
           ListTile(
+            title: const Text('Services'),
+            leading: const Icon(Icons.info),
+            onTap: () {
+              // Navigate to Settings Screen             
+            },
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Internal'),
+            leading: const Icon(Icons.integration_instructions),
+            onTap:  () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => InternalServices()),
+                );
+              },
+          ),
+          ListTile(
+            title: const Text('External'),
+            leading: const Icon(Icons.outdoor_grill_sharp),
+           onTap:  () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => QRScannerPage()),
+                );
+              },
+          ),
+          const Divider(),
+          const Divider(),
+          ListTile(
             title: const Text('Log Out'),
             leading: const Icon(Icons.logout),
             onTap: () async {
@@ -97,6 +129,7 @@ class AppDrawer extends StatelessWidget {
             }
           },
           ),
+          
         ],
       ),
     );
