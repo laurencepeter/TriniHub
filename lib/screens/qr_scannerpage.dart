@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../services/file_scan_service.dart';
 
 class QRScannerPage extends StatefulWidget {
-  const QRScannerPage({super.key});
+  final String departmentId;
+  final String eventType;
+
+  const QRScannerPage({
+    super.key,
+    required this.departmentId,
+    required this.eventType,
+  });
 
   @override
   State<QRScannerPage> createState() => _QRScannerPageState();
@@ -26,7 +34,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  Future<void> _onDetect(BarcodeCapture capture) async {
     if (isScanned) return;
     final Barcode barcode = capture.barcodes.first;
     final String? code = barcode.rawValue;
@@ -35,7 +43,25 @@ class _QRScannerPageState extends State<QRScannerPage> {
       setState(() {
         isScanned = true;
         scanResult = code;
-      }); 
+      });
+      try {
+        await FileScanService.instance.recordScan(
+          fileId: code,
+          departmentId: widget.departmentId,
+          eventType: widget.eventType,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Scan recorded')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to record scan: $e')),
+          );
+        }
+      }
       print('Scanned QR Code: $code');
     }
   }
