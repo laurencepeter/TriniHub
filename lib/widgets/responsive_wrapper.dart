@@ -20,7 +20,7 @@ class ResponsiveWrapper extends StatelessWidget {
       onThemeToggle: onThemeToggle,
       childBuilder: (device) => HomePage(
         device: device,
-        onThemeToggle: () {}, // or pass actual callback
+        onThemeToggle: () => onThemeToggle(!isDarkMode),
       ),
     );
   }
