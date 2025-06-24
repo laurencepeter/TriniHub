@@ -101,12 +101,17 @@ class AppDrawer extends StatelessWidget {
           ListTile(
             title: const Text('External'),
             leading: const Icon(Icons.outdoor_grill_sharp),
-           onTap:  () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => QRScannerPage()),
-                );
-              },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const QRScannerPage(
+                    departmentId: 'default-dept',
+                    eventType: 'out',
+                  ),
+                ),
+              );
+            },
           ),
           const Divider(),
           const Divider(),
