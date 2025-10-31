@@ -1,0 +1,14 @@
+.git
+.build/
+.dart_tool/
+.vscode/
+.idea/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+packages
+android/.gradle
+android/build
+ios/Pods
+ios/DerivedData
+test/
