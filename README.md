@@ -21,7 +21,11 @@
 :exclamation:Due to lack of accessibile resourcess and finite time constraints at the Organization I had to push through using my own resources :exclamation:
 
 ✔️ 1. Hosted a Virtual Machine (VM) that would be the backbone for the Application. 
+
 ✔️ 2. The VM would host host Docker to containerize services services which would handle Authentication and Databases.
+
 ✔️ 3. Web Server is up and running.
+
 ✔️ 4. Added and confirmed users were authenticated.
+
  ❓ 5. HTTPS and Domain (Free tier).
