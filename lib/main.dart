@@ -7,7 +7,7 @@ void main() async{
   //await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
-    url: 'http://localhost:8000',
+    url: 'http://10.15.5.9:8000',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ3ODAwMDAwLCJleHAiOjE5MDU1NjY0MDB9.p1EsjRn78dCG-6x4EoCZHH5zTE9IY2eUyaVco_J2PTk',
   );
   runApp(const MyApp());
