@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        SUPABASE_URL: http://localapptt.web:8080
+        SUPABASE_URL: https://localapptt.web:8080
         SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzYxMDE5MjAwLCJleHAiOjE5MTg3ODU2MDB9.Bz9TiSOjPzdw-LmHuX2qRdQH0SacWhSQwRdmke0iGBA
     ports:
       - "8080:80"
