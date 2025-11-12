@@ -1,6 +1,6 @@
-# LOCAL TT APP Reform
+# Report HUB
 
-## After inspecting the LocalAppTT launched in Trinidad and Tobago it was noted that why offer one feature instead of making a hub to access a variety of services.
+## Trinidad and Tobago solution to provide a hub to access a variety of services.
 
 ## Examples:
 
