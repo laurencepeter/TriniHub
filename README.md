@@ -28,4 +28,4 @@
 
 ✔️ 4. Added and confirmed users were authenticated.
 
- ❓ 5. HTTPS and Domain (Free tier).
+✔️ 5. HTTPS and Domain (Free tier).
