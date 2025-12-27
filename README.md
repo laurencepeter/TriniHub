@@ -27,5 +27,3 @@
 ✔️ 3. Web Server is up and running.
 
 ✔️ 4. Added and confirmed users were authenticated.
-
-✔️ 5. HTTPS and Domain (Free tier).
