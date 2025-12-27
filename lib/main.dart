@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   //await dotenv.load(fileName: '.env');
 
   await Supabase.initialize(
-    url: 'https://localapptt.supa',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ3ODAwMDAwLCJleHAiOjE5MDU1NjY0MDB9.p1EsjRn78dCG-6x4EoCZHH5zTE9IY2eUyaVco_J2PTk',
+    url: 'https://supabase.fireydev.com',
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ3ODAwMDAwLCJleHAiOjE5MDU1NjY0MDB9.p1EsjRn78dCG-6x4EoCZHH5zTE9IY2eUyaVco_J2PTk',
   );
   runApp(const MyApp());
 }
