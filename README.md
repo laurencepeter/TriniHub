@@ -27,10 +27,10 @@
 
 ✔️ 4. Added and confirmed users were authenticated (Manually). 
           ❓ Pending Features
-                    :exclamation: Add Email invitation links
-                    :exclamation: Add Social Logins
+                    :exclamation:  Add Email invitation links
+                    :exclamation:  Add Social Logins
 
 ❓ 5. TODO
-          :exclamation: Add a page for fun to list all services, maybe services.fireydev.com
+          :exclamation:  Add a page for fun to list all services, maybe services.fireydev.com
           
           
