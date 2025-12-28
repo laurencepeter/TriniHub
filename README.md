@@ -18,7 +18,6 @@
 
 
 ## Server Setup 
-:exclamation:Due to lack of accessibile resourcess and finite time constraints at the Organization I had to push through using my own resources :exclamation:
 
 ✔️ 1. Setup VPS (Virtual Private Server). 
 
@@ -28,10 +27,10 @@
 
 ✔️ 4. Added and confirmed users were authenticated (Manually). 
           ❓ Pending Features
-                    ❌ Add Email invitation links
-                    ❌ Add Social Logins
+                    :exclamation: Add Email invitation links
+                    :exclamation: Add Social Logins
 
 ❓ 5. TODO
-          ❌ Add a page for fun to list all services, maybe services.fireydev.com
-          ❌
+          :exclamation: Add a page for fun to list all services, maybe services.fireydev.com
+          
           
