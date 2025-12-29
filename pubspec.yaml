@@ -64,18 +64,17 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
   
-    - lib/assets/images/RDLG3.png
-    - lib/assets/images/RDLG2.1.png
+    - lib/assets/images/TriniHub.png
   #   - images/a_dot_ham.jpeg
 
 flutter_icons:
   android: true
   ios: true
-  image_path: "lib/assets/images/RDLG3.png"  # <-- your icon path
+  image_path: "lib/assets/images/TriniHub.png"  # <-- your icon path
 
 flutter_native_splash:
   color: "#ffffff"                      # Splash background color
-  image: lib/assets/images/RDLG3.png  # Your splash image (512x512 or 1024x1024)
+  image: lib/assets/images/TriniHub.png  # Your splash image (512x512 or 1024x1024)
   android: true
   ios: true
   web: true
