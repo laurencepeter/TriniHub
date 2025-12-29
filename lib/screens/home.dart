@@ -2,23 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 
 class HomePage extends StatelessWidget {
-
   final String device;
   final VoidCallback onThemeToggle;
 
-  const HomePage(
-    {super.key, 
-    required this.device,     
+  const HomePage({
+    super.key,
+    required this.device,
     required this.onThemeToggle,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
-      appBar: AppBar(
-        title: const Text('Home Page'),
-      ),
+      appBar: AppBar(title: const Text('Home Page')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -26,10 +22,10 @@ class HomePage extends StatelessWidget {
             Container(
               margin: EdgeInsets.only(bottom: 20),
               child: Image.asset(
-                'lib/assets/images/RDLG2.1.png',
+                'lib/assets/images/TriniHub.png',
                 width: 350,
                 height: 400,
-                fit: BoxFit.cover, 
+                fit: BoxFit.cover,
               ),
             ),
             Text(
@@ -67,5 +63,4 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-  
 }

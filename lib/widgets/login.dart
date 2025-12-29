@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
+  final String device;
 
-   final String device;
-
-  const LoginScreen({
-    super.key,
-    required this.device,
-    });
+  const LoginScreen({super.key, required this.device});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -34,26 +30,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // Optionally, show a Snackbar for feedback
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$username Logged In Successfully!\n Protect your password $password',textAlign: TextAlign.center,))
+      SnackBar(
+        content: Text(
+          '$username Logged In Successfully!\n Protect your password $password',
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-        
-      ),
+      appBar: AppBar(title: Text('Login')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Image.asset(
-              'lib/assets/images/RDLG2.1.png',
+              'lib/assets/images/TriniHub.png',
               width: 350,
               height: 400,
-              fit: BoxFit.cover, 
+              fit: BoxFit.cover,
             ),
             TextField(
               controller: _usernameController,
@@ -65,10 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
               obscureText: true, // Hide password text
             ),
             SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _onPressed,
-              child: Text('Submit'),
-            ),
+            ElevatedButton(onPressed: _onPressed, child: Text('Submit')),
             SizedBox(height: 20),
             // Display feedback text (entered username and password)
             /*Text(

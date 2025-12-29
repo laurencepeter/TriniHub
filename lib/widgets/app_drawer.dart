@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 class AppDrawer extends StatelessWidget {
   final bool isDarkMode;
   final void Function(bool) onThemeToggle;
@@ -20,26 +21,27 @@ class AppDrawer extends StatelessWidget {
           DrawerHeader(
             decoration: const BoxDecoration(),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,  // Align children to the start
+              mainAxisAlignment:
+                  MainAxisAlignment.start, // Align children to the start
               children: [
                 Image.asset(
-                  'lib/assets/images/RDLG2.1.png',// Path to your logo image (ensure the logo is in your assets folder)
-                  height: 40,           // You can adjust the size as needed
+                  'lib/assets/images/TriniHub.png', // Path to your logo image (ensure the logo is in your assets folder)
+                  height: 40, // You can adjust the size as needed
                   width: 40,
                 ),
                 const SizedBox(width: 10), // Spacing between the logo and text
                 const Text(
-                  'RDLG', 
+                  'RDLG',
                   style: TextStyle(
-                    fontSize: 24, 
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     //color: Colors.white,  // You can adjust the text color
                   ),
                 ),
-              ],            
+              ],
+            ),
           ),
-          ),
-          
+
           SwitchListTile(
             title: const Text('Dark Mode'),
             value: isDarkMode,
@@ -84,19 +86,19 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Services'),
             leading: const Icon(Icons.info),
             onTap: () {
-              // Navigate to Settings Screen             
+              // Navigate to Settings Screen
             },
           ),
           const Divider(),
           ListTile(
             title: const Text('Internal'),
             leading: const Icon(Icons.integration_instructions),
-            onTap:  () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => InternalServices()),
-                );
-              },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => InternalServices()),
+              );
+            },
           ),
           ListTile(
             title: const Text('External'),
@@ -105,10 +107,11 @@ class AppDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const QRScannerPage(
-                    departmentId: 'default-dept',
-                    eventType: 'out',
-                  ),
+                  builder:
+                      (context) => const QRScannerPage(
+                        departmentId: 'default-dept',
+                        eventType: 'out',
+                      ),
                 ),
               );
             },
@@ -119,22 +122,25 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Log Out'),
             leading: const Icon(Icons.logout),
             onTap: () async {
-            try {
-              await Supabase.instance.client.auth.signOut(scope: SignOutScope.global);
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Logged out successfully')),
+              try {
+                await Supabase.instance.client.auth.signOut(
+                  scope: SignOutScope.global,
                 );
+                if (context.mounted) {
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/login', (route) => false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logged out successfully')),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
               }
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Logout failed: $e')),
-              );
-            }
-          },
+            },
           ),
-          
         ],
       ),
     );

@@ -21,52 +21,54 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   bool isLoading = false;
   String? errorMessage;
-  
- Future<void> signIn() async {
-  if (!mounted) return;
 
-  setState(() {
-    isLoading = true;
-    errorMessage = null;
-  });
-
-  final email = emailController.text.trim();
-  final password = passwordController.text;
-
-  try {
-    final response = await Supabase.instance.client.auth
-        .signInWithPassword(email: email, password: password);
-
+  Future<void> signIn() async {
     if (!mounted) return;
 
-    final user = response.user;
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
 
-    if (user != null) {
-    Navigator.of(context).pushReplacement(
-    MaterialPageRoute(
-      builder: (_) => ResponsiveWrapper(
-        key: ValueKey(widget.isDarkMode),
-        isDarkMode: widget.isDarkMode,
-        onThemeToggle: widget.onThemeToggle,
-      ),
-    ),
-  );
-    }
-  } on AuthException catch (e) {
-    if (mounted) {
-      setState(() => errorMessage = e.message);
-    }
-  } catch (e) {
-    if (mounted) {
-      setState(() => errorMessage = 'Unexpected error: $e');
-    }
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    try {
+      final response = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      final user = response.user;
+
+      if (user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder:
+                (_) => ResponsiveWrapper(
+                  key: ValueKey(widget.isDarkMode),
+                  isDarkMode: widget.isDarkMode,
+                  onThemeToggle: widget.onThemeToggle,
+                ),
+          ),
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        setState(() => errorMessage = e.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => errorMessage = 'Unexpected error: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -77,23 +79,25 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           children: [
             Image.asset(
-              'lib/assets/images/RDLG2.1.png',
+              'lib/assets/images/TriniHub.png',
               width: 280,
               height: 375,
-              fit: BoxFit.cover, 
+              fit: BoxFit.cover,
             ),
             Text(
-              "Ministry of Rural Development \n&\nLocal Government",
+              "Welcome to Trini Hub",
               textAlign: TextAlign.center,
-              style: 
-              TextStyle(
+              style: TextStyle(
                 fontSize: 34, // Change the size to whatever you need
-                fontWeight: FontWeight.bold, // Optional: You can also add fontWeight if needed
-                fontFamily: 'Arial',  // You can specify a custom font family if needed
+                fontWeight:
+                    FontWeight
+                        .bold, // Optional: You can also add fontWeight if needed
+                fontFamily:
+                    'Arial', // You can specify a custom font family if needed
                 //color: Colors.blue,  // Set the color of the text
-                letterSpacing: 2.0,  // Adjust the space between letters
+                letterSpacing: 2.0, // Adjust the space between letters
               ),
-            ),                
+            ),
             TextField(
               controller: emailController,
               decoration: const InputDecoration(labelText: 'Email'),
@@ -111,9 +115,10 @@ class _LoginPageState extends State<LoginPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isLoading ? null : signIn,
-                child: isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Login'),
+                child:
+                    isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text('Login'),
               ),
             ),
           ],
