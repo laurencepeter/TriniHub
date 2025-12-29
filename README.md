@@ -1,4 +1,4 @@
-# Report HUB
+# Trini HUB
 
 ## Trinidad and Tobago solution to provide a hub to access a variety of services.
 
@@ -18,12 +18,19 @@
 
 
 ## Server Setup 
-:exclamation:Due to lack of accessibile resourcess and finite time constraints at the Organization I had to push through using my own resources :exclamation:
 
-✔️ 1. Hosted a Virtual Machine (VM) that would be the backbone for the Application. 
+✔️ 1. Setup VPS (Virtual Private Server). 
 
-✔️ 2. The VM would host host Docker to containerize services services which would handle Authentication and Databases.
+✔️ 2. Added Coolify (Open-Source/Self-Hosted) and linked to domain.
 
-✔️ 3. Web Server is up and running.
+✔️ 3. Added Supabase (Open-Source/Self-Hosted) linked to Flutter Project (automatically pulls repo when changes are pushed to git MASTER).
 
-✔️ 4. Added and confirmed users were authenticated.
+✔️ 4. Added and confirmed users were authenticated (Manually). 
+          ❓ Pending Features
+                    :exclamation:  Add Email invitation links
+                    :exclamation:  Add Social Logins
+
+❓ 5. TODO
+          :exclamation:  Add a page for fun to list all services, maybe services.fireydev.com
+          
+          
