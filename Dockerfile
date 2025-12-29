@@ -1,22 +1,18 @@
-# --- Build (Flutter) ---
+# Build stage
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
+COPY . .
 
-# 👇 Add Supabase build args (optional, if you use dart-define)
+# Build args (provided by Coolify at build time)
 ARG SUPABASE_URL
 ARG SUPABASE_ANON_KEY
 
-COPY pubspec.* ./
-RUN flutter config --enable-web && flutter pub get
-
-COPY . .
+RUN flutter pub get
 RUN flutter build web --release \
-  --no-tree-shake-icons \
   --dart-define=SUPABASE_URL=${SUPABASE_URL} \
   --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
 
-# --- Serve (NGINX) ---
+# Serve stage
 FROM nginx:alpine
 COPY --from=build /app/build/web /usr/share/nginx/html
 EXPOSE 80
-CMD ["nginx","-g","daemon off;"]
