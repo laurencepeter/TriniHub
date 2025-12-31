@@ -49,7 +49,7 @@ class ExternalServices extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,          
           children: [
             Text(
-              'EXTERNAL SERVICES',
+              'External Services',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 20),
