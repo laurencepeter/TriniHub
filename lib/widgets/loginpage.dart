@@ -4,10 +4,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
   final void Function(bool) onThemeToggle;
+  final bool isDarkMode;
 
   const LoginPage({
     super.key,
     required this.onThemeToggle,
+    required this.isDarkMode,
   });
 
   @override
@@ -47,6 +49,7 @@ class _LoginPageState extends State<LoginPage> {
             builder:
                 (_) => ResponsiveWrapper(
                   onThemeToggle: widget.onThemeToggle,
+                  isDarkMode: widget.isDarkMode,
                 ),
           ),
         );
