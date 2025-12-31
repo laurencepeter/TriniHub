@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 import 'app_drawer.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
-  final bool isDarkMode;
   final void Function(bool) onThemeToggle;
   final Widget Function(String device) childBuilder;
 
   const ResponsiveScaffold({
     super.key,
-    required this.isDarkMode,
     required this.onThemeToggle,
     required this.childBuilder,
   });
@@ -29,7 +27,6 @@ class ResponsiveScaffold extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(title: Text('$deviceType Layout')),
           drawer: AppDrawer(
-            isDarkMode: isDarkMode,
             onThemeToggle: onThemeToggle,
           ),
           body: childBuilder(deviceType),

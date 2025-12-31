@@ -4,12 +4,10 @@ import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
-  final bool isDarkMode;
   final void Function(bool) onThemeToggle;
 
   const AppDrawer({
     super.key,
-    required this.isDarkMode,
     required this.onThemeToggle,
   });
 
@@ -44,9 +42,16 @@ class AppDrawer extends StatelessWidget {
 
           SwitchListTile(
             title: const Text('Dark Mode'),
-            value: isDarkMode,
-            onChanged: onThemeToggle,
-            secondary: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+            value: Theme.of(context).brightness == Brightness.dark,
+            onChanged: (value) {
+              onThemeToggle(value);
+              Navigator.of(context).pop();
+            },
+            secondary: Icon(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.dark_mode
+                  : Icons.light_mode,
+            ),
           ),
           const Divider(),
           ListTile(

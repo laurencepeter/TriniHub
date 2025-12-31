@@ -3,12 +3,10 @@ import 'package:local_app_tt/screens/internalservices.dart';
 
 class HomePage extends StatelessWidget {
   final String device;
-  final VoidCallback onThemeToggle;
 
   const HomePage({
     super.key,
     required this.device,
-    required this.onThemeToggle,
   });
 
   @override

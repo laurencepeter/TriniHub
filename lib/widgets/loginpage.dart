@@ -3,12 +3,10 @@ import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
-  final bool isDarkMode;
   final void Function(bool) onThemeToggle;
 
   const LoginPage({
     super.key,
-    required this.isDarkMode,
     required this.onThemeToggle,
   });
 
@@ -48,8 +46,6 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(
             builder:
                 (_) => ResponsiveWrapper(
-                  key: ValueKey(widget.isDarkMode),
-                  isDarkMode: widget.isDarkMode,
                   onThemeToggle: widget.onThemeToggle,
                 ),
           ),
