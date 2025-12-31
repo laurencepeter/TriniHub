@@ -6,16 +6,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
   final void Function(bool) onThemeToggle;
-  final bool isDarkMode;
 
   const AppDrawer({
     super.key,
     required this.onThemeToggle,
-    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Drawer(
       child: ListView(
         children: [
@@ -149,7 +149,6 @@ class AppDrawer extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => LoginPage(
                         onThemeToggle: onThemeToggle,
-                        isDarkMode: isDarkMode,
                       ),
                     ),
                     (route) => false,
