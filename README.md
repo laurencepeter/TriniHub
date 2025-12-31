@@ -4,8 +4,8 @@
 
 ## Examples:
 
-          - Internal Services such as SharePoint forms for the overall reduction of paper usage.
-          - External Services such as the initial purpose of the app, to report issues in the area.
+          - Internal Services such as File Tracking, Ticketing for the overall reduction of paper usage.
+          - External Services such as The Dog Registration, report issues in the area and more.
 
 
 
