@@ -40,6 +40,7 @@ class _MyAppState extends State<MyApp> {
       home: LoginPage(
         key: ValueKey(_themeMode),
         onThemeToggle: toggleTheme,
+        isDarkMode: _themeMode == ThemeMode.dark,
       ),
     );
   }

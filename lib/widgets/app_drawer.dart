@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/qr_scannerpage.dart';
+import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
   final void Function(bool) onThemeToggle;
+  final bool isDarkMode;
 
   const AppDrawer({
     super.key,
     required this.onThemeToggle,
+    required this.isDarkMode,
   });
 
   @override
@@ -42,15 +45,13 @@ class AppDrawer extends StatelessWidget {
 
           SwitchListTile(
             title: const Text('Dark Mode'),
-            value: Theme.of(context).brightness == Brightness.dark,
+            value: isDarkMode,
             onChanged: (value) {
               onThemeToggle(value);
               Navigator.of(context).pop();
             },
             secondary: Icon(
-              Theme.of(context).brightness == Brightness.dark
-                  ? Icons.dark_mode
-                  : Icons.light_mode,
+              isDarkMode ? Icons.dark_mode : Icons.light_mode,
             ),
           ),
           const Divider(),
@@ -128,13 +129,31 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.logout),
             onTap: () async {
               try {
-                await Supabase.instance.client.auth.signOut(
+                final authClient = Supabase.instance.client.auth;
+                final session = authClient.currentSession;
+
+                if (session == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('No active session. Please log in.')),
+                  );
+                  return;
+                }
+
+                await authClient.signOut(
                   scope: SignOutScope.global,
                 );
+
                 if (context.mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) => LoginPage(
+                        onThemeToggle: onThemeToggle,
+                        isDarkMode: isDarkMode,
+                      ),
+                    ),
+                    (route) => false,
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Logged out successfully')),
                   );
