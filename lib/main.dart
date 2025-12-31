@@ -39,7 +39,6 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       home: LoginPage(
         key: ValueKey(_themeMode),
-        isDarkMode: _themeMode == ThemeMode.dark,
         onThemeToggle: toggleTheme,
       ),
     );
