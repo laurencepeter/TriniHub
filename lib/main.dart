@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
+import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -37,9 +38,28 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
       themeMode: _themeMode,
-      home: LoginPage(
-        key: ValueKey(_themeMode),
-        onThemeToggle: toggleTheme,
+      home: StreamBuilder<AuthState>(
+        stream: Supabase.instance.client.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          final session = snapshot.data?.session;
+
+          if (session != null) {
+            return ResponsiveWrapper(
+              onThemeToggle: toggleTheme,
+            );
+          }
+
+          return LoginPage(
+            key: ValueKey(_themeMode),
+            onThemeToggle: toggleTheme,
+          );
+        },
       ),
     );
   }
