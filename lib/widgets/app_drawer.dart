@@ -48,7 +48,6 @@ class AppDrawer extends StatelessWidget {
             value: isDarkMode,
             onChanged: (value) {
               onThemeToggle(value);
-              Navigator.of(context).pop();
             },
             secondary: Icon(
               isDarkMode ? Icons.dark_mode : Icons.light_mode,
