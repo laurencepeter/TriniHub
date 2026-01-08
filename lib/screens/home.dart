@@ -51,7 +51,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,12 +59,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 22,
+                      radius: 24,
                       backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
                       child: Image.asset(
                         'lib/assets/images/TriniHub.png',
-                        width: 26,
-                        height: 26,
+                        width: 28,
+                        height: 28,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -73,16 +73,74 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Service Directory',
+                          'Trini Hub',
                           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         Text(
-                          'Choose a service type to continue',
+                          'Service command center',
                           style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
                         ),
                       ],
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary.withOpacity(0.85),
+                          theme.colorScheme.secondary.withOpacity(0.75),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.25),
+                          blurRadius: 20,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Your services, streamlined',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Pick a service lane to launch forms, track requests, and keep every workflow moving.',
+                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: const [
+                            _HighlightPill(label: '24/7 service access'),
+                            _HighlightPill(label: 'Real-time status updates'),
+                            _HighlightPill(label: 'Secure by design'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -94,7 +152,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   controller: _controller,
                   delay: 0,
                   title: 'Internal Services',
-                  subtitle: 'Team tools and resources',
+                  subtitle: 'Team tools and operational workflows',
                   icon: Icons.apartment_rounded,
                   onTap: () {
                     Navigator.push(
@@ -108,7 +166,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   controller: _controller,
                   delay: 0.15,
                   title: 'External Services',
-                  subtitle: 'Public-facing utilities',
+                  subtitle: 'Public-facing utilities and citizen support',
                   icon: Icons.public,
                   onTap: () {
                     Navigator.push(
@@ -117,18 +175,66 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     );
                   },
                 ),
-                const Spacer(),
+                const SizedBox(height: 24),
                 FadeTransition(
                   opacity: _fadeAnimation,
-                  child: Text(
-                    'Need to register a dog? Find it under External Services.',
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: theme.colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.black.withOpacity(0.05)),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                          child: Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Need to register a dog? Find it under External Services.',
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HighlightPill extends StatelessWidget {
+  final String label;
+
+  const _HighlightPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.16),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
       ),
     );
   }
