@@ -16,20 +16,40 @@ class ResponsiveScaffold extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
+        final bool isDesktop = width >= 1200;
 
         String deviceType = 'Mobile';
-        if (width >= 1200) {
+        if (isDesktop) {
           deviceType = 'Desktop';
         } else if (width >= 600) {
           deviceType = 'Tablet';
         }
 
         return Scaffold(
-          appBar: AppBar(title: Text('$deviceType Layout')),
-          drawer: AppDrawer(
-            onThemeToggle: onThemeToggle,
+          appBar: AppBar(
+            title: Text('$deviceType Layout'),
+            automaticallyImplyLeading: !isDesktop,
           ),
-          body: childBuilder(deviceType),
+          drawer: isDesktop
+              ? null
+              : AppDrawer(
+                  onThemeToggle: onThemeToggle,
+                ),
+          body: isDesktop
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: 280,
+                      child: AppDrawer(
+                        onThemeToggle: onThemeToggle,
+                        isPersistent: true,
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: childBuilder(deviceType)),
+                  ],
+                )
+              : childBuilder(deviceType),
         );
       },
     );

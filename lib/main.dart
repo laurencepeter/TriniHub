@@ -33,10 +33,29 @@ class _MyAppState extends State<MyApp> {
   }
 
   ThemeData _buildTheme(Brightness brightness) {
+    const seedColor = Color(0xFF4C6B88);
+    final baseScheme = ColorScheme.fromSeed(
+      seedColor: seedColor,
+      brightness: brightness,
+    );
+    final colorScheme = baseScheme.copyWith(
+      surface: brightness == Brightness.light
+          ? const Color(0xFFF6F7F9)
+          : const Color(0xFF121417),
+      surfaceVariant: brightness == Brightness.light
+          ? const Color(0xFFE6E9EE)
+          : const Color(0xFF1F242B),
+    );
     return ThemeData(
       brightness: brightness,
       useMaterial3: true,
-      colorSchemeSeed: Colors.indigo,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: colorScheme.surface,
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
+        elevation: 0,
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
           TargetPlatform.android: SmoothPageTransitionsBuilder(),
