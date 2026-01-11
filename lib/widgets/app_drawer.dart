@@ -20,36 +20,6 @@ class AppDrawer extends StatelessWidget {
     this.isPersistent = false,
   });
 
-  Route<T> _buildSmoothRoute<T>(Widget page) {
-    return PageRouteBuilder<T>(
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        final fadeAnimation = Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).animate(curvedAnimation);
-        final slideAnimation = Tween<Offset>(
-          begin: const Offset(0.0, 0.04),
-          end: Offset.zero,
-        ).animate(curvedAnimation);
-        return FadeTransition(
-          opacity: fadeAnimation,
-          child: SlideTransition(
-            position: slideAnimation,
-            child: child,
-          ),
-        );
-      },
-      transitionDuration: const Duration(milliseconds: 300),
-      reverseTransitionDuration: const Duration(milliseconds: 250),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -63,7 +33,7 @@ class AppDrawer extends StatelessWidget {
       closeDrawer();
       Navigator.pushReplacement(
         context,
-        _buildSmoothRoute(page),
+        MaterialPageRoute(builder: (context) => page),
       );
     }
 
@@ -174,7 +144,7 @@ class AppDrawer extends StatelessWidget {
               closeDrawer();
               Navigator.push(
                 context,
-                _buildSmoothRoute(InternalServices()),
+                MaterialPageRoute(builder: (context) => InternalServices()),
               );
             },
           ),
@@ -185,8 +155,8 @@ class AppDrawer extends StatelessWidget {
               closeDrawer();
               Navigator.push(
                 context,
-                _buildSmoothRoute(
-                  const QRScannerPage(
+                MaterialPageRoute(
+                  builder: (context) => const QRScannerPage(
                     departmentId: 'internal-services',
                     eventType: 'internal',
                   ),

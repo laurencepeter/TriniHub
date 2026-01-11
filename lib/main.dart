@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
-import 'package:local_app_tt/widgets/smooth_page_transitions.dart';
+import 'package:local_app_tt/widgets/no_page_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -58,11 +58,11 @@ class _MyAppState extends State<MyApp> {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: SmoothPageTransitionsBuilder(),
-          TargetPlatform.iOS: SmoothPageTransitionsBuilder(),
-          TargetPlatform.linux: SmoothPageTransitionsBuilder(),
-          TargetPlatform.macOS: SmoothPageTransitionsBuilder(),
-          TargetPlatform.windows: SmoothPageTransitionsBuilder(),
+          TargetPlatform.android: NoPageTransitionsBuilder(),
+          TargetPlatform.iOS: NoPageTransitionsBuilder(),
+          TargetPlatform.linux: NoPageTransitionsBuilder(),
+          TargetPlatform.macOS: NoPageTransitionsBuilder(),
+          TargetPlatform.windows: NoPageTransitionsBuilder(),
         },
       ),
     );

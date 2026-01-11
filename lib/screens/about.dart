@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/widgets/breadcrumbs.dart';
 
 class AboutPage extends StatelessWidget {
   final String device;
@@ -28,6 +29,8 @@ class AboutPage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
+              const Breadcrumbs(items: ['Home', 'About']),
+              const SizedBox(height: 12),
               Text(
                 'About',
                 style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
