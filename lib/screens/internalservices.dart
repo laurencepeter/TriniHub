@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
+import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/service_tile.dart';
 
 class InternalServices extends StatelessWidget {
@@ -27,31 +28,38 @@ class InternalServices extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Internal Services',
-                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    const Breadcrumbs(items: ['Home', 'Services', 'Internal Services']),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Internal Services',
+                                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                'Team workflows and operational tools',
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'Team workflows and operational tools',
-                            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                        ),
+                      ],
                     ),
                   ],
                 ),

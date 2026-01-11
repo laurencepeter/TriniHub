@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/widgets/breadcrumbs.dart';
 
 class HomePage extends StatefulWidget {
   final String device;
@@ -56,6 +57,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Breadcrumbs(items: ['Home']),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     CircleAvatar(
