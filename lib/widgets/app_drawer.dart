@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/about.dart';
+import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/profile.dart';
+import 'package:local_app_tt/screens/services.dart';
+import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
   final void Function(bool) onThemeToggle;
+  final bool isPersistent;
 
   const AppDrawer({
     super.key,
     required this.onThemeToggle,
+    this.isPersistent = false,
   });
 
   Route<T> _buildSmoothRoute<T>(Widget page) {
@@ -45,6 +53,19 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    void closeDrawer() {
+      if (!isPersistent) {
+        Navigator.pop(context);
+      }
+    }
+
+    void navigateTo(Widget page) {
+      closeDrawer();
+      Navigator.pushReplacement(
+        context,
+        _buildSmoothRoute(page),
+      );
+    }
 
     return Drawer(
       child: ListView(
@@ -88,32 +109,48 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Home'),
             leading: const Icon(Icons.home),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/home');
+              navigateTo(
+                ResponsiveScaffold(
+                  onThemeToggle: onThemeToggle,
+                  childBuilder: (device) => HomePage(device: device),
+                ),
+              );
             },
           ),
           ListTile(
             title: const Text('Profile'),
             leading: const Icon(Icons.account_circle),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/profile');
+              navigateTo(
+                ResponsiveScaffold(
+                  onThemeToggle: onThemeToggle,
+                  childBuilder: (device) => ProfilePage(device: device),
+                ),
+              );
             },
           ),
           ListTile(
             title: const Text('Settings'),
             leading: const Icon(Icons.settings),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/settings');
+              navigateTo(
+                ResponsiveScaffold(
+                  onThemeToggle: onThemeToggle,
+                  childBuilder: (device) => SettingsPage(device: device),
+                ),
+              );
             },
           ),
           ListTile(
             title: const Text('About'),
             leading: const Icon(Icons.info),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/about');
+              navigateTo(
+                ResponsiveScaffold(
+                  onThemeToggle: onThemeToggle,
+                  childBuilder: (device) => AboutPage(device: device),
+                ),
+              );
             },
           ),
           const Divider(),
@@ -121,7 +158,12 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Services'),
             leading: const Icon(Icons.info),
             onTap: () {
-              // Navigate to Settings Screen
+              navigateTo(
+                ResponsiveScaffold(
+                  onThemeToggle: onThemeToggle,
+                  childBuilder: (device) => ServicesPage(device: device),
+                ),
+              );
             },
           ),
           const Divider(),
@@ -129,7 +171,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Internal'),
             leading: const Icon(Icons.integration_instructions),
             onTap: () {
-              Navigator.pop(context);
+              closeDrawer();
               Navigator.push(
                 context,
                 _buildSmoothRoute(InternalServices()),
@@ -140,13 +182,13 @@ class AppDrawer extends StatelessWidget {
             title: const Text('External'),
             leading: const Icon(Icons.outdoor_grill_sharp),
             onTap: () {
-              Navigator.pop(context);
+              closeDrawer();
               Navigator.push(
                 context,
                 _buildSmoothRoute(
                   const QRScannerPage(
-                    departmentId: 'default-dept',
-                    eventType: 'out',
+                    departmentId: 'internal-services',
+                    eventType: 'internal',
                   ),
                 ),
               );
