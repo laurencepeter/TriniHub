@@ -729,8 +729,24 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Pending approval',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.orange[800],
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  'We logged this dog into the database with the details provided.',
+                  'We logged this dog into the database with the details provided. You can still review or edit this submission.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
@@ -743,12 +759,27 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 _buildSummaryTile('Dog number', _dogNumberController.text, Icons.confirmation_number_outlined),
                 _buildSummaryTile('Dog name', _dogNameController.text, Icons.pets_outlined),
                 const SizedBox(height: 18),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 18.0, vertical: 12),
-                    child: Text('Close'),
-                  ),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => setState(() => _submitted = false),
+                      icon: const Icon(Icons.edit),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
+                        child: Text('Edit submission'),
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 18.0, vertical: 12),
+                        child: Text('Close'),
+                      ),
+                    ),
+                  ],
                 )
               ],
             ),
