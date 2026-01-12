@@ -17,6 +17,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final FocusNode _passwordFocusNode = FocusNode();
   bool isLoading = false;
   String? errorMessage;
   late final AnimationController _controller;
@@ -36,6 +37,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    _passwordFocusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -169,19 +171,33 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             const SizedBox(height: 12),
                             TextField(
                               controller: emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.email],
                               decoration: const InputDecoration(
                                 labelText: 'Email address',
                                 prefixIcon: Icon(Icons.mail_outline),
                               ),
+                              onSubmitted: (_) {
+                                _passwordFocusNode.requestFocus();
+                              },
                             ),
                             const SizedBox(height: 12),
                             TextField(
                               controller: passwordController,
+                              focusNode: _passwordFocusNode,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.password],
                               decoration: const InputDecoration(
                                 labelText: 'Password',
                                 prefixIcon: Icon(Icons.lock_outline),
                               ),
                               obscureText: true,
+                              onSubmitted: (_) {
+                                if (!isLoading) {
+                                  signIn();
+                                }
+                              },
                             ),
                             const SizedBox(height: 16),
                             AnimatedSwitcher(
