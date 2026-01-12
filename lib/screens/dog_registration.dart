@@ -554,11 +554,14 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
-        style: const TextStyle(fontWeight: FontWeight.w500),
+        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           helperText: helper,
           floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: const TextStyle(color: Colors.black87),
+          helperStyle: const TextStyle(color: Colors.black54),
+          floatingLabelStyle: const TextStyle(color: Colors.black87),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -594,10 +597,14 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: DropdownButtonFormField<String>(
         value: value,
+        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           helperText: helper,
           floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: const TextStyle(color: Colors.black87),
+          helperStyle: const TextStyle(color: Colors.black54),
+          floatingLabelStyle: const TextStyle(color: Colors.black87),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -610,7 +617,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
             .map(
               (option) => DropdownMenuItem<String>(
                 value: option.id,
-                child: Text(option.name),
+                child: Text(option.name, style: const TextStyle(color: Colors.black87)),
               ),
             )
             .toList(),
@@ -639,10 +646,14 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       child: TextFormField(
         readOnly: true,
         key: ValueKey(value),
+        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           helperText: helper,
           floatingLabelBehavior: FloatingLabelBehavior.always,
+          labelStyle: const TextStyle(color: Colors.black87),
+          helperStyle: const TextStyle(color: Colors.black54),
+          floatingLabelStyle: const TextStyle(color: Colors.black87),
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
