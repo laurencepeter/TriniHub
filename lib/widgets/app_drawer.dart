@@ -77,7 +77,7 @@ class AppDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             title: const Text('Home'),
-            leading: const Icon(Icons.home),
+            leading: const Icon(Icons.home_rounded),
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
@@ -89,7 +89,7 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('Profile'),
-            leading: const Icon(Icons.account_circle),
+            leading: const Icon(Icons.person_rounded),
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
@@ -101,7 +101,7 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('Settings'),
-            leading: const Icon(Icons.settings),
+            leading: const Icon(Icons.settings_rounded),
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
@@ -113,7 +113,7 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('About'),
-            leading: const Icon(Icons.info),
+            leading: const Icon(Icons.info_outline_rounded),
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
@@ -126,7 +126,7 @@ class AppDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             title: const Text('Services'),
-            leading: const Icon(Icons.info),
+            leading: const Icon(Icons.design_services_rounded),
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
@@ -139,7 +139,7 @@ class AppDrawer extends StatelessWidget {
           const Divider(),
           ListTile(
             title: const Text('Internal'),
-            leading: const Icon(Icons.integration_instructions),
+            leading: const Icon(Icons.apartment_rounded),
             onTap: () {
               closeDrawer();
               Navigator.push(
@@ -150,7 +150,7 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             title: const Text('External'),
-            leading: const Icon(Icons.outdoor_grill_sharp),
+            leading: const Icon(Icons.public_rounded),
             onTap: () {
               closeDrawer();
               Navigator.push(
