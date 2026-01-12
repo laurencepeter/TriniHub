@@ -63,8 +63,7 @@ class DogRegistrationService {
       'region_id': ownerRegionId,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
-    final ownerResponse = await _client.from('owners').insert(ownerPayload).select('id').single();
-    final ownerId = ownerResponse['id'] as String;
+    final ownerId = await _ensureOwner(ownerPayload, userId);
 
     final dogPayload = <String, dynamic>{
       'dog_number': dogNumber,
@@ -89,5 +88,20 @@ class DogRegistrationService {
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
     await _client.from('dog_ownerships').insert(ownershipPayload);
+  }
+
+  Future<String> _ensureOwner(Map<String, dynamic> ownerPayload, String userId) async {
+    final existingOwner = await _client
+        .from('owners')
+        .select('id')
+        .eq('auth_user_id', userId)
+        .maybeSingle();
+
+    if (existingOwner != null) {
+      return existingOwner['id'] as String;
+    }
+
+    final ownerResponse = await _client.from('owners').insert(ownerPayload).select('id').single();
+    return ownerResponse['id'] as String;
   }
 }
