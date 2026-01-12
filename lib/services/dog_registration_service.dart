@@ -1,46 +1,93 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class LookupOption {
+  final String id;
+  final String name;
+
+  const LookupOption({required this.id, required this.name});
+}
+
 class DogRegistrationService {
   DogRegistrationService._();
   static final DogRegistrationService instance = DogRegistrationService._();
 
   final SupabaseClient _client = Supabase.instance.client;
 
+  Future<List<LookupOption>> fetchBreeds() async {
+    final response = await _client.from('breeds').select('id,name').order('name');
+    return (response as List<dynamic>)
+        .map((row) => LookupOption(id: row['id'] as String, name: row['name'] as String))
+        .toList();
+  }
+
+  Future<List<LookupOption>> fetchRegions() async {
+    final response = await _client.from('regions').select('id,name').order('name');
+    return (response as List<dynamic>)
+        .map((row) => LookupOption(id: row['id'] as String, name: row['name'] as String))
+        .toList();
+  }
+
   Future<void> registerDog({
-    required String ownerName,
-    required String ownerContact,
-    required String dogName,
-    required String breed,
-    required double ageYears,
-    required double weight,
+    required String ownerFirstName,
+    required String ownerLastName,
+    String? ownerPhone,
+    String? ownerEmail,
+    String? ownerNationalId,
+    String? ownerAddressLine1,
+    String? ownerAddressLine2,
+    String? ownerRegionId,
+    required String dogNumber,
+    String? dogName,
+    String? dogSex,
+    String? dogBreedId,
+    String? dogColor,
+    DateTime? dogDob,
     String? microchipId,
-    required String vaccinationStatus,
-    String? temperamentNotes,
-    String? careNotes,
-    required bool isNeutered,
-    required int activityLevel,
-    required List<String> traits,
+    String? dogNotes,
+    DateTime? ownershipStartDate,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
       throw Exception('User not authenticated');
     }
 
-    await _client.from('dog_registrations').insert({
-      'user_id': userId,
-      'owner_name': ownerName,
-      'owner_contact': ownerContact,
-      'dog_name': dogName,
-      'breed': breed,
-      'age_years': ageYears,
-      'weight': weight,
+    final ownerPayload = <String, dynamic>{
+      'auth_user_id': userId,
+      'first_name': ownerFirstName,
+      'last_name': ownerLastName,
+      'phone': ownerPhone,
+      'email': ownerEmail,
+      'national_id': ownerNationalId,
+      'address_line1': ownerAddressLine1,
+      'address_line2': ownerAddressLine2,
+      'region_id': ownerRegionId,
+    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final ownerResponse = await _client.from('owners').insert(ownerPayload).select('id').single();
+    final ownerId = ownerResponse['id'] as String;
+
+    final dogPayload = <String, dynamic>{
+      'dog_number': dogNumber,
+      'name': dogName,
+      'sex': dogSex ?? 'unknown',
+      'breed_id': dogBreedId,
+      'color': dogColor,
+      'dob': dogDob?.toIso8601String().split('T').first,
       'microchip_id': microchipId,
-      'vaccination_status': vaccinationStatus,
-      'temperament_notes': temperamentNotes,
-      'care_notes': careNotes,
-      'is_neutered': isNeutered,
-      'activity_level': activityLevel,
-      'traits': traits,
-    });
+      'status': 'active',
+      'current_owner_id': ownerId,
+      'notes': dogNotes,
+    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final dogResponse = await _client.from('dogs').insert(dogPayload).select('id').single();
+    final dogId = dogResponse['id'] as String;
+
+    final ownershipPayload = <String, dynamic>{
+      'dog_id': dogId,
+      'owner_id': ownerId,
+      'start_date': ownershipStartDate?.toIso8601String().split('T').first,
+    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    await _client.from('dog_ownerships').insert(ownershipPayload);
   }
 }
