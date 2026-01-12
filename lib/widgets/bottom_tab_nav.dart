@@ -18,7 +18,7 @@ class BottomNavBar extends StatelessWidget {
       type: BottomNavigationBarType.fixed,
       backgroundColor: colorScheme.surface,
       selectedItemColor: colorScheme.primary,
-      unselectedItemColor: colorScheme.onSurfaceVariant,
+      unselectedItemColor: colorScheme.onSurface.withOpacity(0.7),
       showUnselectedLabels: true,
       selectedLabelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
       unselectedLabelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),

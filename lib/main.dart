@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -24,12 +25,36 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  static const _themePreferenceKey = 'theme_mode_is_dark';
   ThemeMode _themeMode = ThemeMode.light;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool(_themePreferenceKey);
+    if (!mounted || isDark == null) {
+      return;
+    }
+    setState(() {
+      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
 
   void toggleTheme(bool isDark) {
     setState(() {
       _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
     });
+    _persistThemeMode(isDark);
+  }
+
+  Future<void> _persistThemeMode(bool isDark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_themePreferenceKey, isDark);
   }
 
   ThemeData _buildTheme(Brightness brightness) {
@@ -45,11 +70,17 @@ class _MyAppState extends State<MyApp> {
       surfaceVariant: brightness == Brightness.light
           ? const Color(0xFFE6E9EE)
           : const Color(0xFF1F242B),
+      onSurfaceVariant: brightness == Brightness.light
+          ? const Color(0xFF3B4552)
+          : baseScheme.onSurfaceVariant,
     );
     return ThemeData(
       brightness: brightness,
       useMaterial3: true,
       colorScheme: colorScheme,
+      hintColor: brightness == Brightness.light
+          ? const Color(0xFF4B5664)
+          : colorScheme.onSurfaceVariant,
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
