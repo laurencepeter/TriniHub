@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_app_tt/services/dog_registration_service.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
   const DogRegistrationScreen({super.key});
@@ -27,6 +28,8 @@ class DogRegistrationScreen extends StatefulWidget {
 
 class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  final DogRegistrationService _registrationService = DogRegistrationService.instance;
 
   final TextEditingController _ownerNameController = TextEditingController();
   final TextEditingController _ownerContactController = TextEditingController();
@@ -67,12 +70,48 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       _submitting = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
+    final snackBar = ScaffoldMessenger.of(context);
+    try {
+      await _registrationService.registerDog(
+        ownerName: _ownerNameController.text.trim(),
+        ownerContact: _ownerContactController.text.trim(),
+        dogName: _dogNameController.text.trim(),
+        breed: _breedController.text.trim(),
+        ageYears: double.parse(_ageController.text.trim()),
+        weight: double.parse(_weightController.text.trim()),
+        microchipId: _microchipController.text.trim().isEmpty ? null : _microchipController.text.trim(),
+        vaccinationStatus: _vaccinationController.text.trim(),
+        temperamentNotes: _temperamentController.text.trim().isEmpty ? null : _temperamentController.text.trim(),
+        careNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        isNeutered: _neutered,
+        activityLevel: _activityLevel.round(),
+        traits: _traits.toList(),
+      );
 
-    setState(() {
-      _submitting = false;
-      _submitted = true;
-    });
+      if (!mounted) return;
+      snackBar.showSnackBar(
+        const SnackBar(
+          content: Text('Dog registration saved to the database.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      setState(() {
+        _submitted = true;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      snackBar.showSnackBar(
+        SnackBar(
+          content: Text('Registration failed: ${error.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+      });
+    }
   }
 
   @override
@@ -153,7 +192,14 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                             children: [
                               Expanded(child: _buildTextField(_ownerNameController, 'Owner name', 'Who is responsible for this dog?')),
                               SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(child: _buildTextField(_ownerContactController, 'Contact number or email', 'We will use this to follow up.')),
+                              Expanded(
+                                child: _buildTextField(
+                                  _ownerContactController,
+                                  'Contact number or email',
+                                  'We will use this to follow up.',
+                                  keyboardType: TextInputType.emailAddress,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -169,9 +215,27 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                           Flex(
                             direction: isWide ? Axis.horizontal : Axis.vertical,
                             children: [
-                              Expanded(child: _buildTextField(_ageController, 'Age', 'Years & months')),
+                              Expanded(
+                                child: _buildTextField(
+                                  _ageController,
+                                  'Age (years)',
+                                  'Numbers only (e.g. 3.5).',
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                                  validator: _validateNumber,
+                                ),
+                              ),
                               SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(child: _buildTextField(_weightController, 'Weight', 'kg or lbs')),
+                              Expanded(
+                                child: _buildTextField(
+                                  _weightController,
+                                  'Weight',
+                                  'Numbers only (kg or lbs).',
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
+                                  validator: _validateNumber,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -356,12 +420,26 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     );
   }
 
+  String? _validateNumber(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Required field';
+    }
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null) {
+      return 'Enter a valid number';
+    }
+    return null;
+  }
+
   Widget _buildTextField(
     TextEditingController controller,
     String label,
     String helper, {
     int maxLines = 1,
     bool isRequired = true,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -370,6 +448,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           labelText: label,
@@ -386,6 +466,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         validator: (value) {
           if (isRequired && (value == null || value.isEmpty)) {
             return 'Required field';
+          }
+          if (validator != null) {
+            return validator(value);
           }
           return null;
         },
