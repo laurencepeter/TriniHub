@@ -37,6 +37,7 @@ dependencies:
   supabase_flutter: ^2.9.0
   flutter_dotenv: ^5.2.1
   mobile_scanner: ^7.0.0
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
