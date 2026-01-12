@@ -31,36 +31,75 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   final DogRegistrationService _registrationService = DogRegistrationService.instance;
 
-  final TextEditingController _ownerNameController = TextEditingController();
-  final TextEditingController _ownerContactController = TextEditingController();
+  final TextEditingController _ownerFirstNameController = TextEditingController();
+  final TextEditingController _ownerLastNameController = TextEditingController();
+  final TextEditingController _ownerPhoneController = TextEditingController();
+  final TextEditingController _ownerEmailController = TextEditingController();
+  final TextEditingController _ownerNationalIdController = TextEditingController();
+  final TextEditingController _ownerAddressLine1Controller = TextEditingController();
+  final TextEditingController _ownerAddressLine2Controller = TextEditingController();
+  final TextEditingController _dogNumberController = TextEditingController();
   final TextEditingController _dogNameController = TextEditingController();
-  final TextEditingController _breedController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
-  final TextEditingController _weightController = TextEditingController();
+  final TextEditingController _dogColorController = TextEditingController();
   final TextEditingController _microchipController = TextEditingController();
-  final TextEditingController _vaccinationController = TextEditingController();
-  final TextEditingController _temperamentController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  final Set<String> _traits = {};
 
-  bool _neutered = false;
-  double _activityLevel = 3;
+  List<LookupOption> _breeds = [];
+  List<LookupOption> _regions = [];
+  String? _selectedBreedId;
+  String? _selectedRegionId;
+  String _selectedSex = 'unknown';
+  DateTime? _dogDob;
+  DateTime? _ownershipStartDate;
+
+  bool _loadingLookups = true;
+  String? _lookupError;
   bool _submitting = false;
   bool _submitted = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadLookups();
+  }
+
+  @override
   void dispose() {
-    _ownerNameController.dispose();
-    _ownerContactController.dispose();
+    _ownerFirstNameController.dispose();
+    _ownerLastNameController.dispose();
+    _ownerPhoneController.dispose();
+    _ownerEmailController.dispose();
+    _ownerNationalIdController.dispose();
+    _ownerAddressLine1Controller.dispose();
+    _ownerAddressLine2Controller.dispose();
+    _dogNumberController.dispose();
     _dogNameController.dispose();
-    _breedController.dispose();
-    _ageController.dispose();
-    _weightController.dispose();
+    _dogColorController.dispose();
     _microchipController.dispose();
-    _vaccinationController.dispose();
-    _temperamentController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLookups() async {
+    try {
+      final results = await Future.wait([
+        _registrationService.fetchBreeds(),
+        _registrationService.fetchRegions(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _breeds = results[0] as List<LookupOption>;
+        _regions = results[1] as List<LookupOption>;
+        _loadingLookups = false;
+        _lookupError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingLookups = false;
+        _lookupError = 'Unable to load dropdown options.';
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -73,19 +112,23 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     final snackBar = ScaffoldMessenger.of(context);
     try {
       await _registrationService.registerDog(
-        ownerName: _ownerNameController.text.trim(),
-        ownerContact: _ownerContactController.text.trim(),
-        dogName: _dogNameController.text.trim(),
-        breed: _breedController.text.trim(),
-        ageYears: double.parse(_ageController.text.trim()),
-        weight: double.parse(_weightController.text.trim()),
+        ownerFirstName: _ownerFirstNameController.text.trim(),
+        ownerLastName: _ownerLastNameController.text.trim(),
+        ownerPhone: _ownerPhoneController.text.trim().isEmpty ? null : _ownerPhoneController.text.trim(),
+        ownerEmail: _ownerEmailController.text.trim().isEmpty ? null : _ownerEmailController.text.trim(),
+        ownerNationalId: _ownerNationalIdController.text.trim().isEmpty ? null : _ownerNationalIdController.text.trim(),
+        ownerAddressLine1: _ownerAddressLine1Controller.text.trim().isEmpty ? null : _ownerAddressLine1Controller.text.trim(),
+        ownerAddressLine2: _ownerAddressLine2Controller.text.trim().isEmpty ? null : _ownerAddressLine2Controller.text.trim(),
+        ownerRegionId: _selectedRegionId,
+        dogNumber: _dogNumberController.text.trim(),
+        dogName: _dogNameController.text.trim().isEmpty ? null : _dogNameController.text.trim(),
+        dogSex: _selectedSex,
+        dogBreedId: _selectedBreedId,
+        dogColor: _dogColorController.text.trim().isEmpty ? null : _dogColorController.text.trim(),
+        dogDob: _dogDob,
         microchipId: _microchipController.text.trim().isEmpty ? null : _microchipController.text.trim(),
-        vaccinationStatus: _vaccinationController.text.trim(),
-        temperamentNotes: _temperamentController.text.trim().isEmpty ? null : _temperamentController.text.trim(),
-        careNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        isNeutered: _neutered,
-        activityLevel: _activityLevel.round(),
-        traits: _traits.toList(),
+        dogNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        ownershipStartDate: _ownershipStartDate,
       );
 
       if (!mounted) return;
@@ -185,92 +228,187 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          Flex(
-                            direction: isWide ? Axis.horizontal : Axis.vertical,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: _buildTextField(_ownerNameController, 'Owner name', 'Who is responsible for this dog?')),
-                              SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(
-                                child: _buildTextField(
-                                  _ownerContactController,
-                                  'Contact number or email',
-                                  'We will use this to follow up.',
-                                  keyboardType: TextInputType.emailAddress,
-                                ),
+                          if (_loadingLookups) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 12),
+                          ],
+                          if (_lookupError != null) ...[
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                _lookupError!,
+                                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Flex(
-                            direction: isWide ? Axis.horizontal : Axis.vertical,
-                            children: [
-                              Expanded(child: _buildTextField(_dogNameController, "Dog's name", 'Call name used daily.')),
-                              SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(child: _buildTextField(_breedController, 'Breed or mix', 'e.g. German Shepherd / Mix')),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Flex(
-                            direction: isWide ? Axis.horizontal : Axis.vertical,
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  _ageController,
-                                  'Age (years)',
-                                  'Numbers only (e.g. 3.5).',
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                                  validator: _validateNumber,
-                                ),
-                              ),
-                              SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(
-                                child: _buildTextField(
-                                  _weightController,
-                                  'Weight',
-                                  'Numbers only (kg or lbs).',
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                                  validator: _validateNumber,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Flex(
-                            direction: isWide ? Axis.horizontal : Axis.vertical,
-                            children: [
-                              Expanded(
-                                child: _buildTextField(
-                                  _microchipController,
-                                  'Microchip ID',
-                                  'Optional but recommended.',
-                                  isRequired: false,
-                                ),
-                              ),
-                              SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
-                              Expanded(child: _buildTextField(_vaccinationController, 'Vaccination status', 'Latest shots & dates.')),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           _buildSectionCard(
-                            title: 'Temperament notes',
+                            title: 'Owner details',
                             child: Column(
                               children: [
+                                Flex(
+                                  direction: isWide ? Axis.horizontal : Axis.vertical,
+                                  children: [
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _ownerFirstNameController,
+                                        'First name',
+                                        'Legal first name',
+                                      ),
+                                    ),
+                                    SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _ownerLastNameController,
+                                        'Last name',
+                                        'Legal last name',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Flex(
+                                  direction: isWide ? Axis.horizontal : Axis.vertical,
+                                  children: [
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _ownerPhoneController,
+                                        'Phone number',
+                                        'Best number to reach the owner',
+                                        keyboardType: TextInputType.phone,
+                                        isRequired: false,
+                                      ),
+                                    ),
+                                    SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _ownerEmailController,
+                                        'Email address',
+                                        'Optional, for follow-ups',
+                                        keyboardType: TextInputType.emailAddress,
+                                        isRequired: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
                                 _buildTextField(
-                                  _temperamentController,
-                                  'Energy & behaviour',
-                                  'Friendly, anxious, reactive to other dogs... ',
-                                  maxLines: 2,
+                                  _ownerNationalIdController,
+                                  'National ID',
+                                  'Optional government-issued ID',
                                   isRequired: false,
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 14),
+                                _buildTextField(
+                                  _ownerAddressLine1Controller,
+                                  'Address line 1',
+                                  'Street address',
+                                  isRequired: false,
+                                ),
+                                const SizedBox(height: 14),
+                                _buildTextField(
+                                  _ownerAddressLine2Controller,
+                                  'Address line 2',
+                                  'Apartment, suite, etc.',
+                                  isRequired: false,
+                                ),
+                                const SizedBox(height: 14),
+                                _buildDropdownField(
+                                  label: 'Region',
+                                  helper: 'Optional region of residence',
+                                  value: _selectedRegionId,
+                                  items: _regions,
+                                  isRequired: false,
+                                  onChanged: _loadingLookups ? null : (value) => setState(() => _selectedRegionId = value),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _buildSectionCard(
+                            title: 'Dog details',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Flex(
+                                  direction: isWide ? Axis.horizontal : Axis.vertical,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _dogNumberController,
+                                        'Dog number',
+                                        'Unique ID issued by the registry',
+                                      ),
+                                    ),
+                                    SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _dogNameController,
+                                        "Dog's name",
+                                        'Optional call name',
+                                        isRequired: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                _buildDropdownField(
+                                  label: 'Sex',
+                                  helper: 'Biological sex on record',
+                                  value: _selectedSex,
+                                  items: const [
+                                    LookupOption(id: 'male', name: 'Male'),
+                                    LookupOption(id: 'female', name: 'Female'),
+                                    LookupOption(id: 'unknown', name: 'Unknown'),
+                                  ],
+                                  onChanged: (value) => setState(() => _selectedSex = value ?? 'unknown'),
+                                ),
+                                const SizedBox(height: 14),
+                                _buildDropdownField(
+                                  label: 'Breed',
+                                  helper: 'Optional breed assignment',
+                                  value: _selectedBreedId,
+                                  items: _breeds,
+                                  isRequired: false,
+                                  onChanged: _loadingLookups ? null : (value) => setState(() => _selectedBreedId = value),
+                                ),
+                                const SizedBox(height: 14),
+                                Flex(
+                                  direction: isWide ? Axis.horizontal : Axis.vertical,
+                                  children: [
+                                    Expanded(
+                                      child: _buildTextField(
+                                        _dogColorController,
+                                        'Color',
+                                        'Primary coat color',
+                                        isRequired: false,
+                                      ),
+                                    ),
+                                    SizedBox(width: isWide ? 16 : 0, height: isWide ? 0 : 12),
+                                    Expanded(
+                                      child: _buildDateField(
+                                        label: 'Date of birth',
+                                        helper: 'Optional if unknown',
+                                        value: _dogDob,
+                                        onSelected: (value) => setState(() => _dogDob = value),
+                                        isRequired: false,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                _buildTextField(
+                                  _microchipController,
+                                  'Microchip ID',
+                                  'Optional but recommended',
+                                  isRequired: false,
+                                ),
+                                const SizedBox(height: 14),
                                 _buildTextField(
                                   _notesController,
-                                  'Care preferences',
-                                  'Feeding window, medication, triggers... ',
+                                  'Notes',
+                                  'Health, behavior, or other registry notes',
                                   maxLines: 3,
                                   isRequired: false,
                                 ),
@@ -279,37 +417,16 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                           ),
                           const SizedBox(height: 14),
                           _buildSectionCard(
-                            title: 'Wellness snapshot',
+                            title: 'Ownership',
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SwitchListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: const Text('Neutered / Spayed'),
-                                  subtitle: const Text('Tell us if the dog has been fixed'),
-                                  value: _neutered,
-                                  onChanged: (value) => setState(() => _neutered = value),
-                                ),
-                                const SizedBox(height: 6),
-                                Text('Activity level', style: theme.textTheme.titleMedium),
-                                Slider(
-                                  value: _activityLevel,
-                                  min: 1,
-                                  max: 5,
-                                  divisions: 4,
-                                  label: ['Calm', 'Chill', 'Balanced', 'Playful', 'High'][_activityLevel.round() - 1],
-                                  onChanged: (value) => setState(() => _activityLevel = value),
-                                ),
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: [
-                                    _buildChip('House trained'),
-                                    _buildChip('Good with kids'),
-                                    _buildChip('Prefers adults'),
-                                    _buildChip('Social with dogs'),
-                                    _buildChip('Special diet'),
-                                  ],
+                                _buildDateField(
+                                  label: 'Ownership start date',
+                                  helper: 'Defaults to today if left empty',
+                                  value: _ownershipStartDate,
+                                  onSelected: (value) => setState(() => _ownershipStartDate = value),
+                                  isRequired: false,
                                 ),
                               ],
                             ),
@@ -420,17 +537,6 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     );
   }
 
-  String? _validateNumber(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Required field';
-    }
-    final parsed = double.tryParse(value.trim());
-    if (parsed == null) {
-      return 'Enter a valid number';
-    }
-    return null;
-  }
-
   Widget _buildTextField(
     TextEditingController controller,
     String label,
@@ -438,7 +544,6 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     int maxLines = 1,
     bool isRequired = true,
     TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
     String? Function(String?)? validator,
   }) {
     return AnimatedContainer(
@@ -449,7 +554,6 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
         style: const TextStyle(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           labelText: label,
@@ -476,21 +580,106 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     );
   }
 
-  Widget _buildChip(String label) {
-    return FilterChip(
-      label: Text(label),
-      selected: _traits.contains(label),
-      showCheckmark: false,
-      onSelected: (value) {
-        setState(() {
-          if (value) {
-            _traits.add(label);
-          } else {
-            _traits.remove(label);
+  Widget _buildDropdownField({
+    required String label,
+    required String helper,
+    required String? value,
+    required List<LookupOption> items,
+    required ValueChanged<String?>? onChanged,
+    bool isRequired = true,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helper,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.black12),
+          ),
+        ),
+        items: items
+            .map(
+              (option) => DropdownMenuItem<String>(
+                value: option.id,
+                child: Text(option.name),
+              ),
+            )
+            .toList(),
+        onChanged: onChanged,
+        validator: (selected) {
+          if (isRequired && (selected == null || selected.isEmpty)) {
+            return 'Required field';
           }
-        });
-      },
+          return null;
+        },
+      ),
     );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required String helper,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onSelected,
+    bool isRequired = true,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: TextFormField(
+        readOnly: true,
+        key: ValueKey(value),
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helper,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.black12),
+          ),
+          suffixIcon: const Icon(Icons.calendar_today_outlined),
+        ),
+        initialValue: value == null ? '' : _formatDate(value),
+        onTap: () async {
+          final now = DateTime.now();
+          final initial = value ?? DateTime(now.year - 1, now.month, now.day);
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: initial,
+            firstDate: DateTime(1990),
+            lastDate: DateTime(now.year + 1, 12, 31),
+          );
+          if (picked != null) {
+            onSelected(picked);
+          }
+        },
+        validator: (selected) {
+          if (isRequired && (value == null)) {
+            return 'Required field';
+          }
+          return null;
+        },
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   Widget _buildSuccessState(ThemeData theme) {
@@ -535,9 +724,13 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                   style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 18),
-                _buildSummaryTile('Owner', _ownerNameController.text, Icons.person_outline),
-                _buildSummaryTile('Dog', _dogNameController.text, Icons.pets_outlined),
-                _buildSummaryTile('Breed', _breedController.text, Icons.badge_outlined),
+                _buildSummaryTile(
+                  'Owner',
+                  '${_ownerFirstNameController.text} ${_ownerLastNameController.text}'.trim(),
+                  Icons.person_outline,
+                ),
+                _buildSummaryTile('Dog number', _dogNumberController.text, Icons.confirmation_number_outlined),
+                _buildSummaryTile('Dog name', _dogNameController.text, Icons.pets_outlined),
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: () => Navigator.pop(context),
