@@ -12,32 +12,38 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      unselectedItemColor: Colors.white,
-      selectedItemColor: Colors.blue,
+      backgroundColor: colorScheme.surface,
+      selectedItemColor: colorScheme.primary,
+      unselectedItemColor: colorScheme.onSurfaceVariant,
+      showUnselectedLabels: true,
+      selectedLabelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+      unselectedLabelStyle: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),
       currentIndex: currentIndex,
       onTap: onTap,
       items: const [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
+          icon: Icon(Icons.home_rounded),
           label: 'Home',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.file_copy),
-          label: 'Copy',
+          icon: Icon(Icons.design_services_rounded),
+          label: 'Services',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.add),
-          label: 'Add',
+          icon: Icon(Icons.apartment_rounded),
+          label: 'Internal',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          label: 'Search',
+          icon: Icon(Icons.public_rounded),
+          label: 'External',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.close),
-          label: 'Close',
+          icon: Icon(Icons.settings_rounded),
+          label: 'Settings',
         ),
       ],
     );

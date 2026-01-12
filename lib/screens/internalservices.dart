@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/screens/externalservices.dart';
+import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/screens/services.dart';
+import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/service_tile.dart';
@@ -7,9 +11,49 @@ import 'package:local_app_tt/widgets/service_tile.dart';
 class InternalServices extends StatelessWidget {
   InternalServices({super.key});
 
+  String _deviceType(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= 1200) {
+      return 'Desktop';
+    }
+    if (width >= 600) {
+      return 'Tablet';
+    }
+    return 'Mobile';
+  }
+
+  void _handleBottomNavTap(BuildContext context, int index) {
+    if (index == 2) {
+      return;
+    }
+    final device = _deviceType(context);
+    Widget destination;
+    switch (index) {
+      case 0:
+        destination = HomePage(device: device);
+        break;
+      case 1:
+        destination = ServicesPage(device: device);
+        break;
+      case 3:
+        destination = ExternalServices();
+        break;
+      case 4:
+        destination = SettingsPage(device: device);
+        break;
+      default:
+        destination = HomePage(device: device);
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showBottomNav = MediaQuery.of(context).size.width < 1200;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -83,12 +127,12 @@ class InternalServices extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: 0,
-        onTap: (index) {
-          // Handle navigation or action based on index
-        },
-      ),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavBar(
+              currentIndex: 2,
+              onTap: (index) => _handleBottomNavTap(context, index),
+            )
+          : null,
     );
   }
 }
