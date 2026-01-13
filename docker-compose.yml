@@ -3,9 +3,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        SUPABASE_URL: https://supabase.fireydev.com
-        SUPABASE_ANON_KEY: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2NjYwMjkyMCwiZXhwIjo0OTIyMjc2NTIwLCJyb2xlIjoiYW5vbiJ9.ZqSlJJnNDhwOnElfAsMHAMWS61wi2mjBCxLlUW_jbBE
+      secrets:
+        - supabase_url
+        - supabase_anon_key
     ports:
       - "8080:80"
     restart: unless-stopped
+
+secrets:
+  supabase_url:
+    file: ./secrets/supabase_url
+  supabase_anon_key:
+    file: ./secrets/supabase_anon_key
