@@ -36,6 +36,10 @@ class _MyAppState extends State<MyApp> {
     ThemeSettings.instance.load();
   }
 
+  void _handleThemeToggle(bool isDark) {
+    ThemeSettings.instance.setThemeMode(isDark);
+  }
+
   ThemeData _buildTheme(Brightness brightness) {
     const seedColor = Color(0xFF4C6B88);
     final baseScheme = ColorScheme.fromSeed(
@@ -80,15 +84,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Trini Hub',
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
-      themeMode: _themeMode,
-      home: AuthGate(
-        key: ValueKey(_themeMode),
-        onThemeToggle: toggleTheme,
-      ),
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeSettings.instance.themeMode,
       builder: (context, themeMode, _) {
@@ -97,25 +92,9 @@ class _MyAppState extends State<MyApp> {
           theme: _buildTheme(Brightness.light),
           darkTheme: _buildTheme(Brightness.dark),
           themeMode: themeMode,
-          home: StreamBuilder<AuthState>(
-            stream: Supabase.instance.client.auth.onAuthStateChange,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              final session = snapshot.data?.session;
-
-              if (session != null) {
-                return const ResponsiveWrapper();
-              }
-
-              return LoginPage(
-                key: ValueKey(themeMode),
-              );
-            },
+          home: AuthGate(
+            key: ValueKey(themeMode),
+            onThemeToggle: _handleThemeToggle,
           ),
         );
       },
