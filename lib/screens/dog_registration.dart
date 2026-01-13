@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
@@ -251,7 +252,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       if (!mounted) return;
       snackBar.showSnackBar(
         SnackBar(
-          content: Text('Registration failed: ${error.toString()}'),
+          content: Text('Registration failed: ${mapSupabaseError(error)}'),
           backgroundColor: Colors.red,
         ),
       );
