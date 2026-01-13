@@ -19,7 +19,11 @@ String mapSupabaseError(Object error) {
     if (code == '42501' || error.message.toLowerCase().contains('row-level security')) {
       return 'You do not have permission to perform this action.';
     }
-    if (error.message.toLowerCase().contains('duplicate key')) {
+    final normalizedMessage = error.message.toLowerCase();
+    if (normalizedMessage.contains('owners_national_id_unique')) {
+      return 'An owner with that national ID already exists.';
+    }
+    if (normalizedMessage.contains('duplicate key')) {
       return 'That record already exists.';
     }
     return error.message;
