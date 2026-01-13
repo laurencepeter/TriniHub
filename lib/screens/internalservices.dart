@@ -7,6 +7,7 @@ import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/service_tile.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class InternalServices extends StatelessWidget {
   InternalServices({super.key});
@@ -30,19 +31,29 @@ class InternalServices extends StatelessWidget {
     Widget destination;
     switch (index) {
       case 0:
-        destination = HomePage(device: device);
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
         break;
       case 1:
-        destination = ServicesPage(device: device);
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ServicesPage(device: device),
+        );
         break;
       case 3:
-        destination = ExternalServices();
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ExternalServices(),
+        );
         break;
       case 4:
-        destination = SettingsPage(device: device);
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => SettingsPage(device: device),
+        );
         break;
       default:
-        destination = HomePage(device: device);
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
     }
     Navigator.pushReplacement(
       context,
