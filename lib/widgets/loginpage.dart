@@ -12,6 +12,8 @@ class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
     this.onThemeToggle,
+  const LoginPage({
+    super.key,
   });
 
   @override
@@ -72,10 +74,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder:
-                (_) => ResponsiveWrapper(
-                  onThemeToggle: widget.onThemeToggle,
-                ),
+            builder: (_) => const ResponsiveWrapper(),
           ),
         );
       }
@@ -264,6 +263,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                         builder: (_) => RegisterPage(
                                           onThemeToggle:
                                               widget.onThemeToggle ?? (value) {},
+                                          onThemeToggle: widget.onThemeToggle,
                                         ),
                                       ),
                                     );

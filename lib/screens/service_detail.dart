@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
   final ServiceOption option;
@@ -12,7 +13,9 @@ class ServiceDetailScreen extends StatefulWidget {
   static Route<void> route(ServiceOption option) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (context, animation, secondaryAnimation) => ServiceDetailScreen(option: option),
+      pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
+        childBuilder: (device) => ServiceDetailScreen(option: option),
+      ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
         return FadeTransition(

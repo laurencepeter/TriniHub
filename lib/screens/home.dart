@@ -4,6 +4,7 @@ import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class HomePage extends StatefulWidget {
   final String device;
@@ -165,7 +166,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => InternalServices()),
+                      MaterialPageRoute(
+                        builder: (context) => ResponsiveScaffold(
+                          childBuilder: (device) => InternalServices(),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -179,7 +184,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => ExternalServices()),
+                      MaterialPageRoute(
+                        builder: (context) => ResponsiveScaffold(
+                          childBuilder: (device) => ExternalServices(),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -453,7 +462,11 @@ class _SubmissionOverviewCard extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => ResponsiveScaffold(
+                          childBuilder: (device) => const DogSubmissionsScreen(),
+                        ),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.visibility_outlined, size: 18),

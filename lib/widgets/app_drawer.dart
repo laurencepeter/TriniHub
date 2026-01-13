@@ -8,15 +8,14 @@ import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
+import 'package:local_app_tt/services/theme_settings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
-  final void Function(bool) onThemeToggle;
   final bool isPersistent;
 
   const AppDrawer({
     super.key,
-    required this.onThemeToggle,
     this.isPersistent = false,
   });
 
@@ -68,7 +67,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Dark Mode'),
             value: isDarkMode,
             onChanged: (value) {
-              onThemeToggle(value);
+              ThemeSettings.instance.setThemeMode(value);
             },
             secondary: Icon(
               isDarkMode ? Icons.dark_mode : Icons.light_mode,
@@ -81,7 +80,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
-                  onThemeToggle: onThemeToggle,
                   childBuilder: (device) => HomePage(device: device),
                 ),
               );
@@ -93,7 +91,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
-                  onThemeToggle: onThemeToggle,
                   childBuilder: (device) => ProfilePage(device: device),
                 ),
               );
@@ -105,7 +102,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
-                  onThemeToggle: onThemeToggle,
                   childBuilder: (device) => SettingsPage(device: device),
                 ),
               );
@@ -117,7 +113,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
-                  onThemeToggle: onThemeToggle,
                   childBuilder: (device) => AboutPage(device: device),
                 ),
               );
@@ -130,7 +125,6 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               navigateTo(
                 ResponsiveScaffold(
-                  onThemeToggle: onThemeToggle,
                   childBuilder: (device) => ServicesPage(device: device),
                 ),
               );
@@ -144,7 +138,11 @@ class AppDrawer extends StatelessWidget {
               closeDrawer();
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => InternalServices()),
+                MaterialPageRoute(
+                  builder: (context) => ResponsiveScaffold(
+                    childBuilder: (device) => InternalServices(),
+                  ),
+                ),
               );
             },
           ),
@@ -156,9 +154,11 @@ class AppDrawer extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const QRScannerPage(
-                    departmentId: 'internal-services',
-                    eventType: 'internal',
+                  builder: (context) => ResponsiveScaffold(
+                    childBuilder: (device) => const QRScannerPage(
+                      departmentId: 'internal-services',
+                      eventType: 'internal',
+                    ),
                   ),
                 ),
               );
@@ -189,9 +189,7 @@ class AppDrawer extends StatelessWidget {
                 if (context.mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(
-                      builder: (_) => LoginPage(
-                        onThemeToggle: onThemeToggle,
-                      ),
+                      builder: (_) => const LoginPage(),
                     ),
                     (route) => false,
                   );
