@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
-  const DogRegistrationScreen({super.key});
+  const DogRegistrationScreen({super.key, this.initialDogId});
 
-  static Route<void> route() {
+  final String? initialDogId;
+
+  static Route<void> route({String? dogId}) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (context, animation, secondaryAnimation) => const DogRegistrationScreen(),
+      pageBuilder: (context, animation, secondaryAnimation) => DogRegistrationScreen(initialDogId: dogId),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
         return FadeTransition(
@@ -54,14 +57,20 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   bool _loadingLookups = true;
   String? _lookupError;
+  bool _loadingSubmissions = true;
+  bool _loadingSubmissionDetail = false;
+  String? _submissionsError;
   bool _submitting = false;
   bool _submitted = false;
   String? _submittedDogId;
+  String? _editingStatus;
+  bool _showLanding = false;
+  List<DogSubmission> _submissions = [];
 
   @override
   void initState() {
     super.initState();
-    _loadLookups();
+    _initialize();
   }
 
   @override
@@ -79,6 +88,19 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     _microchipController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _initialize() async {
+    await _loadLookups();
+    await _refreshSubmissions();
+    if (!mounted) return;
+    if (widget.initialDogId != null) {
+      await _loadSubmissionForEdit(widget.initialDogId!);
+      return;
+    }
+    setState(() {
+      _showLanding = _submissions.isNotEmpty;
+    });
   }
 
   Future<void> _loadLookups() async {
@@ -101,6 +123,82 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         _lookupError = 'Unable to load dropdown options.';
       });
     }
+  }
+
+  Future<void> _refreshSubmissions() async {
+    try {
+      final submissions = await _registrationService.fetchSubmissions();
+      if (!mounted) return;
+      setState(() {
+        _submissions = submissions;
+        _loadingSubmissions = false;
+        _submissionsError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingSubmissions = false;
+        _submissionsError = 'Unable to load submissions.';
+      });
+    }
+  }
+
+  Future<void> _loadSubmissionForEdit(String dogId) async {
+    setState(() {
+      _loadingSubmissionDetail = true;
+    });
+    final snackBar = ScaffoldMessenger.of(context);
+    try {
+      final detail = await _registrationService.fetchSubmissionDetail(dogId);
+      if (!mounted) return;
+      if (detail == null) {
+        snackBar.showSnackBar(
+          const SnackBar(content: Text('Unable to load that submission.')),
+        );
+        setState(() {
+          _loadingSubmissionDetail = false;
+        });
+        return;
+      }
+      _applySubmissionDetail(detail);
+      setState(() {
+        _showLanding = false;
+        _loadingSubmissionDetail = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      snackBar.showSnackBar(
+        SnackBar(content: Text('Unable to load submission: ${error.toString()}')),
+      );
+      setState(() {
+        _loadingSubmissionDetail = false;
+      });
+    }
+  }
+
+  void _applySubmissionDetail(DogSubmissionDetail detail) {
+    _ownerFirstNameController.text = detail.ownerFirstName;
+    _ownerLastNameController.text = detail.ownerLastName;
+    _ownerPhoneController.text = detail.ownerPhone ?? '';
+    _ownerEmailController.text = detail.ownerEmail ?? '';
+    _ownerNationalIdController.text = detail.ownerNationalId ?? '';
+    _ownerAddressLine1Controller.text = detail.ownerAddressLine1 ?? '';
+    _ownerAddressLine2Controller.text = detail.ownerAddressLine2 ?? '';
+    _dogNumberController.text = detail.dogNumber;
+    _dogNameController.text = detail.dogName ?? '';
+    _dogColorController.text = detail.dogColor ?? '';
+    _microchipController.text = detail.microchipId ?? '';
+    _notesController.text = detail.notes ?? '';
+    setState(() {
+      _selectedBreedId = detail.dogBreedId;
+      _selectedRegionId = detail.ownerRegionId;
+      _selectedSex = detail.dogSex;
+      _dogDob = detail.dogDob;
+      _ownershipStartDate = detail.ownershipStartDate;
+      _submittedDogId = detail.id;
+      _editingStatus = detail.status;
+      _submitted = false;
+    });
   }
 
   Future<void> _submit() async {
@@ -143,7 +241,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       setState(() {
         _submitted = true;
         _submittedDogId = dogId;
+        _editingStatus = 'pending';
       });
+      await _refreshSubmissions();
     } catch (error) {
       if (!mounted) return;
       snackBar.showSnackBar(
@@ -169,10 +269,12 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     setState(() {
       _submitted = false;
       _submittedDogId = null;
+      _editingStatus = null;
       _selectedBreedId = null;
       _selectedSex = 'unknown';
       _dogDob = null;
       _ownershipStartDate = null;
+      _showLanding = false;
     });
   }
 
@@ -206,10 +308,39 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
               duration: const Duration(milliseconds: 450),
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
-              child: _submitted ? _buildSuccessState(theme) : _buildForm(theme),
+              child: _buildContent(theme),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent(ThemeData theme) {
+    if (_submitted) {
+      return _buildSuccessState(theme);
+    }
+    if (_loadingSubmissions || _loadingSubmissionDetail) {
+      return _buildLoadingState(theme);
+    }
+    if (_showLanding) {
+      return _buildLandingState(theme);
+    }
+    return _buildForm(theme);
+  }
+
+  Widget _buildLoadingState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: theme.colorScheme.secondary),
+          const SizedBox(height: 12),
+          Text(
+            'Loading your submissions...',
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+          ),
+        ],
       ),
     );
   }
@@ -504,16 +635,40 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Dog Database Intake',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  _editingStatus == null ? 'Dog Database Intake' : 'Edit dog registration',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (_editingStatus != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _statusColor(_editingStatus!).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _statusLabel(_editingStatus!),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: _statusColor(_editingStatus!),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
-            'Capture the essentials in one modern view. Clean inputs, quick toggles, and smooth micro-interactions keep registrations fast.',
+            _editingStatus == null
+                ? 'Capture the essentials in one modern view. Clean inputs, quick toggles, and smooth micro-interactions keep registrations fast.'
+                : 'Updates to approved submissions will return to pending for review.',
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 12),
@@ -527,6 +682,192 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
               minHeight: 6,
               borderRadius: BorderRadius.circular(6),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandingState(ThemeData theme) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOutQuart,
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.white.withOpacity(0.08),
+                  border: Border.all(color: Colors.white.withOpacity(0.12)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Manage dog registrations',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Start a new submission or pick an existing registration to edit. Approved edits will return to pending status.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _startNewRegistration,
+                          icon: const Icon(Icons.add),
+                          label: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
+                            child: Text('Create new registration'),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                          ),
+                          icon: const Icon(Icons.visibility_outlined),
+                          label: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
+                            child: Text('View submissions'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSubmissionList(theme),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmissionList(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your submissions',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pending and approved dog registrations are listed below.',
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+          ),
+          if (_submissionsError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _submissionsError!,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 12),
+          if (_submissions.isEmpty)
+            Text(
+              'No submissions yet. Start a new registration above.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+            )
+          else
+            Column(
+              children: _submissions
+                  .map(
+                    (submission) => _buildSubmissionCard(theme, submission),
+                  )
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmissionCard(ThemeData theme, DogSubmission submission) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black.withOpacity(0.08)),
+        color: Colors.white,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+            child: Icon(Icons.pets, color: theme.colorScheme.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  submission.dogName?.isNotEmpty == true
+                      ? submission.dogName!
+                      : 'Dog #${submission.dogNumber}',
+                  style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Dog Registration • ${submission.dogNumber}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusColor(submission.status).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _statusLabel(submission.status),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: _statusColor(submission.status),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => _loadSubmissionForEdit(submission.id),
+            child: const Text('Edit'),
           ),
         ],
       ),
@@ -799,6 +1140,17 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                         child: Text('Register another dog'),
                       ),
                     ),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                      ),
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
+                        child: Text('View submissions'),
+                      ),
+                    ),
                     OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Padding(
@@ -823,5 +1175,29 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(value.isEmpty ? 'Not provided' : value),
     );
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'approved':
+      case 'active':
+        return 'Approved';
+      case 'pending':
+        return 'Pending approval';
+      default:
+        return 'In review';
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'approved':
+      case 'active':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.blueGrey;
+    }
   }
 }
