@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'app_drawer.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
-  final void Function(bool) onThemeToggle;
   final Widget Function(String device) childBuilder;
 
   const ResponsiveScaffold({
     super.key,
-    required this.onThemeToggle,
     required this.childBuilder,
   });
 
@@ -26,14 +24,18 @@ class ResponsiveScaffold extends StatelessWidget {
         }
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text('$deviceType Layout'),
-            automaticallyImplyLeading: !isDesktop,
-          ),
           drawer: isDesktop
               ? null
               : AppDrawer(
-                  onThemeToggle: onThemeToggle,
+                  isPersistent: false,
+                ),
+          floatingActionButton: isDesktop
+              ? null
+              : Builder(
+                  builder: (context) => FloatingActionButton(
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                    child: const Icon(Icons.menu),
+                  ),
                 ),
           body: isDesktop
               ? Row(
@@ -41,7 +43,6 @@ class ResponsiveScaffold extends StatelessWidget {
                     SizedBox(
                       width: 280,
                       child: AppDrawer(
-                        onThemeToggle: onThemeToggle,
                         isPersistent: true,
                       ),
                     ),
