@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/dog_submissions.dart';
+import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,6 +20,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
+  final DogRegistrationService _registrationService = DogRegistrationService.instance;
+  late final Future<List<DogSubmission>> _submissionsFuture;
 
   @override
   void initState() {
@@ -27,6 +31,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       duration: const Duration(milliseconds: 750),
     )..forward();
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _submissionsFuture = _registrationService.fetchSubmissions();
   }
 
   @override
@@ -179,6 +184,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   },
                 ),
                 const SizedBox(height: 24),
+                Text(
+                  'Pending submissions',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                _SubmissionOverviewCard(submissionsFuture: _submissionsFuture),
+                const SizedBox(height: 24),
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
@@ -319,6 +331,139 @@ class _AnimatedServiceCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SubmissionOverviewCard extends StatelessWidget {
+  final Future<List<DogSubmission>> submissionsFuture;
+
+  const _SubmissionOverviewCard({required this.submissionsFuture});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FutureBuilder<List<DogSubmission>>(
+      future: submissionsFuture,
+      builder: (context, snapshot) {
+        final submissions = snapshot.data ?? [];
+        final pendingCount = submissions.where((item) => item.status == 'pending').length;
+        final statusLabel = pendingCount > 0
+            ? '$pendingCount pending approval'
+            : submissions.isEmpty
+                ? 'No submissions yet'
+                : 'All submissions approved';
+        final statusColor = pendingCount > 0
+            ? Colors.orange
+            : submissions.isEmpty
+                ? theme.hintColor
+                : Colors.green;
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                    child: Icon(Icons.pets, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Dog Registration',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          statusLabel,
+                          style: theme.textTheme.bodySmall?.copyWith(color: statusColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      pendingCount > 0 ? 'Pending' : 'Up to date',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: statusColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Loading status...',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                    ),
+                  ],
+                )
+              else if (snapshot.hasError)
+                Text(
+                  'Unable to load submissions.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                )
+              else if (submissions.isEmpty)
+                Text(
+                  'Start a new submission to track its status from here.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                )
+              else
+                Text(
+                  '${submissions.length} submission${submissions.length == 1 ? '' : 's'} total.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                  label: const Text('View submissions'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
