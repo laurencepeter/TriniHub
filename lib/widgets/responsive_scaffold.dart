@@ -42,8 +42,11 @@ class ResponsiveScaffold extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 280,
-                      child: AppDrawer(
-                        isPersistent: true,
+                      child: FocusTraversalGroup(
+                        descendantsAreFocusable: false,
+                        child: AppDrawer(
+                          isPersistent: true,
+                        ),
                       ),
                     ),
                     const VerticalDivider(width: 1),
