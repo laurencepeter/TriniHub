@@ -42,6 +42,31 @@ To ensure the dog registration form inserts into the Supabase Postgres database 
 3. Apply the row-level security policies in `supabase_dog_rls_policies.sql`.
 4. Seed lookup data into `breeds` and `regions` so the dropdowns load in the UI.
 
-If you need to point the app at a different Supabase project, update the `url` and `anonKey` values in `lib/main.dart`.
+If you need to point the app at a different Supabase project, update the environment variables in `.env` (see below).
+
+## Local Setup
+
+1. Create a `.env` file in the project root (or use `--dart-define`) with the following values:
+   - `SUPABASE_URL=your-project-url`
+   - `SUPABASE_ANON_KEY=your-anon-key`
+   - `SUPABASE_RESET_REDIRECT=trinihub://recovery` (optional)
+   - `SUPABASE_SERVICE_ROLE_KEY=your-service-role-key` (optional, debug only)
+2. Install dependencies:
+   - `flutter pub get`
+3. Run the app:
+   - `flutter run`
+
+## Auth Flow Testing
+
+### Signup flow
+1. Open the Login page and select **Create account / Register**.
+2. Submit the form to create a Supabase Auth user and an Owners profile row.
+3. Confirm the session routes to the home screen.
+
+### Password reset / manual-user activation
+1. From the Login page, select **Forgot password / Set password**.
+2. Enter an email to trigger the password reset email.
+3. In debug mode, enable **Dev mode** to log the recovery link if `SUPABASE_SERVICE_ROLE_KEY` is set.
+4. Follow the link to open the in-app **Set New Password** screen and complete the reset.
           
           
