@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/auth/forgot_password_page.dart';
+import 'package:local_app_tt/screens/auth/register_page.dart';
+import 'package:local_app_tt/services/auth_service.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
+import 'package:local_app_tt/utils/validators.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
-  final void Function(bool) onThemeToggle;
+  final void Function(bool)? onThemeToggle;
 
-  const LoginPage({
+  LoginPage({
     super.key,
-    required this.onThemeToggle,
+    this.onThemeToggle,
   });
 
   @override
@@ -15,6 +19,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final FocusNode _passwordFocusNode = FocusNode();
@@ -45,6 +50,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   Future<void> signIn() async {
     if (!mounted) return;
 
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) {
+      return;
+    }
+
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -54,14 +64,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final password = passwordController.text;
 
     try {
-      final response = await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      final authService = AuthService();
+      final user = await authService.signIn(email: email, password: password);
 
       if (!mounted) return;
-
-      final user = response.user;
 
       if (user != null) {
         Navigator.of(context).pushReplacement(
@@ -73,13 +79,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           ),
         );
       }
-    } on AuthException catch (e) {
-      if (mounted) {
-        setState(() => errorMessage = e.message);
-      }
     } catch (e) {
       if (mounted) {
-        setState(() => errorMessage = 'Unexpected error: $e');
+        setState(() => errorMessage = mapSupabaseError(e));
       }
     } finally {
       if (mounted) {
@@ -169,35 +171,44 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 12),
-                            TextField(
-                              controller: emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.email],
-                              decoration: const InputDecoration(
-                                labelText: 'Email address',
-                                prefixIcon: Icon(Icons.mail_outline),
+                            Form(
+                              key: _formKey,
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    textInputAction: TextInputAction.next,
+                                    autofillHints: const [AutofillHints.email],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Email address',
+                                      prefixIcon: Icon(Icons.mail_outline),
+                                    ),
+                                    validator: Validators.email,
+                                    onFieldSubmitted: (_) {
+                                      _passwordFocusNode.requestFocus();
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: passwordController,
+                                    focusNode: _passwordFocusNode,
+                                    textInputAction: TextInputAction.done,
+                                    autofillHints: const [AutofillHints.password],
+                                    decoration: const InputDecoration(
+                                      labelText: 'Password',
+                                      prefixIcon: Icon(Icons.lock_outline),
+                                    ),
+                                    obscureText: true,
+                                    validator: (value) => Validators.password(value, minLength: 8),
+                                    onFieldSubmitted: (_) {
+                                      if (!isLoading) {
+                                        signIn();
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
-                              onSubmitted: (_) {
-                                _passwordFocusNode.requestFocus();
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: passwordController,
-                              focusNode: _passwordFocusNode,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.password],
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: Icon(Icons.lock_outline),
-                              ),
-                              obscureText: true,
-                              onSubmitted: (_) {
-                                if (!isLoading) {
-                                  signIn();
-                                }
-                              },
                             ),
                             const SizedBox(height: 16),
                             AnimatedSwitcher(
@@ -241,6 +252,35 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       )
                                     : const Text('Login'),
                               ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 12,
+                              children: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => RegisterPage(
+                                          onThemeToggle:
+                                              widget.onThemeToggle ?? (value) {},
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Create account / Register'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const ForgotPasswordPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text('Forgot password / Set password'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
