@@ -56,6 +56,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   String? _lookupError;
   bool _submitting = false;
   bool _submitted = false;
+  String? _submittedDogId;
 
   @override
   void initState() {
@@ -111,7 +112,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
     final snackBar = ScaffoldMessenger.of(context);
     try {
-      await _registrationService.registerDog(
+      final dogId = await _registrationService.registerDog(
         ownerFirstName: _ownerFirstNameController.text.trim(),
         ownerLastName: _ownerLastNameController.text.trim(),
         ownerPhone: _ownerPhoneController.text.trim().isEmpty ? null : _ownerPhoneController.text.trim(),
@@ -129,6 +130,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         microchipId: _microchipController.text.trim().isEmpty ? null : _microchipController.text.trim(),
         dogNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         ownershipStartDate: _ownershipStartDate,
+        existingDogId: _submittedDogId,
       );
 
       if (!mounted) return;
@@ -140,6 +142,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       );
       setState(() {
         _submitted = true;
+        _submittedDogId = dogId;
       });
     } catch (error) {
       if (!mounted) return;
@@ -155,6 +158,22 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         _submitting = false;
       });
     }
+  }
+
+  void _startNewRegistration() {
+    _dogNumberController.clear();
+    _dogNameController.clear();
+    _dogColorController.clear();
+    _microchipController.clear();
+    _notesController.clear();
+    setState(() {
+      _submitted = false;
+      _submittedDogId = null;
+      _selectedBreedId = null;
+      _selectedSex = 'unknown';
+      _dogDob = null;
+      _ownershipStartDate = null;
+    });
   }
 
   @override
@@ -770,6 +789,14 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                       label: const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
                         child: Text('Edit submission'),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _startNewRegistration,
+                      icon: const Icon(Icons.add),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 12),
+                        child: Text('Register another dog'),
                       ),
                     ),
                     OutlinedButton(

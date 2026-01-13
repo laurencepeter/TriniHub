@@ -27,7 +27,7 @@ class DogRegistrationService {
         .toList();
   }
 
-  Future<void> registerDog({
+  Future<String> registerDog({
     required String ownerFirstName,
     required String ownerLastName,
     String? ownerPhone,
@@ -45,6 +45,7 @@ class DogRegistrationService {
     String? microchipId,
     String? dogNotes,
     DateTime? ownershipStartDate,
+    String? existingDogId,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -63,7 +64,7 @@ class DogRegistrationService {
       'region_id': ownerRegionId,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
-    final ownerId = await _ensureOwner(ownerPayload, userId);
+    final ownerId = await _upsertOwner(ownerPayload, userId);
 
     final dogPayload = <String, dynamic>{
       'dog_number': dogNumber,
@@ -78,19 +79,16 @@ class DogRegistrationService {
       'notes': dogNotes,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
-    final dogResponse = await _client.from('dogs').insert(dogPayload).select('id').single();
-    final dogId = dogResponse['id'] as String;
-
-    final ownershipPayload = <String, dynamic>{
-      'dog_id': dogId,
-      'owner_id': ownerId,
-      'start_date': ownershipStartDate?.toIso8601String().split('T').first,
-    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
-
-    await _client.from('dog_ownerships').insert(ownershipPayload);
+    final resolvedDogId = await _upsertDog(dogPayload, ownerId, existingDogId);
+    await _ensureOwnership(
+      dogId: resolvedDogId,
+      ownerId: ownerId,
+      ownershipStartDate: ownershipStartDate,
+    );
+    return resolvedDogId;
   }
 
-  Future<String> _ensureOwner(Map<String, dynamic> ownerPayload, String userId) async {
+  Future<String> _upsertOwner(Map<String, dynamic> ownerPayload, String userId) async {
     final existingOwner = await _client
         .from('owners')
         .select('id')
@@ -98,10 +96,71 @@ class DogRegistrationService {
         .maybeSingle();
 
     if (existingOwner != null) {
-      return existingOwner['id'] as String;
+      final ownerId = existingOwner['id'] as String;
+      if (ownerPayload.isNotEmpty) {
+        await _client.from('owners').update(ownerPayload).eq('id', ownerId);
+      }
+      return ownerId;
     }
 
     final ownerResponse = await _client.from('owners').insert(ownerPayload).select('id').single();
     return ownerResponse['id'] as String;
+  }
+
+  Future<String> _upsertDog(
+    Map<String, dynamic> dogPayload,
+    String ownerId,
+    String? existingDogId,
+  ) async {
+    if (existingDogId != null) {
+      await _client.from('dogs').update(dogPayload).eq('id', existingDogId);
+      return existingDogId;
+    }
+
+    final existingDog = await _client
+        .from('dogs')
+        .select('id')
+        .eq('dog_number', dogPayload['dog_number'])
+        .eq('current_owner_id', ownerId)
+        .maybeSingle();
+
+    if (existingDog != null) {
+      final dogId = existingDog['id'] as String;
+      await _client.from('dogs').update(dogPayload).eq('id', dogId);
+      return dogId;
+    }
+
+    final dogResponse = await _client.from('dogs').insert(dogPayload).select('id').single();
+    return dogResponse['id'] as String;
+  }
+
+  Future<void> _ensureOwnership({
+    required String dogId,
+    required String ownerId,
+    required DateTime? ownershipStartDate,
+  }) async {
+    final ownershipPayload = <String, dynamic>{
+      'dog_id': dogId,
+      'owner_id': ownerId,
+      'start_date': ownershipStartDate?.toIso8601String().split('T').first,
+    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+
+    final existingOwnership = await _client
+        .from('dog_ownerships')
+        .select('id')
+        .eq('dog_id', dogId)
+        .eq('owner_id', ownerId)
+        .maybeSingle();
+
+    if (existingOwnership != null) {
+      if (ownershipPayload.containsKey('start_date')) {
+        await _client.from('dog_ownerships').update({
+          'start_date': ownershipPayload['start_date'],
+        }).eq('id', existingOwnership['id']);
+      }
+      return;
+    }
+
+    await _client.from('dog_ownerships').insert(ownershipPayload);
   }
 }
