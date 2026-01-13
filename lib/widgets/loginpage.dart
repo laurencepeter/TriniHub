@@ -9,7 +9,7 @@ import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 class LoginPage extends StatefulWidget {
   final void Function(bool)? onThemeToggle;
 
-  const LoginPage({
+  LoginPage({
     super.key,
     this.onThemeToggle,
   const LoginPage({
