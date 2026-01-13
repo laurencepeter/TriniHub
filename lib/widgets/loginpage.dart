@@ -7,6 +7,11 @@ import 'package:local_app_tt/utils/validators.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 
 class LoginPage extends StatefulWidget {
+  final void Function(bool)? onThemeToggle;
+
+  const LoginPage({
+    super.key,
+    this.onThemeToggle,
   const LoginPage({
     super.key,
   });
@@ -256,6 +261,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) => RegisterPage(
+                                          onThemeToggle:
+                                              widget.onThemeToggle ?? (value) {},
                                           onThemeToggle: widget.onThemeToggle,
                                         ),
                                       ),

@@ -80,6 +80,15 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Trini Hub',
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
+      themeMode: _themeMode,
+      home: AuthGate(
+        key: ValueKey(_themeMode),
+        onThemeToggle: toggleTheme,
+      ),
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeSettings.instance.themeMode,
       builder: (context, themeMode, _) {
