@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/settings.dart';
+import 'package:local_app_tt/services/theme_settings.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_drawer.dart';
@@ -18,6 +19,7 @@ class ResponsiveScaffold extends StatelessWidget {
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
         final bool isDesktop = width >= 1200;
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
         String deviceType = 'Mobile';
         if (isDesktop) {
@@ -67,7 +69,21 @@ class ResponsiveScaffold extends StatelessWidget {
                     ),
                   ],
                 )
-              : childBuilder(deviceType),
+              : Stack(
+                  children: [
+                    childBuilder(deviceType),
+                    Positioned(
+                      top: 12,
+                      right: 16,
+                      child: SafeArea(
+                        child: _ThemeToggleButton(
+                          isDarkMode: isDarkMode,
+                          onPressed: () => ThemeSettings.instance.setThemeMode(!isDarkMode),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
         );
       },
     );
@@ -82,11 +98,17 @@ class _DesktopAccountMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isDarkMode = theme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          _ThemeToggleButton(
+            isDarkMode: isDarkMode,
+            onPressed: () => ThemeSettings.instance.setThemeMode(!isDarkMode),
+          ),
+          const SizedBox(width: 12),
           PopupMenuButton<_DesktopMenuAction>(
             tooltip: 'Account menu',
             onSelected: (action) async {
@@ -180,6 +202,49 @@ class _DesktopAccountMenu extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ThemeToggleButton extends StatelessWidget {
+  final bool isDarkMode;
+  final VoidCallback onPressed;
+
+  const _ThemeToggleButton({
+    required this.isDarkMode,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final icon = isDarkMode ? Icons.dark_mode : Icons.light_mode;
+    final label = isDarkMode ? 'Dark mode' : 'Light mode';
+
+    return Tooltip(
+      message: 'Toggle $label',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Icon(icon, size: 18, color: theme.colorScheme.primary),
+          ),
+        ),
       ),
     );
   }
