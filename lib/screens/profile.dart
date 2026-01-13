@@ -115,6 +115,33 @@ class ProfilePage extends StatelessWidget {
                 color: theme.colorScheme.surface,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Column(
+                  children: const [
+                    ListTile(
+                      leading: Icon(Icons.phone_outlined),
+                      title: Text('Primary contact'),
+                      subtitle: Text('+1 (868) 555-0198 · jordan.fraser@trinihub.gov'),
+                    ),
+                    Divider(height: 24),
+                    ListTile(
+                      leading: Icon(Icons.location_on_outlined),
+                      title: Text('Base location'),
+                      subtitle: Text('Port of Spain Operations Center'),
+                    ),
+                    Divider(height: 24),
+                    ListTile(
+                      leading: Icon(Icons.emergency_outlined),
+                      title: Text('Emergency contact'),
+                      subtitle: Text('Sasha Fraser · +1 (868) 555-0110'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Column(
                   children: [
                     SwitchListTile(
                       value: true,
@@ -130,6 +157,33 @@ class ProfilePage extends StatelessWidget {
                       secondary: const Icon(Icons.language_outlined),
                       title: const Text('Status visibility'),
                       subtitle: const Text('Let teammates see when you are online.'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  children: const [
+                    ListTile(
+                      leading: Icon(Icons.badge_outlined),
+                      title: Text('Supervisor'),
+                      subtitle: Text('Asha Singh · Director of Operations'),
+                    ),
+                    Divider(height: 24),
+                    ListTile(
+                      leading: Icon(Icons.groups_outlined),
+                      title: Text('Team'),
+                      subtitle: Text('Field Ops Alpha · 12 members'),
+                    ),
+                    Divider(height: 24),
+                    ListTile(
+                      leading: Icon(Icons.event_available_outlined),
+                      title: Text('Schedule'),
+                      subtitle: Text('Mon-Fri · 8:00 AM - 4:00 PM'),
                     ),
                   ],
                 ),
@@ -161,6 +215,29 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  children: const [
+                    ListTile(
+                      leading: Icon(Icons.devices_outlined),
+                      title: Text('Registered devices'),
+                      subtitle: Text('2 active devices · Last login 14 minutes ago'),
+                      trailing: Icon(Icons.chevron_right),
+                    ),
+                    Divider(height: 24),
+                    ListTile(
+                      leading: Icon(Icons.shield_outlined),
+                      title: Text('Security score'),
+                      subtitle: Text('Strong · MFA enabled · Recovery email verified'),
+                      trailing: Icon(Icons.chevron_right),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
   const DogRegistrationScreen({super.key, this.initialDogId});
@@ -11,7 +12,9 @@ class DogRegistrationScreen extends StatefulWidget {
   static Route<void> route({String? dogId}) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (context, animation, secondaryAnimation) => DogRegistrationScreen(initialDogId: dogId),
+      pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
+        childBuilder: (device) => DogRegistrationScreen(initialDogId: dogId),
+      ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
         return FadeTransition(
@@ -738,7 +741,11 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                         OutlinedButton.icon(
                           onPressed: () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => ResponsiveScaffold(
+                                childBuilder: (device) => const DogSubmissionsScreen(),
+                              ),
+                            ),
                           ),
                           icon: const Icon(Icons.visibility_outlined),
                           label: const Padding(
@@ -1143,7 +1150,11 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                     OutlinedButton.icon(
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => DogSubmissionsScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => ResponsiveScaffold(
+                            childBuilder: (device) => const DogSubmissionsScreen(),
+                          ),
+                        ),
                       ),
                       icon: const Icon(Icons.visibility_outlined),
                       label: const Padding(

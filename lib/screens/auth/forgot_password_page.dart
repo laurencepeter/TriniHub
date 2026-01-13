@@ -52,6 +52,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             redirectTo: dotenv.env['SUPABASE_RESET_REDIRECT'] ?? 'trinihub://recovery',
           );
           debugPrint('Recovery link (dev mode): ${response.properties.actionLink}');
+          debugPrint('Recovery link (dev mode): ${response.properties['action_link']}');
         } else {
           debugPrint('Dev mode enabled: set SUPABASE_SERVICE_ROLE_KEY to log recovery links.');
         }

@@ -12,11 +12,13 @@ class ResponsiveWrapper extends StatelessWidget {
   }) : onThemeToggle = onThemeToggle ?? _noopThemeToggle;
 
   static void _noopThemeToggle(bool _) {}
+  const ResponsiveWrapper({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      onThemeToggle: onThemeToggle,
       childBuilder: (device) => HomePage(
         device: device,
       ),
