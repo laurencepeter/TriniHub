@@ -7,11 +7,8 @@ import 'package:local_app_tt/utils/validators.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 
 class LoginPage extends StatefulWidget {
-  final void Function(bool) onThemeToggle;
-
   const LoginPage({
     super.key,
-    required this.onThemeToggle,
   });
 
   @override
@@ -72,10 +69,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder:
-                (_) => ResponsiveWrapper(
-                  onThemeToggle: widget.onThemeToggle,
-                ),
+            builder: (_) => const ResponsiveWrapper(),
           ),
         );
       }

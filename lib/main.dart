@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/widgets/auth_gate.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:local_app_tt/services/theme_settings.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,36 +30,10 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  static const _themePreferenceKey = 'theme_mode_is_dark';
-  ThemeMode _themeMode = ThemeMode.light;
-
   @override
   void initState() {
     super.initState();
-    _loadThemeMode();
-  }
-
-  Future<void> _loadThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool(_themePreferenceKey);
-    if (!mounted || isDark == null) {
-      return;
-    }
-    setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    });
-  }
-
-  void toggleTheme(bool isDark) {
-    setState(() {
-      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    });
-    _persistThemeMode(isDark);
-  }
-
-  Future<void> _persistThemeMode(bool isDark) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_themePreferenceKey, isDark);
+    ThemeSettings.instance.load();
   }
 
   ThemeData _buildTheme(Brightness brightness) {
@@ -106,15 +80,36 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Trini Hub',
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
-      themeMode: _themeMode,
-      home: AuthGate(
-        key: ValueKey(_themeMode),
-        onThemeToggle: toggleTheme,
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeSettings.instance.themeMode,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Trini Hub',
+          theme: _buildTheme(Brightness.light),
+          darkTheme: _buildTheme(Brightness.dark),
+          themeMode: themeMode,
+          home: StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final session = snapshot.data?.session;
+
+              if (session != null) {
+                return const ResponsiveWrapper();
+              }
+
+              return LoginPage(
+                key: ValueKey(themeMode),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
