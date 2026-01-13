@@ -207,7 +207,6 @@ class DogRegistrationService {
       'color': dogColor,
       'dob': dogDob?.toIso8601String().split('T').first,
       'microchip_id': microchipId,
-      'status': 'pending',
       'current_owner_id': ownerId,
       'notes': dogNotes,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
