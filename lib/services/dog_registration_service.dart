@@ -52,7 +52,7 @@ class DogRegistrationService {
     }
 
     final ownerPayload = <String, dynamic>{
-      'user_id': userId,
+      'auth_user_id': userId,
       'first_name': ownerFirstName,
       'last_name': ownerLastName,
       'phone': ownerPhone,
