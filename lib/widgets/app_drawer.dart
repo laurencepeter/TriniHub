@@ -8,7 +8,6 @@ import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/qr_scannerpage.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
-import 'package:local_app_tt/services/theme_settings.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -21,7 +20,6 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     void closeDrawer() {
       if (!isPersistent) {
         Navigator.pop(context);
@@ -63,17 +61,6 @@ class AppDrawer extends StatelessWidget {
             ),
           ),
 
-          SwitchListTile(
-            title: const Text('Dark Mode'),
-            value: isDarkMode,
-            onChanged: (value) {
-              ThemeSettings.instance.setThemeMode(value);
-            },
-            secondary: Icon(
-              isDarkMode ? Icons.dark_mode : Icons.light_mode,
-            ),
-          ),
-          const Divider(),
           ListTile(
             title: const Text('Home'),
             leading: const Icon(Icons.home_rounded),
