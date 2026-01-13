@@ -9,11 +9,9 @@ import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 class LoginPage extends StatefulWidget {
   final void Function(bool)? onThemeToggle;
 
-  LoginPage({
-    super.key,
-    this.onThemeToggle,
   const LoginPage({
     super.key,
+    this.onThemeToggle,
   });
 
   @override
@@ -74,7 +72,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       if (user != null) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => const ResponsiveWrapper(),
+            builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
           ),
         );
       }
@@ -261,9 +259,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) => RegisterPage(
-                                          onThemeToggle:
-                                              widget.onThemeToggle ?? (value) {},
-                                          onThemeToggle: widget.onThemeToggle,
+                                          onThemeToggle: widget.onThemeToggle ?? (value) {},
                                         ),
                                       ),
                                     );
