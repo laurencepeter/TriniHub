@@ -32,5 +32,16 @@
 
 ❓ 5. TODO
           :exclamation:  Add a page for fun to list all services, maybe services.fireydev.com
+
+## Dog Registration Supabase Setup
+
+To ensure the dog registration form inserts into the Supabase Postgres database correctly, create the required tables and policies in your Supabase project:
+
+1. Open the Supabase SQL Editor for your project.
+2. Run the schema in `supabase_dog_schema.sql` to create the `owners`, `dogs`, `dog_ownerships`, `breeds`, and `regions` tables.
+3. Apply the row-level security policies in `supabase_dog_rls_policies.sql`.
+4. Seed lookup data into `breeds` and `regions` so the dropdowns load in the UI.
+
+If you need to point the app at a different Supabase project, update the `url` and `anonKey` values in `lib/main.dart`.
           
           
