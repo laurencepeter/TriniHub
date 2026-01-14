@@ -23,6 +23,12 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
   }
 
   Future<void> _loadSubmissions() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final submissions = await _registrationService.fetchSubmissions();
       if (!mounted) return;
@@ -177,11 +183,13 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     DogRegistrationScreen.route(dogId: submission.id),
                   );
+                  if (!mounted) return;
+                  await _loadSubmissions();
                 },
                 icon: const Icon(Icons.visibility_outlined, size: 18),
                 label: const Text('View submission'),
