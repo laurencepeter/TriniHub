@@ -86,7 +86,37 @@ class InternalServices extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Breadcrumbs(items: ['Home', 'Services', 'Internal Services']),
+                    Breadcrumbs(
+                      items: [
+                        BreadcrumbItem(
+                          'Home',
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponsiveScaffold(
+                                  childBuilder: (device) => HomePage(device: _deviceType(context)),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        BreadcrumbItem(
+                          'Services',
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponsiveScaffold(
+                                  childBuilder: (device) => ServicesPage(device: _deviceType(context)),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const BreadcrumbItem('Internal Services'),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [

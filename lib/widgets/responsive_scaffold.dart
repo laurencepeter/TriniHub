@@ -34,13 +34,26 @@ class ResponsiveScaffold extends StatelessWidget {
               : AppDrawer(
                   isPersistent: false,
                 ),
-          floatingActionButton: isDesktop
+          appBar: isDesktop
               ? null
-              : Builder(
-                  builder: (context) => FloatingActionButton(
-                    onPressed: () => Scaffold.of(context).openDrawer(),
-                    child: const Icon(Icons.menu),
+              : AppBar(
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  leading: Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu),
+                      tooltip: 'Open navigation menu',
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
                   ),
+                  actions: [
+                    _ThemeToggleButton(
+                      isDarkMode: isDarkMode,
+                      onPressed: () => ThemeSettings.instance.setThemeMode(!isDarkMode),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                 ),
           body: isDesktop
               ? Row(
@@ -69,21 +82,7 @@ class ResponsiveScaffold extends StatelessWidget {
                     ),
                   ],
                 )
-              : Stack(
-                  children: [
-                    childBuilder(deviceType),
-                    Positioned(
-                      top: 12,
-                      right: 16,
-                      child: SafeArea(
-                        child: _ThemeToggleButton(
-                          isDarkMode: isDarkMode,
-                          onPressed: () => ThemeSettings.instance.setThemeMode(!isDarkMode),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              : childBuilder(deviceType),
         );
       },
     );

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
-import 'package:local_app_tt/screens/dog_submissions.dart';
+import 'package:local_app_tt/screens/services.dart';
+import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
+import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
@@ -41,9 +44,47 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  void _handleBottomNavTap(BuildContext context, int index) {
+    if (index == 0) {
+      return;
+    }
+    Widget destination;
+    switch (index) {
+      case 1:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ServicesPage(device: device),
+        );
+        break;
+      case 2:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => InternalServices(),
+        );
+        break;
+      case 3:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ExternalServices(),
+        );
+        break;
+      case 4:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => SettingsPage(device: device),
+        );
+        break;
+      default:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showBottomNav = MediaQuery.of(context).size.width < 1200;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -63,17 +104,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Breadcrumbs(items: ['Home']),
-                const SizedBox(height: 12),
+                const Breadcrumbs(items: [BreadcrumbItem('Home')]),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
+                      radius: 22,
                       backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
                       child: Image.asset(
                         'lib/assets/images/TriniHub.png',
-                        width: 28,
-                        height: 28,
+                        width: 26,
+                        height: 26,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -93,13 +134,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(20),
                       gradient: LinearGradient(
                         colors: [
                           theme.colorScheme.primary.withOpacity(0.85),
@@ -137,26 +178,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           'Pick a service lane to launch forms, track requests, and keep every workflow moving.',
                           style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Wrap(
                           spacing: 12,
                           runSpacing: 8,
                           children: const [
                             _HighlightPill(label: '24/7 service access'),
                             _HighlightPill(label: 'Real-time status updates'),
-                            _HighlightPill(label: 'Secure by design'),
                           ],
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Text(
                   'Services',
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 _AnimatedServiceCard(
                   controller: _controller,
                   delay: 0,
@@ -174,7 +214,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     );
                   },
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 _AnimatedServiceCard(
                   controller: _controller,
                   delay: 0.15,
@@ -192,53 +232,24 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     );
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Text(
                   'Pending submissions',
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 _SubmissionOverviewCard(submissionsFuture: _submissionsFuture),
-                const SizedBox(height: 24),
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      color: theme.colorScheme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                      border: Border.all(color: Colors.black.withOpacity(0.05)),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                          child: Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Need to register a dog? Find it under External Services.',
-                            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavBar(
+              currentIndex: 0,
+              onTap: (index) => _handleBottomNavTap(context, index),
+            )
+          : null,
     );
   }
 }
@@ -292,29 +303,29 @@ class _AnimatedServiceCard extends StatelessWidget {
       child: SlideTransition(
         position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(animation),
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           onTap: onTap,
           child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(20),
               color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.08),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
                 ),
               ],
               border: Border.all(color: Colors.black.withOpacity(0.06)),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 26,
+                    radius: 22,
                     backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                    child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+                    child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 22),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -323,12 +334,12 @@ class _AnimatedServiceCard extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           subtitle,
-                          style: TextStyle(color: Theme.of(context).hintColor),
+                          style: TextStyle(color: Theme.of(context).hintColor, fontSize: 13),
                         ),
                       ],
                     ),
@@ -368,15 +379,15 @@ class _SubmissionOverviewCard extends StatelessWidget {
                 ? theme.hintColor
                 : Colors.green;
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             color: theme.colorScheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
             ],
             border: Border.all(color: Colors.black.withOpacity(0.05)),
