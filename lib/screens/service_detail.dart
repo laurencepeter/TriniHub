@@ -104,6 +104,8 @@ class _HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final baseAccent = Color.alphaBlend(Colors.black.withOpacity(0.35), option.accentColor);
+    final highlightAccent = Color.alphaBlend(Colors.black.withOpacity(0.15), option.accentColor);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Container(
@@ -112,13 +114,13 @@ class _HeroSection extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           gradient: LinearGradient(
             colors: [
-              option.accentColor.withOpacity(0.85),
-              option.accentColor.withOpacity(0.55),
+              baseAccent,
+              highlightAccent,
             ],
           ),
           boxShadow: [
             BoxShadow(
-              color: option.accentColor.withOpacity(0.25),
+              color: baseAccent.withOpacity(0.25),
               blurRadius: 20,
               offset: const Offset(0, 12),
             ),
