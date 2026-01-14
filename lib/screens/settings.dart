@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/externalservices.dart';
+import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
+import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class SettingsPage extends StatefulWidget {
   final String device;
@@ -29,10 +35,48 @@ class _SettingsPageState extends State<SettingsPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _handleBottomNavTap(BuildContext context, int index) {
+    if (index == 4) {
+      return;
+    }
+    Widget destination;
+    switch (index) {
+      case 0:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+        break;
+      case 1:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ServicesPage(device: device),
+        );
+        break;
+      case 2:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => InternalServices(),
+        );
+        break;
+      case 3:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ExternalServices(),
+        );
+        break;
+      default:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final showBottomNav = MediaQuery.of(context).size.width < 1200;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -50,7 +94,24 @@ class _SettingsPageState extends State<SettingsPage> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
-              const Breadcrumbs(items: ['Home', 'Settings']),
+              Breadcrumbs(
+                items: [
+                  BreadcrumbItem(
+                    'Home',
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ResponsiveScaffold(
+                            childBuilder: (device) => HomePage(device: device),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const BreadcrumbItem('Settings'),
+                ],
+              ),
               const SizedBox(height: 12),
               Text(
                 'Settings',
@@ -249,6 +310,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavBar(
+              currentIndex: 4,
+              onTap: (index) => _handleBottomNavTap(context, index),
+            )
+          : null,
     );
   }
 }

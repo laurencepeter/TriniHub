@@ -85,7 +85,7 @@ const List<ServiceOption> externalServiceOptions = [
     quickActions: ['Browse forms', 'Resume draft', 'Track submission'],
     formFields: ['Form name', 'Submission ID', 'Contact email'],
     checkpoints: ['Drafted', 'Submitted', 'Validated', 'Completed'],
-    accentColor: Colors.blue,
+    accentColor: Colors.blueGrey,
   ),
   ServiceOption(
     label: 'Report an Issue',
@@ -153,7 +153,7 @@ const List<ServiceOption> internalServiceOptions = [
     quickActions: ['Browse forms', 'Drafts', 'Approvals'],
     formFields: ['Form name', 'Manager approval', 'Submission date'],
     checkpoints: ['Drafted', 'Submitted', 'Reviewed', 'Approved'],
-    accentColor: Colors.indigoAccent,
+    accentColor: Colors.blueGrey,
   ),
   ServiceOption(
     label: 'Report an Issue',

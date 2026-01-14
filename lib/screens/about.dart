@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class AboutPage extends StatelessWidget {
   final String device;
@@ -29,7 +31,24 @@ class AboutPage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
-              const Breadcrumbs(items: ['Home', 'About']),
+              Breadcrumbs(
+                items: [
+                  BreadcrumbItem(
+                    'Home',
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ResponsiveScaffold(
+                            childBuilder: (device) => HomePage(device: device),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const BreadcrumbItem('About'),
+                ],
+              ),
               const SizedBox(height: 12),
               Text(
                 'About',

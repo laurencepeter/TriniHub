@@ -86,7 +86,37 @@ class ExternalServices extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Breadcrumbs(items: ['Home', 'Services', 'External Services']),
+                    Breadcrumbs(
+                      items: [
+                        BreadcrumbItem(
+                          'Home',
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponsiveScaffold(
+                                  childBuilder: (device) => HomePage(device: _deviceType(context)),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        BreadcrumbItem(
+                          'Services',
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponsiveScaffold(
+                                  childBuilder: (device) => ServicesPage(device: _deviceType(context)),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const BreadcrumbItem('External Services'),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -122,9 +152,42 @@ class ExternalServices extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  itemCount: externalServiceOptions.length,
+                  itemCount: externalServiceOptions.length + 1,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
+                    if (index == externalServiceOptions.length) {
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: theme.colorScheme.surface,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                          border: Border.all(color: Colors.black.withOpacity(0.05)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                              child: Icon(Icons.lightbulb_outline, color: theme.colorScheme.primary),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Need to register a dog? Select Dog Registration to begin the form.',
+                                style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                     final option = externalServiceOptions[index];
                     return ServiceTile(
                       option: option,

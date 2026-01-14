@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/screens/externalservices.dart';
+import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/settings.dart';
+import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class ServicesPage extends StatefulWidget {
   final String device;
@@ -18,6 +24,43 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
   bool _showInternal = false;
   bool _showExternal = false;
 
+  void _handleBottomNavTap(BuildContext context, int index) {
+    if (index == 1) {
+      return;
+    }
+    Widget destination;
+    switch (index) {
+      case 0:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+        break;
+      case 2:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => InternalServices(),
+        );
+        break;
+      case 3:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ExternalServices(),
+        );
+        break;
+      case 4:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => SettingsPage(device: device),
+        );
+        break;
+      default:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+  }
+
   void _toggleInternal() {
     setState(() {
       _showInternal = !_showInternal;
@@ -33,6 +76,7 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showBottomNav = MediaQuery.of(context).size.width < 1200;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -50,7 +94,24 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             children: [
-              const Breadcrumbs(items: ['Home', 'Services']),
+              Breadcrumbs(
+                items: [
+                  BreadcrumbItem(
+                    'Home',
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ResponsiveScaffold(
+                            childBuilder: (device) => HomePage(device: device),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const BreadcrumbItem('Services'),
+                ],
+              ),
               const SizedBox(height: 12),
               Text(
                 'Services',
@@ -116,6 +177,12 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
           ),
         ),
       ),
+      bottomNavigationBar: showBottomNav
+          ? BottomNavBar(
+              currentIndex: 1,
+              onTap: (index) => _handleBottomNavTap(context, index),
+            )
+          : null,
     );
   }
 }
