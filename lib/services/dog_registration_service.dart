@@ -12,6 +12,7 @@ class DogSubmission {
   final String dogNumber;
   final String? dogName;
   final String status;
+  final String lifeStatus;
   final DateTime? updatedAt;
 
   const DogSubmission({
@@ -19,6 +20,7 @@ class DogSubmission {
     required this.dogNumber,
     required this.dogName,
     required this.status,
+    required this.lifeStatus,
     required this.updatedAt,
   });
 }
@@ -34,6 +36,7 @@ class DogSubmissionDetail {
   final String? microchipId;
   final String? notes;
   final String status;
+  final String lifeStatus;
   final String ownerId;
   final String ownerFirstName;
   final String ownerLastName;
@@ -56,6 +59,7 @@ class DogSubmissionDetail {
     required this.microchipId,
     required this.notes,
     required this.status,
+    required this.lifeStatus,
     required this.ownerId,
     required this.ownerFirstName,
     required this.ownerLastName,
@@ -96,7 +100,7 @@ class DogRegistrationService {
     }
     final response = await _client
         .from('dogs')
-        .select('id,dog_number,name,status,updated_at')
+        .select('id,dog_number,name,status,life_status,updated_at')
         .eq('current_owner_id', ownerId)
         .order('updated_at', ascending: false);
 
@@ -106,6 +110,7 @@ class DogRegistrationService {
         dogNumber: row['dog_number'] as String,
         dogName: row['name'] as String?,
         status: row['status'] as String? ?? 'pending',
+        lifeStatus: row['life_status'] as String? ?? 'alive',
         updatedAt: row['updated_at'] == null ? null : DateTime.parse(row['updated_at'] as String),
       );
     }).toList();
@@ -114,7 +119,7 @@ class DogRegistrationService {
   Future<DogSubmissionDetail?> fetchSubmissionDetail(String dogId) async {
     final dog = await _client
         .from('dogs')
-        .select('id,dog_number,name,sex,breed_id,color,dob,microchip_id,notes,status,current_owner_id')
+        .select('id,dog_number,name,sex,breed_id,color,dob,microchip_id,notes,status,life_status,current_owner_id')
         .eq('id', dogId)
         .maybeSingle();
     if (dog == null) {
@@ -146,6 +151,7 @@ class DogRegistrationService {
       microchipId: dog['microchip_id'] as String?,
       notes: dog['notes'] as String?,
       status: dog['status'] as String? ?? 'pending',
+      lifeStatus: dog['life_status'] as String? ?? 'alive',
       ownerId: owner['id'] as String,
       ownerFirstName: owner['first_name'] as String,
       ownerLastName: owner['last_name'] as String,
@@ -177,6 +183,7 @@ class DogRegistrationService {
     DateTime? dogDob,
     String? microchipId,
     String? dogNotes,
+    String? dogLifeStatus,
     DateTime? ownershipStartDate,
     String? existingDogId,
   }) async {
@@ -199,6 +206,7 @@ class DogRegistrationService {
 
     final ownerId = await _upsertOwner(ownerPayload, userId);
 
+    final resolvedLifeStatus = dogLifeStatus ?? 'alive';
     final dogPayload = <String, dynamic>{
       'dog_number': dogNumber,
       'name': dogName,
@@ -209,6 +217,7 @@ class DogRegistrationService {
       'microchip_id': microchipId,
       'current_owner_id': ownerId,
       'notes': dogNotes,
+      'life_status': resolvedLifeStatus,
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
     final resolvedDogId = await _upsertDog(dogPayload, ownerId, existingDogId);
@@ -218,6 +227,10 @@ class DogRegistrationService {
       ownershipStartDate: ownershipStartDate,
     );
     return resolvedDogId;
+  }
+
+  Future<void> deleteSubmission(String dogId) async {
+    await _client.from('dogs').update({'status': 'deleted'}).eq('id', dogId);
   }
 
   Future<String> _upsertOwner(Map<String, dynamic> ownerPayload, String userId) async {

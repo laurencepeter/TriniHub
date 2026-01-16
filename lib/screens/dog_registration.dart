@@ -56,6 +56,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   String? _selectedBreedId;
   String? _selectedRegionId;
   String _selectedSex = 'unknown';
+  String _selectedLifeStatus = 'alive';
   DateTime? _dogDob;
   DateTime? _ownershipStartDate;
 
@@ -65,6 +66,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   bool _loadingSubmissionDetail = false;
   String? _submissionsError;
   bool _submitting = false;
+  bool _deleting = false;
   bool _submitted = false;
   String? _submittedDogId;
   String? _editingStatus;
@@ -197,6 +199,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       _selectedBreedId = detail.dogBreedId;
       _selectedRegionId = detail.ownerRegionId;
       _selectedSex = detail.dogSex;
+      _selectedLifeStatus = detail.lifeStatus;
       _dogDob = detail.dogDob;
       _ownershipStartDate = detail.ownershipStartDate;
       _submittedDogId = detail.id;
@@ -231,6 +234,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         dogDob: _dogDob,
         microchipId: _microchipController.text.trim().isEmpty ? null : _microchipController.text.trim(),
         dogNotes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        dogLifeStatus: _selectedLifeStatus,
         ownershipStartDate: _ownershipStartDate,
         existingDogId: _submittedDogId,
       );
@@ -264,6 +268,65 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     }
   }
 
+  Future<void> _confirmDeleteSubmission() async {
+    if (_submittedDogId == null) return;
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete submission?'),
+        content: const Text('This keeps the submission history but marks it as deleted.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+    await _deleteSubmission();
+  }
+
+  Future<void> _deleteSubmission() async {
+    if (_submittedDogId == null) return;
+    setState(() {
+      _deleting = true;
+    });
+    final snackBar = ScaffoldMessenger.of(context);
+    try {
+      await _registrationService.deleteSubmission(_submittedDogId!);
+      if (!mounted) return;
+      setState(() {
+        _editingStatus = 'deleted';
+      });
+      snackBar.showSnackBar(
+        const SnackBar(
+          content: Text('Submission marked as deleted.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      await _refreshSubmissions();
+    } catch (error) {
+      if (!mounted) return;
+      snackBar.showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete submission: ${mapSupabaseError(error)}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _deleting = false;
+      });
+    }
+  }
+
   void _startNewRegistration() {
     _dogNumberController.clear();
     _dogNameController.clear();
@@ -276,6 +339,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       _editingStatus = null;
       _selectedBreedId = null;
       _selectedSex = 'unknown';
+      _selectedLifeStatus = 'alive';
       _dogDob = null;
       _ownershipStartDate = null;
       _showLanding = false;
@@ -350,6 +414,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   }
 
   Widget _buildForm(ThemeData theme) {
+    final isDeleted = _editingStatus == 'deleted';
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 720;
@@ -362,6 +427,22 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(theme),
+                  if (isDeleted) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        'This submission is marked as deleted. You can keep it for history, but edits are disabled.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange[900]),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 400),
@@ -566,6 +647,19 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                                   maxLines: 3,
                                   isRequired: false,
                                 ),
+                                const SizedBox(height: 14),
+                                _buildDropdownField(
+                                  label: 'Life status',
+                                  helper: 'Record whether the dog is alive or deceased',
+                                  value: _selectedLifeStatus,
+                                  items: const [
+                                    LookupOption(id: 'alive', name: 'Alive'),
+                                    LookupOption(id: 'deceased', name: 'Deceased'),
+                                  ],
+                                  onChanged: isDeleted
+                                      ? null
+                                      : (value) => setState(() => _selectedLifeStatus = value ?? 'alive'),
+                                ),
                               ],
                             ),
                           ),
@@ -605,13 +699,36 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 12.0),
                                 child: Text(_submitting ? 'Submitting...' : 'Save registration'),
                               ),
-                              onPressed: _submitting ? null : _submit,
+                              onPressed: _submitting || isDeleted ? null : _submit,
                               style: FilledButton.styleFrom(
                                 textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.2),
                                 backgroundColor: theme.colorScheme.primary,
                               ),
                             ),
                           ),
+                          if (_submittedDogId != null) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _deleting || isDeleted ? null : _confirmDeleteSubmission,
+                                icon: _deleting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.delete_outline),
+                                label: const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12.0),
+                                  child: Text('Delete submission'),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.redAccent,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -853,6 +970,11 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Dog Registration • ${submission.dogNumber}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Life status: ${_lifeStatusLabel(submission.lifeStatus)}',
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                 ),
                 const SizedBox(height: 6),
@@ -1126,6 +1248,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 ),
                 _buildSummaryTile('Dog number', _dogNumberController.text, Icons.confirmation_number_outlined),
                 _buildSummaryTile('Dog name', _dogNameController.text, Icons.pets_outlined),
+                _buildSummaryTile('Life status', _lifeStatusLabel(_selectedLifeStatus), Icons.favorite_outline),
                 const SizedBox(height: 18),
                 Wrap(
                   spacing: 12,
@@ -1191,6 +1314,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   String _statusLabel(String status) {
     switch (status) {
+      case 'deleted':
+        return 'Deleted';
       case 'approved':
       case 'active':
         return 'Approved';
@@ -1203,6 +1328,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'deleted':
+        return Colors.grey;
       case 'approved':
       case 'active':
         return Colors.green;
@@ -1210,6 +1337,16 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         return Colors.orange;
       default:
         return Colors.blueGrey;
+    }
+  }
+
+  String _lifeStatusLabel(String status) {
+    switch (status) {
+      case 'deceased':
+        return 'Deceased';
+      case 'alive':
+      default:
+        return 'Alive';
     }
   }
 }
