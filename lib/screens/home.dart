@@ -8,6 +8,7 @@ import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomePage extends StatefulWidget {
   final String device;
@@ -81,10 +82,32 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
+  String _resolveUserName() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final metadata = user?.userMetadata;
+    final rawName = metadata?['full_name'] ??
+        metadata?['name'] ??
+        metadata?['display_name'] ??
+        user?.email;
+    if (rawName == null) {
+      return 'there';
+    }
+    final trimmed = rawName.toString().trim();
+    if (trimmed.isEmpty) {
+      return 'there';
+    }
+    if (trimmed.contains('@')) {
+      final handle = trimmed.split('@').first;
+      return handle.isEmpty ? 'there' : handle;
+    }
+    return trimmed;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final showBottomNav = MediaQuery.of(context).size.width < 1200;
+    final userName = _resolveUserName();
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -141,17 +164,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary.withOpacity(0.85),
-                          theme.colorScheme.secondary.withOpacity(0.75),
-                        ],
+                      color: theme.colorScheme.surfaceVariant,
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withOpacity(0.18),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: theme.colorScheme.primary.withOpacity(0.25),
-                          blurRadius: 20,
-                          offset: const Offset(0, 12),
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -159,9 +180,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome back',
+                          'Welcome back, $userName',
                           style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.white70,
+                            color: theme.colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -169,14 +190,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         Text(
                           'Your services, streamlined',
                           style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           'Pick a service lane to launch forms, track requests, and keep every workflow moving.',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Wrap(
@@ -261,15 +284,20 @@ class _HighlightPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.16),
+        color: theme.colorScheme.primary.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         label,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+        style: TextStyle(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
       ),
     );
   }
