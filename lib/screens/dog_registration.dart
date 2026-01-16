@@ -1081,22 +1081,26 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     required ValueChanged<String?>? onChanged,
     bool isRequired = true,
   }) {
+    final theme = Theme.of(context);
+    final fieldFill = theme.colorScheme.surface;
+    final fieldTextColor = theme.colorScheme.onSurface;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: DropdownButtonFormField<String>(
         value: value,
-        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
+        dropdownColor: fieldFill,
+        style: TextStyle(fontWeight: FontWeight.w500, color: fieldTextColor),
         decoration: InputDecoration(
           labelText: label,
           helperText: helper,
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          labelStyle: const TextStyle(color: Colors.black87),
-          helperStyle: const TextStyle(color: Colors.black54),
-          floatingLabelStyle: const TextStyle(color: Colors.black87),
+          labelStyle: TextStyle(color: fieldTextColor),
+          helperStyle: TextStyle(color: fieldTextColor.withOpacity(0.75)),
+          floatingLabelStyle: TextStyle(color: fieldTextColor),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: fieldFill,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1107,7 +1111,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
             .map(
               (option) => DropdownMenuItem<String>(
                 value: option.id,
-                child: Text(option.name, style: const TextStyle(color: Colors.black87)),
+                child: Text(option.name, style: TextStyle(color: fieldTextColor)),
               ),
             )
             .toList(),
@@ -1155,14 +1159,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         ),
         initialValue: value == null ? '' : _formatDate(value),
         onTap: () async {
-          final now = DateTime.now();
-          final initial = value ?? DateTime(now.year - 1, now.month, now.day);
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: initial,
-            firstDate: DateTime(1990),
-            lastDate: DateTime(now.year + 1, 12, 31),
-          );
+          final picked = await _pickDate(value);
           if (picked != null) {
             onSelected(picked);
           }
@@ -1173,6 +1170,23 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
           }
           return null;
         },
+      ),
+    );
+  }
+
+  Future<DateTime?> _pickDate(DateTime? current) async {
+    final now = DateTime.now();
+    final initial = current ?? DateTime(now.year - 1, now.month, now.day);
+    return showDialog<DateTime?>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: CalendarDatePicker(
+          initialDate: initial,
+          firstDate: DateTime(1990),
+          lastDate: DateTime(now.year + 1, 12, 31),
+          onDateChanged: (selected) => Navigator.of(context).pop(selected),
+        ),
       ),
     );
   }
