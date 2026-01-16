@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'theme_storage_listener.dart';
+
 class ThemeSettings {
   ThemeSettings._();
 
@@ -8,14 +10,17 @@ class ThemeSettings {
   static final ThemeSettings instance = ThemeSettings._();
 
   final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.light);
+  bool _storageListenerInitialized = false;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final isDark = prefs.getBool(_themePreferenceKey);
     if (isDark == null) {
+      _ensureStorageListener();
       return;
     }
     themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    _ensureStorageListener();
   }
 
   void setThemeMode(bool isDark) {
@@ -23,5 +28,22 @@ class ThemeSettings {
     SharedPreferences.getInstance().then(
       (prefs) => prefs.setBool(_themePreferenceKey, isDark),
     );
+  }
+
+  void _ensureStorageListener() {
+    if (_storageListenerInitialized) {
+      return;
+    }
+    _storageListenerInitialized = true;
+    registerStorageListener(_themePreferenceKey, (value) {
+      if (value == null) {
+        return;
+      }
+      final isDark = value == 'true';
+      final nextMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      if (themeMode.value != nextMode) {
+        themeMode.value = nextMode;
+      }
+    });
   }
 }
