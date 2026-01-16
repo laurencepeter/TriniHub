@@ -40,6 +40,7 @@ create table if not exists public.dogs (
     dob date,
     microchip_id text,
     status text not null default 'active',
+    life_status text not null default 'alive',
     current_owner_id uuid not null references public.owners(id) on delete restrict,
     notes text,
     created_at timestamptz not null default now(),

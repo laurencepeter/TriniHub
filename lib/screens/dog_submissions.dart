@@ -155,6 +155,11 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
                           : 'Dog #${submission.dogNumber}',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Life status: ${_lifeStatusLabel(submission.lifeStatus)}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                    ),
                   ],
                 ),
               ),
@@ -203,6 +208,8 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
 
   String _statusLabel(String status) {
     switch (status) {
+      case 'deleted':
+        return 'Deleted';
       case 'approved':
       case 'active':
         return 'Approved';
@@ -215,6 +222,8 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'deleted':
+        return Colors.grey;
       case 'approved':
       case 'active':
         return Colors.green;
@@ -222,6 +231,16 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
         return Colors.orange;
       default:
         return Colors.blueGrey;
+    }
+  }
+
+  String _lifeStatusLabel(String status) {
+    switch (status) {
+      case 'deceased':
+        return 'Deceased';
+      case 'alive':
+      default:
+        return 'Alive';
     }
   }
 }
