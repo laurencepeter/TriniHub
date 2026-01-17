@@ -78,6 +78,25 @@ class DogRegistrationService {
   static final DogRegistrationService instance = DogRegistrationService._();
 
   final SupabaseClient _client = Supabase.instance.client;
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  static String _stringValue(dynamic value, {String fallback = ''}) {
+    if (value == null) {
+      return fallback;
+    }
+    return value.toString();
+  }
 
   Future<List<LookupOption>> fetchBreeds() async {
     final response = await _client.from('breeds').select('id,name').order('name');
@@ -105,13 +124,14 @@ class DogRegistrationService {
         .order('updated_at', ascending: false);
 
     return (response as List<dynamic>).map((row) {
+      final dogNumber = _stringValue(row['dog_number']);
       return DogSubmission(
-        id: row['id'] as String,
-        dogNumber: row['dog_number'] as String,
+        id: _stringValue(row['id']),
+        dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
         dogName: row['name'] as String?,
-        status: row['status'] as String? ?? 'pending',
-        lifeStatus: row['life_status'] as String? ?? 'alive',
-        updatedAt: row['updated_at'] == null ? null : DateTime.parse(row['updated_at'] as String),
+        status: _stringValue(row['status'], fallback: 'pending'),
+        lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
+        updatedAt: _parseDate(row['updated_at']),
       );
     }).toList();
   }
@@ -141,28 +161,27 @@ class DogRegistrationService {
         .eq('owner_id', ownerId)
         .maybeSingle();
     return DogSubmissionDetail(
-      id: dog['id'] as String,
-      dogNumber: dog['dog_number'] as String,
+      id: _stringValue(dog['id']),
+      dogNumber: _stringValue(dog['dog_number']),
       dogName: dog['name'] as String?,
-      dogSex: dog['sex'] as String? ?? 'unknown',
+      dogSex: _stringValue(dog['sex'], fallback: 'unknown'),
       dogBreedId: dog['breed_id'] as String?,
       dogColor: dog['color'] as String?,
-      dogDob: dog['dob'] == null ? null : DateTime.parse(dog['dob'] as String),
+      dogDob: _parseDate(dog['dob']),
       microchipId: dog['microchip_id'] as String?,
       notes: dog['notes'] as String?,
-      status: dog['status'] as String? ?? 'pending',
-      lifeStatus: dog['life_status'] as String? ?? 'alive',
-      ownerId: owner['id'] as String,
-      ownerFirstName: owner['first_name'] as String,
-      ownerLastName: owner['last_name'] as String,
+      status: _stringValue(dog['status'], fallback: 'pending'),
+      lifeStatus: _stringValue(dog['life_status'], fallback: 'alive'),
+      ownerId: _stringValue(owner['id']),
+      ownerFirstName: _stringValue(owner['first_name']),
+      ownerLastName: _stringValue(owner['last_name']),
       ownerPhone: owner['phone'] as String?,
       ownerEmail: owner['email'] as String?,
       ownerNationalId: owner['national_id'] as String?,
       ownerAddressLine1: owner['address_line1'] as String?,
       ownerAddressLine2: owner['address_line2'] as String?,
       ownerRegionId: owner['region_id'] as String?,
-      ownershipStartDate:
-          ownership == null || ownership['start_date'] == null ? null : DateTime.parse(ownership['start_date'] as String),
+      ownershipStartDate: ownership == null ? null : _parseDate(ownership['start_date']),
     );
   }
 
