@@ -59,6 +59,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   String _selectedLifeStatus = 'alive';
   DateTime? _dogDob;
   DateTime? _ownershipStartDate;
+  bool _lifeStatusEditable = false;
 
   bool _loadingLookups = true;
   String? _lookupError;
@@ -205,6 +206,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       _submittedDogId = detail.id;
       _editingStatus = detail.status;
       _submitted = false;
+      _lifeStatusEditable = false;
     });
   }
 
@@ -343,6 +345,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       _dogDob = null;
       _ownershipStartDate = null;
       _showLanding = false;
+      _lifeStatusEditable = false;
     });
   }
 
@@ -647,19 +650,35 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                                   maxLines: 3,
                                   isRequired: false,
                                 ),
-                                const SizedBox(height: 14),
-                                _buildDropdownField(
-                                  label: 'Life status',
-                                  helper: 'Record whether the dog is alive or deceased',
-                                  value: _selectedLifeStatus,
-                                  items: const [
-                                    LookupOption(id: 'alive', name: 'Alive'),
-                                    LookupOption(id: 'deceased', name: 'Deceased'),
-                                  ],
-                                  onChanged: isDeleted
-                                      ? null
-                                      : (value) => setState(() => _selectedLifeStatus = value ?? 'alive'),
-                                ),
+                                if (_editingStatus != null) ...[
+                                  const SizedBox(height: 14),
+                                  SwitchListTile.adaptive(
+                                    contentPadding: EdgeInsets.zero,
+                                    value: _lifeStatusEditable,
+                                    onChanged: isDeleted ? null : (value) => setState(() => _lifeStatusEditable = value),
+                                    title: const Text('Update life status'),
+                                    subtitle: Text(
+                                      _lifeStatusEditable
+                                          ? 'Choose alive or deceased for this dog.'
+                                          : 'Status defaults to alive. Enable to update later.',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildDropdownField(
+                                    label: 'Life status',
+                                    helper: _lifeStatusEditable
+                                        ? 'Record whether the dog is alive or deceased'
+                                        : 'Defaulted to alive for now',
+                                    value: _selectedLifeStatus,
+                                    items: const [
+                                      LookupOption(id: 'alive', name: 'Alive'),
+                                      LookupOption(id: 'deceased', name: 'Deceased'),
+                                    ],
+                                    onChanged: isDeleted || !_lifeStatusEditable
+                                        ? null
+                                        : (value) => setState(() => _selectedLifeStatus = value ?? 'alive'),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -1081,9 +1100,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     required ValueChanged<String?>? onChanged,
     bool isRequired = true,
   }) {
-    final theme = Theme.of(context);
-    final fieldFill = theme.colorScheme.surface;
-    final fieldTextColor = theme.colorScheme.onSurface;
+    final fieldFill = Colors.white;
+    final fieldTextColor = Colors.black87;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -1097,7 +1115,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
           helperText: helper,
           floatingLabelBehavior: FloatingLabelBehavior.always,
           labelStyle: TextStyle(color: fieldTextColor),
-          helperStyle: TextStyle(color: fieldTextColor.withOpacity(0.75)),
+          helperStyle: const TextStyle(color: Colors.black54),
           floatingLabelStyle: TextStyle(color: fieldTextColor),
           filled: true,
           fillColor: fieldFill,
