@@ -1024,6 +1024,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   }
 
   Widget _buildSectionCard({required String title, required Widget child}) {
+    const cardTextColor = Colors.black87;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -1032,16 +1033,23 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         color: Colors.grey.shade100,
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          child,
-        ],
+      child: DefaultTextStyle(
+        style: const TextStyle(color: cardTextColor),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: cardTextColor,
+              ),
+            ),
+            const SizedBox(height: 10),
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -1248,7 +1256,10 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 const SizedBox(height: 14),
                 Text(
                   'Registration saved',
-                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -1270,7 +1281,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 Text(
                   'We logged this dog into the database with the details provided. You can still review or edit this submission.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
                 ),
                 const SizedBox(height: 18),
                 _buildSummaryTile(
@@ -1338,9 +1349,15 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   Widget _buildSummaryTile(String title, String value, IconData icon) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.grey[700]),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(value.isEmpty ? 'Not provided' : value),
+      leading: Icon(icon, color: Colors.black54),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+      ),
+      subtitle: Text(
+        value.isEmpty ? 'Not provided' : value,
+        style: const TextStyle(color: Colors.black54),
+      ),
     );
   }
 
