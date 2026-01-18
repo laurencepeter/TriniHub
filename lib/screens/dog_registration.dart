@@ -911,10 +911,10 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withOpacity(0.95),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.08)),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: theme.shadowColor.withOpacity(0.12),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -964,8 +964,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black.withOpacity(0.08)),
-        color: Colors.white,
+        border: Border.all(color: theme.dividerColor.withOpacity(0.6)),
+        color: theme.colorScheme.surface,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

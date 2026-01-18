@@ -120,10 +120,10 @@ class _DogSubmissionsScreenState extends State<DogSubmissionsScreen> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: theme.colorScheme.surface,
-        border: Border.all(color: Colors.black.withOpacity(0.06)),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.6)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: theme.shadowColor.withOpacity(0.06),
             blurRadius: 12,
             offset: const Offset(0, 8),
           ),
