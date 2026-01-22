@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/services/auth_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -26,9 +28,13 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _acceptTerms = false;
   bool _isSubmitting = false;
   String? _errorMessage;
+  bool _isAwaitingVerification = false;
+  String? _verificationStatus;
+  Timer? _verificationTimer;
 
   @override
   void dispose() {
+    _verificationTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -36,6 +42,44 @@ class _RegisterPageState extends State<RegisterPage> {
     _lastNameController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  void _startVerificationPolling({required String email, required String password}) {
+    _verificationTimer?.cancel();
+    setState(() {
+      _isAwaitingVerification = true;
+      _verificationStatus = 'Waiting for email confirmation...';
+    });
+    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      try {
+        final authService = AuthService();
+        final user = await authService.signIn(email: email, password: password);
+        if (!mounted) return;
+        if (user != null) {
+          timer.cancel();
+          setState(() => _verificationStatus = 'User verified! Signing you in...');
+          await Future.delayed(const Duration(seconds: 1));
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
+            ),
+          );
+        }
+      } catch (error) {
+        if (!mounted) return;
+        final message = mapSupabaseError(error);
+        if (message.toLowerCase().contains('confirm')) {
+          return;
+        }
+        timer.cancel();
+        setState(() {
+          _isAwaitingVerification = false;
+          _verificationStatus = null;
+          _errorMessage = message;
+        });
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -47,9 +91,12 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Please accept the terms to continue.');
       return;
     }
+    _verificationTimer?.cancel();
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
+      _isAwaitingVerification = false;
+      _verificationStatus = null;
     });
     try {
       final authService = AuthService();
@@ -63,7 +110,10 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       if (!mounted) return;
       if (user == null) {
-        setState(() => _errorMessage = 'Check your email to confirm your account before signing in.');
+        _startVerificationPolling(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
         return;
       }
       Navigator.of(context).pushReplacement(
@@ -207,6 +257,18 @@ class _RegisterPageState extends State<RegisterPage> {
                       title: const Text('I agree to the terms and privacy policy'),
                       contentPadding: EdgeInsets.zero,
                     ),
+                    if (_isAwaitingVerification) ...[
+                      const SizedBox(height: 12),
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 8),
+                      Text(
+                        _verificationStatus ?? 'Waiting for email confirmation...',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 12),
                       Text(
@@ -218,7 +280,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: _isSubmitting ? null : _submit,
+                        onPressed: (_isSubmitting || _isAwaitingVerification) ? null : _submit,
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
