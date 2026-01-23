@@ -95,13 +95,12 @@ class _MyAppState extends State<MyApp> {
           themeMode: themeMode,
           builder: (context, child) {
             return Stack(
+              fit: StackFit.expand,
               children: [
                 if (child != null) child,
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
+                const IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
                     child: BaseVersionFooter(),
                   ),
                 ),
