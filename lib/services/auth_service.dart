@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_app_tt/services/owner_service.dart';
 
@@ -20,6 +21,10 @@ class AuthService {
 
   final SupabaseClient _client;
   final OwnerService _ownerService;
+
+  String _signUpRedirectTo() {
+    return dotenv.env['SUPABASE_SIGNUP_REDIRECT'] ?? 'trinihub://signup';
+  }
 
   String? _metadataString(Map<String, dynamic>? metadata, String key) {
     final value = metadata?[key];
@@ -68,6 +73,7 @@ class AuthService {
       email: email,
       password: password,
       data: metadata.isEmpty ? null : metadata,
+      emailRedirectTo: _signUpRedirectTo(),
     );
     final requiresEmailVerification = response.session == null;
     final user = response.user ?? _client.auth.currentUser;
@@ -82,6 +88,14 @@ class AuthService {
     return SignUpOutcome(
       user: user,
       requiresEmailVerification: requiresEmailVerification,
+    );
+  }
+
+  Future<void> resendSignUpEmail({required String email}) async {
+    await _client.auth.resend(
+      type: OtpType.signup,
+      email: email,
+      emailRedirectTo: _signUpRedirectTo(),
     );
   }
 
