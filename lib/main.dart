@@ -98,9 +98,11 @@ class _MyAppState extends State<MyApp> {
               fit: StackFit.expand,
               children: [
                 if (child != null) child,
-                const IgnorePointer(
-                  child: Align(
-                    alignment: Alignment.bottomCenter,
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
                     child: BaseVersionFooter(),
                   ),
                 ),
