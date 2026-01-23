@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:local_app_tt/utils/base_version.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class BaseVersionFooter extends StatelessWidget {
   const BaseVersionFooter({super.key});
+
+  Future<String> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    final buildSuffix = info.buildNumber.isEmpty ? '' : '+${info.buildNumber}';
+    return 'Base v${info.version}$buildSuffix';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +38,18 @@ class BaseVersionFooter extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Text(
-                  'Base v$baseVersion',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: FutureBuilder<String>(
+                  future: _loadVersion(),
+                  builder: (context, snapshot) {
+                    final label = snapshot.data ?? 'Base';
+                    return Text(
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
