@@ -74,12 +74,29 @@ class AuthService {
       'region_id': regionId,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
     final redirectTo = _signUpRedirectTo();
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-      data: metadata.isEmpty ? null : metadata,
-      emailRedirectTo: redirectTo,
-    );
+    AuthResponse response;
+    try {
+      response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: metadata.isEmpty ? null : metadata,
+        emailRedirectTo: redirectTo,
+      );
+    } on AuthException catch (error) {
+      final message = error.message.toLowerCase();
+      final isEmailFailure =
+          message.contains('error sending confirmation email') || message.contains('unexpected_failure');
+      if (isEmailFailure && redirectTo != null) {
+        response = await _client.auth.signUp(
+          email: email,
+          password: password,
+          data: metadata.isEmpty ? null : metadata,
+          emailRedirectTo: null,
+        );
+      } else {
+        rethrow;
+      }
+    }
     final user = response.user ?? response.session?.user ?? _client.auth.currentUser;
     final requiresEmailVerification = response.session == null;
     if (user == null && !requiresEmailVerification) {
