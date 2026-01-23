@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/services/auth_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -31,11 +29,9 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _errorMessage;
   bool _isAwaitingVerification = false;
   String? _verificationStatus;
-  Timer? _verificationTimer;
 
   @override
   void dispose() {
-    _verificationTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -43,44 +39,6 @@ class _RegisterPageState extends State<RegisterPage> {
     _lastNameController.dispose();
     _phoneController.dispose();
     super.dispose();
-  }
-
-  void _startVerificationPolling({required String email, required String password}) {
-    _verificationTimer?.cancel();
-    setState(() {
-      _isAwaitingVerification = true;
-      _verificationStatus = 'Waiting for email confirmation...';
-    });
-    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      try {
-        final authService = AuthService();
-        final user = await authService.signIn(email: email, password: password);
-        if (!mounted) return;
-        if (user != null) {
-          timer.cancel();
-          setState(() => _verificationStatus = 'User verified! Signing you in...');
-          await Future.delayed(const Duration(seconds: 1));
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
-            ),
-          );
-        }
-      } catch (error) {
-        if (!mounted) return;
-        final message = mapSupabaseError(error);
-        if (message.toLowerCase().contains('confirm')) {
-          return;
-        }
-        timer.cancel();
-        setState(() {
-          _isAwaitingVerification = false;
-          _verificationStatus = null;
-          _errorMessage = message;
-        });
-      }
-    });
   }
 
   Future<void> _submit() async {
@@ -92,7 +50,6 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() => _errorMessage = 'Please accept the terms to continue.');
       return;
     }
-    _verificationTimer?.cancel();
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -112,10 +69,10 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       if (!mounted) return;
       if (outcome.requiresEmailVerification) {
-        _startVerificationPolling(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        setState(() {
+          _isAwaitingVerification = true;
+          _verificationStatus = 'Check your email to confirm your account.';
+        });
         return;
       }
       if (outcome.user != null) {
