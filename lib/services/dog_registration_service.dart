@@ -78,6 +78,23 @@ class DogRegistrationService {
   static final DogRegistrationService instance = DogRegistrationService._();
 
   final SupabaseClient _client = Supabase.instance.client;
+  static const List<LookupOption> _municipalRegions = [
+    LookupOption(id: 'arima', name: 'Arima Borough Corporation'),
+    LookupOption(id: 'chaguanas', name: 'Chaguanas Borough Corporation'),
+    LookupOption(id: 'couva-tabaquite-talparo', name: 'Couva-Tabaquite-Talparo Regional Corporation'),
+    LookupOption(id: 'diego-martin', name: 'Diego Martin Regional Corporation'),
+    LookupOption(id: 'mayaro-rio-claro', name: 'Mayaro-Rio Claro Regional Corporation'),
+    LookupOption(id: 'penal-debe', name: 'Penal-Debe Regional Corporation'),
+    LookupOption(id: 'point-fortin', name: 'Point Fortin Borough Corporation'),
+    LookupOption(id: 'port-of-spain', name: 'Port of Spain City Corporation'),
+    LookupOption(id: 'princes-town', name: 'Princes Town Regional Corporation'),
+    LookupOption(id: 'san-fernando', name: 'San Fernando City Corporation'),
+    LookupOption(id: 'san-juan-laventille', name: 'San Juan-Laventille Regional Corporation'),
+    LookupOption(id: 'sangre-grande', name: 'Sangre Grande Regional Corporation'),
+    LookupOption(id: 'siparia', name: 'Siparia Regional Corporation'),
+    LookupOption(id: 'tunapuna-piarco', name: 'Tunapuna-Piarco Regional Corporation'),
+    LookupOption(id: 'tobago-house-of-assembly', name: 'Tobago House of Assembly'),
+  ];
   static DateTime? _parseDate(dynamic value) {
     if (value == null) {
       return null;
@@ -106,10 +123,7 @@ class DogRegistrationService {
   }
 
   Future<List<LookupOption>> fetchRegions() async {
-    final response = await _client.from('regions').select('id,name').order('name');
-    return (response as List<dynamic>)
-        .map((row) => LookupOption(id: row['id'] as String, name: row['name'] as String))
-        .toList();
+    return _municipalRegions;
   }
 
   Future<List<DogSubmission>> fetchSubmissions() async {
