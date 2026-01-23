@@ -84,8 +84,9 @@ class AuthService {
       );
     } on AuthException catch (error) {
       final message = error.message.toLowerCase();
-      final isEmailFailure =
-          message.contains('error sending confirmation email') || message.contains('unexpected_failure');
+      final isEmailFailure = message.contains('error sending confirmation email') ||
+          message.contains('unexpected_failure') ||
+          message.contains('unexpected failure');
       if (isEmailFailure && redirectTo != null) {
         response = await _client.auth.signUp(
           email: email,
@@ -118,11 +119,27 @@ class AuthService {
 
   Future<void> resendSignUpEmail({required String email}) async {
     final redirectTo = _signUpRedirectTo();
-    await _client.auth.resend(
-      type: OtpType.signup,
-      email: email,
-      emailRedirectTo: redirectTo,
-    );
+    try {
+      await _client.auth.resend(
+        type: OtpType.signup,
+        email: email,
+        emailRedirectTo: redirectTo,
+      );
+    } on AuthException catch (error) {
+      final message = error.message.toLowerCase();
+      final isEmailFailure = message.contains('error sending confirmation email') ||
+          message.contains('unexpected_failure') ||
+          message.contains('unexpected failure');
+      if (isEmailFailure && redirectTo != null) {
+        await _client.auth.resend(
+          type: OtpType.signup,
+          email: email,
+          emailRedirectTo: null,
+        );
+      } else {
+        rethrow;
+      }
+    }
   }
 
   Future<OwnerProfile> ensureOwnerProfile() async {

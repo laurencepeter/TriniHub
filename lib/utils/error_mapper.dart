@@ -4,7 +4,8 @@ String mapSupabaseError(Object error) {
   if (error is AuthException) {
     final message = error.message.toLowerCase();
     if (message.contains('error sending confirmation email') ||
-        message.contains('unexpected_failure')) {
+        message.contains('unexpected_failure') ||
+        message.contains('unexpected failure')) {
       return 'We could not send the confirmation email. Please try again in a few minutes.';
     }
     if (message.contains('invalid login credentials')) {
