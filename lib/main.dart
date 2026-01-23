@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/widgets/auth_gate.dart';
+import 'package:local_app_tt/widgets/base_version_footer.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
@@ -92,6 +93,21 @@ class _MyAppState extends State<MyApp> {
           theme: _buildTheme(Brightness.light),
           darkTheme: _buildTheme(Brightness.dark),
           themeMode: themeMode,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                if (child != null) child,
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: BaseVersionFooter(),
+                  ),
+                ),
+              ],
+            );
+          },
           home: AuthGate(
             key: ValueKey(themeMode),
             onThemeToggle: _handleThemeToggle,
