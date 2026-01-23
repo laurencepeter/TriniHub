@@ -75,8 +75,11 @@ class AuthService {
       data: metadata.isEmpty ? null : metadata,
       emailRedirectTo: _signUpRedirectTo(),
     );
-    final requiresEmailVerification = response.session == null;
     final user = response.user ?? _client.auth.currentUser;
+    if (user == null) {
+      throw const AuthException('Unable to create your account. Please try again.');
+    }
+    final requiresEmailVerification = response.session == null;
     if (!requiresEmailVerification && user != null) {
       await _ownerService.ensureOwnerProfile(
         firstName: firstName,

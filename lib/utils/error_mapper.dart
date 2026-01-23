@@ -9,7 +9,10 @@ String mapSupabaseError(Object error) {
     if (message.contains('user already registered')) {
       return 'An account already exists for this email.';
     }
-    if (message.contains('email') && message.contains('confirm')) {
+    if (message.contains('email not confirmed') ||
+        message.contains('confirm your email') ||
+        message.contains('confirm your account') ||
+        message.contains('email_not_confirmed')) {
       return 'Check your email to confirm your account.';
     }
     return error.message;
