@@ -3,6 +3,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 String mapSupabaseError(Object error) {
   if (error is AuthException) {
     final message = error.message.toLowerCase();
+    if (message.contains('error sending confirmation email') ||
+        message.contains('unexpected_failure')) {
+      return 'We could not send the confirmation email. Please try again in a few minutes.';
+    }
     if (message.contains('invalid login credentials')) {
       return 'The email or password is incorrect.';
     }
