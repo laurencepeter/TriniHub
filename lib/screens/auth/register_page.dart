@@ -100,7 +100,7 @@ class _RegisterPageState extends State<RegisterPage> {
     });
     try {
       final authService = AuthService();
-      final user = await authService.signUp(
+      final outcome = await authService.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         firstName: _firstNameController.text.trim(),
@@ -109,18 +109,22 @@ class _RegisterPageState extends State<RegisterPage> {
         regionId: _selectedRegionId,
       );
       if (!mounted) return;
-      if (user == null) {
+      if (outcome.requiresEmailVerification) {
         _startVerificationPolling(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         return;
       }
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
-        ),
-      );
+      if (outcome.user != null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
+          ),
+        );
+      } else {
+        setState(() => _errorMessage = 'Unable to create your account. Please try again.');
+      }
     } catch (error) {
       if (mounted) {
         setState(() => _errorMessage = mapSupabaseError(error));

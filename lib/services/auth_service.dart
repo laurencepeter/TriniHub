@@ -1,6 +1,18 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_app_tt/services/owner_service.dart';
 
+class SignUpOutcome {
+  SignUpOutcome({
+    required this.user,
+    required this.requiresEmailVerification,
+  });
+
+  final User? user;
+  final bool requiresEmailVerification;
+
+  bool get hasActiveSession => user != null && !requiresEmailVerification;
+}
+
 class AuthService {
   AuthService({SupabaseClient? client})
       : _client = client ?? Supabase.instance.client,
@@ -38,7 +50,7 @@ class AuthService {
     await _client.auth.signOut(scope: SignOutScope.global);
   }
 
-  Future<User?> signUp({
+  Future<SignUpOutcome> signUp({
     required String email,
     required String password,
     String? firstName,
@@ -57,11 +69,9 @@ class AuthService {
       password: password,
       data: metadata.isEmpty ? null : metadata,
     );
-    if (response.session == null) {
-      return null;
-    }
+    final requiresEmailVerification = response.session == null;
     final user = response.user ?? _client.auth.currentUser;
-    if (user != null) {
+    if (!requiresEmailVerification && user != null) {
       await _ownerService.ensureOwnerProfile(
         firstName: firstName,
         lastName: lastName,
@@ -69,7 +79,10 @@ class AuthService {
         regionId: regionId,
       );
     }
-    return user;
+    return SignUpOutcome(
+      user: user,
+      requiresEmailVerification: requiresEmailVerification,
+    );
   }
 
   Future<OwnerProfile> ensureOwnerProfile() async {
