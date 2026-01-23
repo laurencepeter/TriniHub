@@ -38,6 +38,18 @@ class AuthService {
     return null;
   }
 
+  bool _shouldRetryWithoutRedirect(AuthException error) {
+    final message = error.message.toLowerCase();
+    return message.contains('error sending confirmation email') ||
+        message.contains('unexpected_failure') ||
+        message.contains('unexpected failure') ||
+        message.contains('invalid redirect') ||
+        message.contains('redirect url') ||
+        message.contains('redirect_uri') ||
+        message.contains('redirect uri') ||
+        message.contains('redirect');
+  }
+
   Future<User?> signIn({required String email, required String password}) async {
     final response = await _client.auth.signInWithPassword(
       email: email,
@@ -83,11 +95,7 @@ class AuthService {
         emailRedirectTo: redirectTo,
       );
     } on AuthException catch (error) {
-      final message = error.message.toLowerCase();
-      final isEmailFailure = message.contains('error sending confirmation email') ||
-          message.contains('unexpected_failure') ||
-          message.contains('unexpected failure');
-      if (isEmailFailure && redirectTo != null) {
+      if (_shouldRetryWithoutRedirect(error) && redirectTo != null) {
         response = await _client.auth.signUp(
           email: email,
           password: password,
@@ -126,11 +134,7 @@ class AuthService {
         emailRedirectTo: redirectTo,
       );
     } on AuthException catch (error) {
-      final message = error.message.toLowerCase();
-      final isEmailFailure = message.contains('error sending confirmation email') ||
-          message.contains('unexpected_failure') ||
-          message.contains('unexpected failure');
-      if (isEmailFailure && redirectTo != null) {
+      if (_shouldRetryWithoutRedirect(error) && redirectTo != null) {
         await _client.auth.resend(
           type: OtpType.signup,
           email: email,
