@@ -22,8 +22,12 @@ class AuthService {
   final SupabaseClient _client;
   final OwnerService _ownerService;
 
-  String _signUpRedirectTo() {
-    return dotenv.env['SUPABASE_SIGNUP_REDIRECT'] ?? 'trinihub://signup';
+  String? _signUpRedirectTo() {
+    final redirect = dotenv.env['SUPABASE_SIGNUP_REDIRECT'];
+    if (redirect == null || redirect.trim().isEmpty) {
+      return null;
+    }
+    return redirect;
   }
 
   String? _metadataString(Map<String, dynamic>? metadata, String key) {
@@ -69,17 +73,18 @@ class AuthService {
       'phone': phone,
       'region_id': regionId,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
+    final redirectTo = _signUpRedirectTo();
     final response = await _client.auth.signUp(
       email: email,
       password: password,
       data: metadata.isEmpty ? null : metadata,
-      emailRedirectTo: _signUpRedirectTo(),
+      emailRedirectTo: redirectTo,
     );
-    final user = response.user ?? _client.auth.currentUser;
-    if (user == null) {
+    final user = response.user ?? response.session?.user ?? _client.auth.currentUser;
+    final requiresEmailVerification = response.session == null;
+    if (user == null && !requiresEmailVerification) {
       throw const AuthException('Unable to create your account. Please try again.');
     }
-    final requiresEmailVerification = response.session == null;
     if (!requiresEmailVerification && user != null) {
       await _ownerService.ensureOwnerProfile(
         firstName: firstName,
@@ -95,10 +100,11 @@ class AuthService {
   }
 
   Future<void> resendSignUpEmail({required String email}) async {
+    final redirectTo = _signUpRedirectTo();
     await _client.auth.resend(
       type: OtpType.signup,
       email: email,
-      emailRedirectTo: _signUpRedirectTo(),
+      emailRedirectTo: redirectTo,
     );
   }
 
