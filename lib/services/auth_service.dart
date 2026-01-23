@@ -9,12 +9,29 @@ class AuthService {
   final SupabaseClient _client;
   final OwnerService _ownerService;
 
+  String? _metadataString(Map<String, dynamic>? metadata, String key) {
+    final value = metadata?[key];
+    if (value is String && value.trim().isNotEmpty) {
+      return value;
+    }
+    return null;
+  }
+
   Future<User?> signIn({required String email, required String password}) async {
     final response = await _client.auth.signInWithPassword(
       email: email,
       password: password,
     );
-    return response.user;
+    final user = response.user;
+    if (user != null) {
+      await _ownerService.ensureOwnerProfile(
+        firstName: _metadataString(user.userMetadata, 'first_name'),
+        lastName: _metadataString(user.userMetadata, 'last_name'),
+        phone: _metadataString(user.userMetadata, 'phone'),
+        regionId: _metadataString(user.userMetadata, 'region_id'),
+      );
+    }
+    return user;
   }
 
   Future<void> signOut() async {
@@ -29,10 +46,20 @@ class AuthService {
     String? phone,
     String? regionId,
   }) async {
+    final metadata = <String, dynamic>{
+      'first_name': firstName,
+      'last_name': lastName,
+      'phone': phone,
+      'region_id': regionId,
+    }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
     final response = await _client.auth.signUp(
       email: email,
       password: password,
+      data: metadata.isEmpty ? null : metadata,
     );
+    if (response.session == null) {
+      return null;
+    }
     final user = response.user ?? _client.auth.currentUser;
     if (user != null) {
       await _ownerService.ensureOwnerProfile(
