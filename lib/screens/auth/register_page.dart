@@ -27,6 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _selectedRegionId;
   bool _acceptTerms = false;
   bool _isSubmitting = false;
+  bool _isResendingVerification = false;
   String? _errorMessage;
   bool _isAwaitingVerification = false;
   String? _verificationStatus;
@@ -96,6 +97,7 @@ class _RegisterPageState extends State<RegisterPage> {
       _isSubmitting = true;
       _errorMessage = null;
       _isAwaitingVerification = false;
+      _isResendingVerification = false;
       _verificationStatus = null;
     });
     try {
@@ -132,6 +134,37 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _resendVerification() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || _isResendingVerification) {
+      return;
+    }
+    setState(() {
+      _isResendingVerification = true;
+      _errorMessage = null;
+      _verificationStatus = 'Resending confirmation email...';
+    });
+    try {
+      final authService = AuthService();
+      await authService.resendSignUpEmail(email: email);
+      if (!mounted) return;
+      setState(() {
+        _verificationStatus = 'Confirmation email resent. Please check your inbox.';
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = mapSupabaseError(error);
+          _verificationStatus = 'Waiting for email confirmation...';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResendingVerification = false);
       }
     }
   }
@@ -271,6 +304,17 @@ class _RegisterPageState extends State<RegisterPage> {
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _isResendingVerification ? null : _resendVerification,
+                        child: _isResendingVerification
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Resend confirmation email'),
                       ),
                     ],
                     if (_errorMessage != null) ...[
