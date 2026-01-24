@@ -6,9 +6,8 @@ class BaseVersionFooter extends StatelessWidget {
 
   Future<String> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
-    final appName = info.appName.trim().isEmpty ? 'Trini Hub' : info.appName;
     final buildSuffix = info.buildNumber.isEmpty ? '' : '+${info.buildNumber}';
-    return '$appName v${info.version}$buildSuffix';
+    return '${info.version}$buildSuffix';
   }
 
   @override
@@ -42,7 +41,7 @@ class BaseVersionFooter extends StatelessWidget {
                 child: FutureBuilder<String>(
                   future: _loadVersion(),
                   builder: (context, snapshot) {
-                    final label = snapshot.data ?? 'Trini Hub';
+                    final label = snapshot.data ?? '';
                     return Text(
                       label,
                       style: theme.textTheme.labelSmall?.copyWith(
