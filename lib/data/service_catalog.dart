@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
+import 'package:local_app_tt/screens/issue_snap.dart';
 import 'package:local_app_tt/screens/service_detail.dart';
 
 class ServiceOption {
@@ -101,6 +102,23 @@ const List<ServiceOption> externalServiceOptions = [
     accentColor: Colors.orange,
   ),
   ServiceOption(
+    label: 'CivSnap',
+    description: 'Snap and geotag community issues',
+    icon: Icons.add_a_photo,
+    category: 'External Services',
+    heroTitle: 'Capture, geotag, and confirm local issues',
+    heroSubtitle: 'Auto-detect reports within 5 meters and vote on existing issues.',
+    highlights: [
+      'Photo capture with auto-geotagging',
+      'Duplicate detection within 5 meters',
+      'Vote to confirm or submit a new issue',
+    ],
+    quickActions: ['Snap photo', 'Check nearby', 'Vote on issue'],
+    formFields: ['Issue title', 'Location notes', 'Contact preference'],
+    checkpoints: ['Captured', 'Matched', 'Confirmed', 'Resolved'],
+    accentColor: Colors.green,
+  ),
+  ServiceOption(
     label: 'Software Bugs',
     description: 'Log an external service bug',
     icon: Icons.bug_report,
@@ -186,6 +204,10 @@ const List<ServiceOption> internalServiceOptions = [
 void handleExternalServiceTap(BuildContext context, ServiceOption option) {
   if (option.label == 'Dog Registration') {
     Navigator.of(context).push(DogRegistrationScreen.route());
+    return;
+  }
+  if (option.label == 'CivSnap') {
+    Navigator.of(context).push(IssueSnapScreen.route());
     return;
   }
 
