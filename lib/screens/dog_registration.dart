@@ -4,6 +4,7 @@ import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
   const DogRegistrationScreen({super.key, this.initialDogId});
@@ -77,6 +78,10 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   @override
   void initState() {
     super.initState();
+    final currentEmail = Supabase.instance.client.auth.currentUser?.email;
+    if (currentEmail != null && currentEmail.trim().isNotEmpty) {
+      _ownerEmailController.text = currentEmail;
+    }
     _initialize();
   }
 
@@ -525,6 +530,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                                         'Optional, for follow-ups',
                                         keyboardType: TextInputType.emailAddress,
                                         isRequired: false,
+                                        isEnabled: false,
                                       ),
                                     ),
                                   ],
@@ -1062,6 +1068,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
     bool isRequired = true,
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    bool isEnabled = true,
   }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -1071,6 +1078,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: keyboardType,
+        enabled: isEnabled,
         style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
