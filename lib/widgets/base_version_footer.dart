@@ -6,8 +6,24 @@ class BaseVersionFooter extends StatelessWidget {
 
   Future<String> _loadVersion() async {
     final info = await PackageInfo.fromPlatform();
-    final buildSuffix = info.buildNumber.isEmpty ? '' : '+${info.buildNumber}';
-    return '${info.version}$buildSuffix';
+    final buildNumber = info.buildNumber.trim();
+    final version = info.version.trim();
+
+    if (buildNumber.isEmpty) {
+      return 'v$version';
+    }
+
+    final parsedBuild = int.tryParse(buildNumber);
+    if (parsedBuild == null) {
+      return 'v$version';
+    }
+
+    final parts = version.split('.');
+    if (parts.length >= 2) {
+      return 'v${parts[0]}.${parts[1]}.$buildNumber';
+    }
+
+    return 'v$version.$buildNumber';
   }
 
   @override
