@@ -44,6 +44,14 @@ To ensure the dog registration form inserts into the Supabase Postgres database 
 
 If you need to point the app at a different Supabase project, update the environment variables in `.env` (see below).
 
+## CivSnap Supabase Setup
+
+To enable CivSnap issue reporting, create the required tables, storage bucket, and policies:
+
+1. Open the Supabase SQL Editor for your project.
+2. Run the schema in `supabase_civsnap_schema.sql` to create the `civsnap_reports` and `civsnap_votes` tables, plus the `civsnap` storage bucket and policies.
+3. Confirm authenticated users can insert reports, votes, and upload photos to the `civsnap` bucket.
+
 ## Local Setup
 
 1. Create a `.env` file in the project root (or use `--dart-define`) with the following values:
