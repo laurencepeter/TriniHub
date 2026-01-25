@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/services/auth_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -26,12 +28,15 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _acceptTerms = false;
   bool _isSubmitting = false;
   bool _isResendingVerification = false;
+  bool _isCheckingVerification = false;
   String? _errorMessage;
   bool _isAwaitingVerification = false;
   String? _verificationStatus;
+  Timer? _verificationTimer;
 
   @override
   void dispose() {
+    _verificationTimer?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -73,6 +78,7 @@ class _RegisterPageState extends State<RegisterPage> {
           _isAwaitingVerification = true;
           _verificationStatus = 'Check your email to confirm your account.';
         });
+        _startVerificationPolling();
         return;
       }
       if (outcome.user != null) {
@@ -93,6 +99,41 @@ class _RegisterPageState extends State<RegisterPage> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  void _startVerificationPolling() {
+    _verificationTimer?.cancel();
+    _verificationTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted || !_isAwaitingVerification || _isCheckingVerification) {
+        return;
+      }
+      _isCheckingVerification = true;
+      try {
+        final authService = AuthService();
+        final user = await authService.signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (!mounted) return;
+        if (user != null) {
+          _verificationTimer?.cancel();
+          setState(() {
+            _verificationStatus = 'Email confirmed. Redirecting you to the app...';
+          });
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ResponsiveWrapper(onThemeToggle: widget.onThemeToggle),
+            ),
+          );
+        }
+      } catch (_) {
+        // Ignore until the email is confirmed.
+      } finally {
+        _isCheckingVerification = false;
+      }
+    });
   }
 
   Future<void> _resendVerification() async {
