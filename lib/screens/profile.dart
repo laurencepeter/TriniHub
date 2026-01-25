@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/services/dog_registration_service.dart';
+import 'package:local_app_tt/services/owner_service.dart';
+import 'package:local_app_tt/utils/validators.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   final String device;
 
   const ProfilePage({
@@ -12,9 +16,127 @@ class ProfilePage extends StatelessWidget {
   });
 
   @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
+  List<LookupOption> _regions = [];
+  String? _selectedRegionId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    final client = Supabase.instance.client;
+    final ownerService = OwnerService(client);
+    final registrationService = DogRegistrationService.instance;
+    final email = client.auth.currentUser?.email ?? '';
+    _emailController.text = email;
+    try {
+      final results = await Future.wait([
+        ownerService.fetchOwnerProfile(),
+        registrationService.fetchRegions(),
+      ]);
+      if (!mounted) return;
+      final profile = results[0] as OwnerProfile?;
+      final regions = results[1] as List<LookupOption>;
+      final regionId = profile?.regionId;
+      final resolvedRegionId = regionId != null && regions.any((region) => region.id == regionId) ? regionId : null;
+      setState(() {
+        _regions = regions;
+        _firstNameController.text = profile?.firstName ?? '';
+        _lastNameController.text = profile?.lastName ?? '';
+        _phoneController.text = profile?.phone ?? '';
+        _selectedRegionId = resolvedRegionId;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Unable to load profile details.';
+      });
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) {
+      return;
+    }
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) {
+      setState(() => _errorMessage = 'You need to be signed in to update your profile.');
+      return;
+    }
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+    final snackBar = ScaffoldMessenger.of(context);
+    try {
+      final ownerService = OwnerService(client);
+      final updated = await ownerService.upsertOwnerProfile(
+        userId: user.id,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        regionId: _selectedRegionId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _selectedRegionId = updated.regionId;
+      });
+      snackBar.showSnackBar(
+        const SnackBar(content: Text('Profile details saved.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      snackBar.showSnackBar(
+        const SnackBar(content: Text('Unable to save profile details.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+    }
+  }
+
+  String _displayName() {
+    final first = _firstNameController.text.trim();
+    final last = _lastNameController.text.trim();
+    final combined = [first, last].where((part) => part.isNotEmpty).join(' ');
+    if (combined.isNotEmpty) {
+      return combined;
+    }
+    final email = _emailController.text.trim();
+    return email.isNotEmpty ? email : 'Profile';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool isDesktop = device == 'Desktop';
+    final bool isDesktop = widget.device == 'Desktop';
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -41,7 +163,7 @@ class ProfilePage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => ResponsiveScaffold(
-                            childBuilder: (device) => HomePage(device: device),
+                            childBuilder: (device) => HomePage(device: widget.device),
                           ),
                         ),
                       );
@@ -57,7 +179,7 @@ class ProfilePage extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Manage your personal details and access preferences for $device.',
+                'Manage your personal details and access preferences for ${widget.device}.',
                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
               ),
               const SizedBox(height: 20),
@@ -80,12 +202,12 @@ class ProfilePage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Jordan Fraser',
+                              _displayName(),
                               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Operations Lead · Regional Support',
+                              _emailController.text.isEmpty ? 'Update your profile details below.' : _emailController.text,
                               style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                             ),
                           ],
@@ -122,60 +244,80 @@ class ProfilePage extends StatelessWidget {
                         style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                       ),
                       const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'First name',
-                            initialValue: 'Jordan',
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Last name',
-                            initialValue: 'Fraser',
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Email address',
-                            initialValue: 'jordan.fraser@trinihub.gov',
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Phone number',
-                            initialValue: '+1 (868) 555-0198',
-                            keyboardType: TextInputType.phone,
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Job title',
-                            initialValue: 'Operations Lead',
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Department',
-                            initialValue: 'Regional Support',
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Office location',
-                            initialValue: 'Port of Spain',
-                          ),
-                          _ProfileTextField(
-                            width: isDesktop ? 260 : double.infinity,
-                            label: 'Employee ID',
-                            initialValue: 'TRI-OPS-0147',
-                          ),
-                        ],
+                      if (_errorMessage != null) ...[
+                        Text(
+                          _errorMessage!,
+                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Form(
+                        key: _formKey,
+                        child: Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          children: [
+                            _ProfileInputField(
+                              width: isDesktop ? 260 : double.infinity,
+                              label: 'First name',
+                              controller: _firstNameController,
+                              validator: (value) => Validators.requiredField(value, label: 'First name'),
+                              isLoading: _isLoading,
+                            ),
+                            _ProfileInputField(
+                              width: isDesktop ? 260 : double.infinity,
+                              label: 'Last name',
+                              controller: _lastNameController,
+                              validator: (value) => Validators.requiredField(value, label: 'Last name'),
+                              isLoading: _isLoading,
+                            ),
+                            _ProfileInputField(
+                              width: isDesktop ? 260 : double.infinity,
+                              label: 'Email address',
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              enabled: false,
+                              isLoading: _isLoading,
+                            ),
+                            _ProfileInputField(
+                              width: isDesktop ? 260 : double.infinity,
+                              label: 'Phone number',
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              isLoading: _isLoading,
+                            ),
+                            SizedBox(
+                              width: isDesktop ? 260 : double.infinity,
+                              child: DropdownButtonFormField<String>(
+                                value: _selectedRegionId,
+                                items: _regions
+                                    .map(
+                                      (region) => DropdownMenuItem<String>(
+                                        value: region.id,
+                                        child: Text(region.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: _isLoading ? null : (value) => setState(() => _selectedRegionId = value),
+                                decoration: const InputDecoration(
+                                  labelText: 'Region',
+                                  filled: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
+                      if (_isLoading) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 12),
+                      ],
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () {},
+                              onPressed: _isLoading ? null : () {},
                               icon: const Icon(Icons.upload_outlined),
                               label: const Text('Upload new photo'),
                             ),
@@ -183,9 +325,9 @@ class ProfilePage extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {},
+                              onPressed: (_isSaving || _isLoading) ? null : _saveProfile,
                               icon: const Icon(Icons.save_outlined),
-                              label: const Text('Save changes'),
+                              label: Text(_isSaving ? 'Saving...' : 'Save changes'),
                             ),
                           ),
                         ],
@@ -509,17 +651,23 @@ class _DepartmentChip extends StatelessWidget {
   }
 }
 
-class _ProfileTextField extends StatelessWidget {
+class _ProfileInputField extends StatelessWidget {
   final double width;
   final String label;
-  final String initialValue;
+  final TextEditingController controller;
   final TextInputType? keyboardType;
+  final bool enabled;
+  final bool isLoading;
+  final String? Function(String?)? validator;
 
-  const _ProfileTextField({
+  const _ProfileInputField({
     required this.width,
     required this.label,
-    required this.initialValue,
+    required this.controller,
     this.keyboardType,
+    this.enabled = true,
+    this.isLoading = false,
+    this.validator,
   });
 
   @override
@@ -527,13 +675,15 @@ class _ProfileTextField extends StatelessWidget {
     return SizedBox(
       width: width,
       child: TextFormField(
-        initialValue: initialValue,
+        controller: controller,
         keyboardType: keyboardType,
         textInputAction: TextInputAction.next,
+        enabled: enabled && !isLoading,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
         ),
+        validator: validator,
       ),
     );
   }
