@@ -341,6 +341,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
           accuracyMeters: report.accuracyMeters,
           locationLabel: report.locationLabel,
           createdAt: report.createdAt,
+          status: report.status,
           voteCount: report.voteCount + 1,
         );
       });
