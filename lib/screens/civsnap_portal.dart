@@ -364,6 +364,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
   final CivSnapService _service = CivSnapService.instance;
   late Future<List<UserRoleAssignment>> _assignmentsFuture;
   late Future<Map<String, int>> _countsFuture;
+  late Future<List<CivSnapReport>> _reportsFuture;
 
   final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
@@ -376,6 +377,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     super.initState();
     _assignmentsFuture = _roleService.fetchAssignments();
     _countsFuture = _service.fetchStatusCounts();
+    _reportsFuture = _service.fetchReports(limit: 120);
   }
 
   @override
@@ -391,6 +393,7 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     setState(() {
       _assignmentsFuture = _roleService.fetchAssignments();
       _countsFuture = _service.fetchStatusCounts();
+      _reportsFuture = _service.fetchReports(limit: 120);
     });
   }
 
@@ -413,6 +416,108 @@ class _AdminDashboardState extends State<_AdminDashboard> {
     _emailController.clear();
     _orgController.clear();
     await _refresh();
+  }
+
+  Future<void> _editAssignment(UserRoleAssignment assignment) async {
+    final userIdController = TextEditingController(text: assignment.userId);
+    final displayNameController = TextEditingController(text: assignment.displayName ?? '');
+    final emailController = TextEditingController(text: assignment.email ?? '');
+    final orgController = TextEditingController(text: assignment.organization ?? '');
+    var selectedRole = assignment.role;
+
+    try {
+      final shouldSave = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Edit user access'),
+            content: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: userIdController,
+                        readOnly: true,
+                        decoration: const InputDecoration(
+                          labelText: 'User ID',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: displayNameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Display name',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: orgController,
+                        decoration: const InputDecoration(
+                          labelText: 'Organization',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<AppRole>(
+                        value: selectedRole,
+                        decoration: const InputDecoration(labelText: 'Role'),
+                        items: AppRole.values
+                            .map(
+                              (role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(role.label),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => selectedRole = value);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Save changes'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldSave == true) {
+        await _roleService.upsertAssignment(
+          userId: assignment.userId,
+          role: selectedRole,
+          organization: orgController.text.trim().isEmpty ? null : orgController.text.trim(),
+          displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
+          email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
+        );
+        await _refresh();
+      }
+    } finally {
+      userIdController.dispose();
+      displayNameController.dispose();
+      emailController.dispose();
+      orgController.dispose();
+    }
   }
 
   @override
@@ -456,7 +561,10 @@ class _AdminDashboardState extends State<_AdminDashboard> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: assignments.map((assignment) {
-                return _AccessCard(assignment: assignment);
+                return _AccessCard(
+                  assignment: assignment,
+                  onEdit: () => _editAssignment(assignment),
+                );
               }).toList(),
             );
           },
@@ -472,6 +580,27 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           builder: (context, snapshot) {
             final counts = _normalizeStatusCounts(snapshot.data ?? {});
             return _StatusSummaryGrid(counts: counts);
+          },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
+          title: 'Monthly Completion Summary',
+          subtitle: 'Completion trends from reported work orders.',
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<CivSnapReport>>(
+          future: _reportsFuture,
+          builder: (context, snapshot) {
+            final reports = snapshot.data ?? [];
+            final completed = reports.where((report) => _normalizeStatus(report.status) == 'completed').toList();
+            final summary = _monthlySummary(completed);
+            if (summary.isEmpty) {
+              return const _EmptyState(
+                title: 'No completed work yet',
+                subtitle: 'Mark reports as completed to see monthly summaries.',
+              );
+            }
+            return _SummaryList(items: summary);
           },
         ),
       ],
@@ -583,8 +712,12 @@ class _AdminAccessForm extends StatelessWidget {
 
 class _AccessCard extends StatelessWidget {
   final UserRoleAssignment assignment;
+  final VoidCallback onEdit;
 
-  const _AccessCard({required this.assignment});
+  const _AccessCard({
+    required this.assignment,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -625,11 +758,21 @@ class _AccessCard extends StatelessWidget {
               ],
             ),
           ),
-          if (assignment.updatedAt != null)
-            Text(
-              _formatDate(assignment.updatedAt!),
-              style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (assignment.updatedAt != null)
+                Text(
+                  _formatDate(assignment.updatedAt!),
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                ),
+              IconButton(
+                onPressed: onEdit,
+                tooltip: 'Edit user access',
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            ],
+          ),
         ],
       ),
     );
