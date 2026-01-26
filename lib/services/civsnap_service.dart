@@ -159,13 +159,13 @@ class CivSnapService {
         .from('civsnap_reports')
         .select(
           'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-        )
-        .order('created_at', ascending: false)
-        .limit(limit);
+        );
     if (status != null) {
       query.eq('status', status);
     }
-    final response = await query;
+    final response = await query
+        .order('created_at', ascending: false)
+        .limit(limit);
     if (response is! List) {
       return [];
     }
