@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_app_tt/services/owner_service.dart';
@@ -25,6 +26,9 @@ class AuthService {
   String? _signUpRedirectTo() {
     final redirect = dotenv.env['SUPABASE_SIGNUP_REDIRECT'];
     if (redirect == null || redirect.trim().isEmpty) {
+      if (kIsWeb) {
+        return Uri.base.replace(query: '', fragment: '').toString();
+      }
       return null;
     }
     return redirect;

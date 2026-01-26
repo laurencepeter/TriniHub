@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:local_app_tt/widgets/auth_gate.dart';
+import 'package:local_app_tt/widgets/auth_shell.dart';
 import 'package:local_app_tt/widgets/base_version_footer.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -109,7 +109,7 @@ class _MyAppState extends State<MyApp> {
               ],
             );
           },
-          home: AuthGate(
+          home: AuthShell(
             key: ValueKey(themeMode),
             onThemeToggle: _handleThemeToggle,
           ),
