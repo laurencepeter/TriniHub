@@ -21,7 +21,7 @@ create table if not exists public.civsnap_reports (
     longitude double precision not null,
     accuracy_m double precision,
     location_label text,
-    status text not null default 'open',
+    status text not null default 'pending' check (status in ('pending', 'under_review', 'in_progress', 'completed', 'open')),
     created_at timestamptz not null default now()
 );
 

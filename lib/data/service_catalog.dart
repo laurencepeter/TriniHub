@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
-import 'package:local_app_tt/screens/issue_snap.dart';
 import 'package:local_app_tt/screens/service_detail.dart';
 
 class ServiceOption {
@@ -207,7 +207,7 @@ void handleExternalServiceTap(BuildContext context, ServiceOption option) {
     return;
   }
   if (option.label == 'CivSnap') {
-    Navigator.of(context).push(IssueSnapScreen.route());
+    Navigator.of(context).push(CivSnapPortalScreen.route());
     return;
   }
 

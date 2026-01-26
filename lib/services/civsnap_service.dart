@@ -14,6 +14,7 @@ class CivSnapReport {
   final double? accuracyMeters;
   final String? locationLabel;
   final DateTime createdAt;
+  final String status;
   final int voteCount;
 
   const CivSnapReport({
@@ -26,6 +27,7 @@ class CivSnapReport {
     required this.accuracyMeters,
     required this.locationLabel,
     required this.createdAt,
+    required this.status,
     required this.voteCount,
   });
 
@@ -40,6 +42,7 @@ class CivSnapReport {
       accuracyMeters: (json['accuracy_m'] as num?)?.toDouble(),
       locationLabel: json['location_label'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      status: (json['status'] ?? 'open').toString(),
       voteCount: _parseVoteCount(json['civsnap_votes']),
     );
   }
@@ -71,9 +74,9 @@ class CivSnapService {
     final response = await _client
         .from('civsnap_reports')
         .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,created_at,civsnap_votes(count)',
+          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
         )
-        .eq('status', 'open')
+        .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
         .gte('latitude', latitude - deltaLat)
         .lte('latitude', latitude + deltaLat)
         .gte('longitude', longitude - deltaLng)
@@ -134,18 +137,68 @@ class CivSnapService {
       'accuracy_m': accuracyMeters,
       'location_label': locationLabel,
       'user_id': userId,
-      'status': 'open',
+      'status': 'pending',
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 
     final response = await _client
         .from('civsnap_reports')
         .insert(payload)
         .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,created_at,civsnap_votes(count)',
+          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
         )
         .single();
 
     return CivSnapReport.fromJson(response);
+  }
+
+  Future<List<CivSnapReport>> fetchReports({
+    String? status,
+    int limit = 50,
+  }) async {
+    final query = _client
+        .from('civsnap_reports')
+        .select(
+          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
+        )
+        .order('created_at', ascending: false)
+        .limit(limit);
+    if (status != null) {
+      query.eq('status', status);
+    }
+    final response = await query;
+    if (response is! List) {
+      return [];
+    }
+    return response
+        .whereType<Map<String, dynamic>>()
+        .map(CivSnapReport.fromJson)
+        .toList();
+  }
+
+  Future<Map<String, int>> fetchStatusCounts() async {
+    final response = await _client.from('civsnap_reports').select('status');
+    if (response is! List) {
+      return {};
+    }
+    final counts = <String, int>{};
+    for (final row in response) {
+      if (row is! Map<String, dynamic>) {
+        continue;
+      }
+      final status = (row['status'] ?? 'open').toString();
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  Future<void> updateReportStatus({
+    required String reportId,
+    required String status,
+  }) async {
+    await _client
+        .from('civsnap_reports')
+        .update({'status': status})
+        .eq('id', reportId);
   }
 
   Future<void> voteForReport(String reportId) async {
