@@ -89,7 +89,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-
-
-
-           // Image.asset('lib/assets/images/RDLG3.png'),
