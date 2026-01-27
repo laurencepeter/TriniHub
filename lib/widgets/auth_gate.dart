@@ -4,7 +4,7 @@ import 'package:local_app_tt/screens/auth/set_new_password_page.dart';
 import 'package:local_app_tt/services/auth_service.dart';
 import 'package:local_app_tt/services/owner_service.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
-import 'package:local_app_tt/widgets/responsive_wrapper.dart';
+import 'package:local_app_tt/widgets/role_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthGate extends StatefulWidget {
@@ -132,7 +132,7 @@ class _OwnerProfileGateState extends State<_OwnerProfileGate> {
           );
         }
 
-        return ResponsiveWrapper(onThemeToggle: widget.onThemeToggle);
+        return const RoleGate();
       },
     );
   }
