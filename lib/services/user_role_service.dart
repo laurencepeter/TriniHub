@@ -78,11 +78,18 @@ class UserRoleService {
   final SupabaseClient _client;
 
   Future<AppRole> fetchCurrentRole() async {
+    try {
+      await _client.auth.refreshSession();
+    } catch (_) {}
+
     final user = _client.auth.currentUser;
     if (user == null) {
       return AppRole.public;
     }
-    final metadataRole = user.userMetadata?['role'] ?? user.userMetadata?['app_role'];
+    final metadataRole = user.appMetadata['role'] ??
+        user.appMetadata['app_role'] ??
+        user.userMetadata?['role'] ??
+        user.userMetadata?['app_role'];
     if (metadataRole != null) {
       return AppRoleX.fromValue(metadataRole.toString());
     }

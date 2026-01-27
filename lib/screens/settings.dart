@@ -4,6 +4,7 @@ import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
+import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
@@ -21,6 +22,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final UserRoleService _roleService = UserRoleService();
   bool _compactLayout = true;
   bool _priorityAlerts = true;
   bool _dailySummary = false;
@@ -30,6 +32,13 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _autoLock = true;
   bool _shareUsageData = false;
   bool _reduceMotion = false;
+  late Future<UserRoleAssignment?> _assignmentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _assignmentFuture = _roleService.fetchCurrentAssignment();
+  }
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -213,6 +222,89 @@ class _SettingsPageState extends State<SettingsPage> {
                       onTap: () => _showSnack('Password settings opened.'),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: FutureBuilder<UserRoleAssignment?>(
+                  future: _assignmentFuture,
+                  builder: (context, snapshot) {
+                    final assignment = snapshot.data;
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const ListTile(
+                        leading: Icon(Icons.admin_panel_settings_outlined),
+                        title: Text('Access roles'),
+                        subtitle: Text('Loading assigned roles...'),
+                        trailing: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+                    if (assignment == null) {
+                      return const ListTile(
+                        leading: Icon(Icons.admin_panel_settings_outlined),
+                        title: Text('Access roles'),
+                        subtitle: Text('Public access · No role assignments found'),
+                      );
+                    }
+                    final roleLabel = assignment.role.label;
+                    final organization = assignment.organization?.trim();
+                    final email = assignment.email?.trim();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.admin_panel_settings_outlined),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Access roles',
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Refresh roles',
+                                onPressed: () {
+                                  setState(() {
+                                    _assignmentFuture = _roleService.fetchCurrentAssignment();
+                                  });
+                                },
+                                icon: const Icon(Icons.refresh),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            assignment.displayName ?? 'Signed-in user',
+                            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            [
+                              roleLabel,
+                              if (organization != null && organization.isNotEmpty) organization,
+                            ].join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                          ),
+                          if (email != null && email.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              email,
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 16),
