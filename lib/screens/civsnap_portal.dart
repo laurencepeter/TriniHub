@@ -27,21 +27,48 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
     _roleFuture = _roleService.fetchCurrentRole();
   }
 
+  void _refreshRole() {
+    setState(() {
+      _roleFuture = _roleService.fetchCurrentRole();
+    });
+  }
+
+  void _openAdminUsers() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('CivSnap Command Center'),
-      ),
-      body: FutureBuilder<AppRole>(
-        future: _roleFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final role = snapshot.data ?? AppRole.public;
-          return Container(
+    return FutureBuilder<AppRole>(
+      future: _roleFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final role = snapshot.data ?? AppRole.public;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('CivSnap Command Centre'),
+            actions: [
+              IconButton(
+                tooltip: 'Refresh access',
+                onPressed: _refreshRole,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          drawer: role == AppRole.admin
+              ? _AdminNavigationDrawer(
+                  onDashboard: () => Navigator.of(context).pop(),
+                  onManageUsers: _openAdminUsers,
+                )
+              : null,
+          body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -66,8 +93,50 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
                 ],
               ),
             ),
-          );
-        },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AdminNavigationDrawer extends StatelessWidget {
+  final VoidCallback onDashboard;
+  final VoidCallback onManageUsers;
+
+  const _AdminNavigationDrawer({
+    required this.onDashboard,
+    required this.onManageUsers,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(),
+            child: Text(
+              'Admin Navigation',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dashboard_outlined),
+            title: const Text('Dashboard'),
+            onTap: onDashboard,
+          ),
+          ListTile(
+            leading: const Icon(Icons.manage_accounts_outlined),
+            title: const Text('Users'),
+            subtitle: const Text('Manage access controls'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onManageUsers();
+            },
+          ),
+        ],
       ),
     );
   }
