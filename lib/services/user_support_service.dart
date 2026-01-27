@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
@@ -64,6 +65,35 @@ class UserSupportService {
   final SupabaseClient _client;
   final DogRegistrationService _dogService = DogRegistrationService.instance;
 
+  SupabaseClient? _buildServiceRoleClient() {
+    final url = dotenv.env['SUPABASE_URL'];
+    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'];
+    if (url == null || url.trim().isEmpty || serviceKey == null || serviceKey.trim().isEmpty) {
+      return null;
+    }
+    return SupabaseClient(url, serviceKey);
+  }
+
+  String? _displayNameFromMetadata(Map<String, dynamic>? metadata) {
+    if (metadata == null) {
+      return null;
+    }
+    final firstName = metadata['first_name'];
+    final lastName = metadata['last_name'];
+    final displayName = [
+      if (firstName is String && firstName.trim().isNotEmpty) firstName.trim(),
+      if (lastName is String && lastName.trim().isNotEmpty) lastName.trim(),
+    ].join(' ');
+    return displayName.isEmpty ? null : displayName;
+  }
+
+  DateTime? _parseSupabaseTimestamp(String? timestamp) {
+    if (timestamp == null || timestamp.trim().isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(timestamp);
+  }
+
   Future<List<SupportUser>> fetchUsers() async {
     final response = await _client
         .from('user_roles')
@@ -77,7 +107,10 @@ class UserSupportService {
         .map(SupportUser.fromJson)
         .toList();
 
-    final ownerResponse = await _client
+    final adminClient = _buildServiceRoleClient();
+    final ownerClient = adminClient ?? _client;
+
+    final ownerResponse = await ownerClient
         .from('owners')
         .select('auth_user_id,first_name,last_name,email')
         .not('auth_user_id', 'is', null);
@@ -102,6 +135,43 @@ class UserSupportService {
           email: row['email'] as String?,
         );
       }
+    }
+
+    if (adminClient != null) {
+      try {
+        final response = await adminClient.auth.admin.listUsers();
+        for (final user in response.users) {
+          final existing = byUserId[user.id];
+          final displayName = _displayNameFromMetadata(user.userMetadata);
+          final email = user.email;
+          final updatedAt = _parseSupabaseTimestamp(user.updatedAt) ?? _parseSupabaseTimestamp(user.createdAt);
+          if (existing == null) {
+            byUserId[user.id] = SupportUser(
+              userId: user.id,
+              role: AppRole.public,
+              displayName: displayName,
+              email: email,
+              updatedAt: updatedAt,
+            );
+          } else {
+            final mergedDisplayName = existing.displayName ?? displayName;
+            final mergedEmail = existing.email ?? email;
+            final mergedUpdatedAt = existing.updatedAt ?? updatedAt;
+            if (mergedDisplayName != existing.displayName ||
+                mergedEmail != existing.email ||
+                mergedUpdatedAt != existing.updatedAt) {
+              byUserId[user.id] = SupportUser(
+                userId: existing.userId,
+                role: existing.role,
+                displayName: mergedDisplayName,
+                email: mergedEmail,
+                organization: existing.organization,
+                updatedAt: mergedUpdatedAt,
+              );
+            }
+          }
+        }
+      } catch (_) {}
     }
 
     return byUserId.values.toList();
