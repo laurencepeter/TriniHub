@@ -5,6 +5,7 @@ import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
 import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/settings.dart';
+import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
@@ -43,6 +44,12 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
   void _openAdminUsers() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
+    );
+  }
+
+  void _openUserSupport() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const UserSupportHubScreen()),
     );
   }
 
