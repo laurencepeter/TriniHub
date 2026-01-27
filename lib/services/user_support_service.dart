@@ -66,8 +66,9 @@ class UserSupportService {
   final DogRegistrationService _dogService = DogRegistrationService.instance;
 
   SupabaseClient? _buildServiceRoleClient() {
-    final url = dotenv.env['SUPABASE_URL'];
-    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'];
+    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
+    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
+        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
     if (url == null || url.trim().isEmpty || serviceKey == null || serviceKey.trim().isEmpty) {
       return null;
     }

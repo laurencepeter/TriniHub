@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/screens/admin_dashboard.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/widgets/auth_shell.dart';
+import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/base_version_footer.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
@@ -100,8 +101,10 @@ class _MyAppState extends State<MyApp> {
           themeMode: themeMode,
           routes: {
             '/role-gate': (_) => const RoleGate(),
-            '/admin': (_) => ResponsiveScaffold(
-                  childBuilder: (device) => AdminDashboardScreen(device: device),
+            '/admin': (_) => AdminGate(
+                  child: ResponsiveScaffold(
+                    childBuilder: (device) => AdminDashboardScreen(device: device),
+                  ),
                 ),
             '/corp': (_) => const CivSnapPortalScreen(),
             '/public': (_) => ResponsiveWrapper(onThemeToggle: _handleThemeToggle),

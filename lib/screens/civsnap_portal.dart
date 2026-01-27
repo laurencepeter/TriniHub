@@ -11,6 +11,7 @@ import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -43,13 +44,17 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
 
   void _openAdminUsers() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
+      MaterialPageRoute(
+        builder: (_) => const AdminGate(child: AdminUserManagementScreen()),
+      ),
     );
   }
 
   void _openUserSupport() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const UserSupportHubScreen()),
+      MaterialPageRoute(
+        builder: (_) => const AdminGate(child: UserSupportHubScreen()),
+      ),
     );
   }
 
@@ -838,7 +843,9 @@ class _AdminDashboardState extends State<_AdminDashboard> {
           action: FilledButton.icon(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const AdminGate(child: AdminUserManagementScreen()),
+                ),
               );
             },
             icon: const Icon(Icons.manage_accounts_outlined),
