@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/widgets/auth_shell.dart';
 import 'package:local_app_tt/widgets/base_version_footer.dart';
 import 'package:local_app_tt/widgets/no_page_transitions.dart';
+import 'package:local_app_tt/widgets/responsive_wrapper.dart';
+import 'package:local_app_tt/widgets/role_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
 
@@ -93,6 +96,12 @@ class _MyAppState extends State<MyApp> {
           theme: _buildTheme(Brightness.light),
           darkTheme: _buildTheme(Brightness.dark),
           themeMode: themeMode,
+          routes: {
+            '/role-gate': (_) => const RoleGate(),
+            '/admin': (_) => const CivSnapPortalScreen(),
+            '/corp': (_) => const CivSnapPortalScreen(),
+            '/public': (_) => ResponsiveWrapper(onThemeToggle: _handleThemeToggle),
+          },
           builder: (context, child) {
             return Stack(
               fit: StackFit.expand,
