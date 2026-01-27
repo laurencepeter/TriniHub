@@ -15,7 +15,7 @@ import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
   final bool isPersistent;
 
   const AppDrawer({
@@ -24,9 +24,25 @@ class AppDrawer extends StatelessWidget {
   });
 
   @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
+  final UserRoleService _roleService = UserRoleService();
+  late Future<AppRole> _roleFuture;
+  late AppRole _cachedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedRole = _roleService.cachedRole();
+    _roleFuture = _roleService.fetchCurrentRole();
+  }
+
+  @override
   Widget build(BuildContext context) {
     void closeDrawer() {
-      if (!isPersistent) {
+      if (!widget.isPersistent) {
         Navigator.pop(context);
       }
     }
@@ -39,7 +55,6 @@ class AppDrawer extends StatelessWidget {
       );
     }
 
-    final roleService = UserRoleService();
     return Drawer(
       child: ListView(
         children: [
@@ -56,7 +71,7 @@ class AppDrawer extends StatelessWidget {
                 ),
                 const SizedBox(width: 10), // Spacing between the logo and text
                 const Text(
-                  'RDLG',
+                  'Trini Hub',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -79,42 +94,61 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           FutureBuilder<AppRole>(
-            future: roleService.fetchCurrentRole(),
+            future: _roleFuture,
+            initialData: _cachedRole,
             builder: (context, snapshot) {
               final role = snapshot.data ?? AppRole.public;
-              if (role != AppRole.admin) {
-                return const SizedBox.shrink();
-              }
-              return Column(
-                children: [
-                  ListTile(
-                    title: const Text('Admin Dashboard'),
-                    leading: const Icon(Icons.admin_panel_settings_outlined),
-                    onTap: () {
-                      navigateTo(
-                        AdminGate(
-                          child: ResponsiveScaffold(
-                            childBuilder: (device) => AdminDashboardScreen(device: device),
-                          ),
+              final adminSection = role == AppRole.admin
+                  ? Column(
+                      key: const ValueKey('admin-section'),
+                      children: [
+                        ListTile(
+                          title: const Text('Admin Dashboard'),
+                          leading: const Icon(Icons.admin_panel_settings_outlined),
+                          onTap: () {
+                            navigateTo(
+                              AdminGate(
+                                child: ResponsiveScaffold(
+                                  childBuilder: (device) => AdminDashboardScreen(device: device),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  ListTile(
-                    title: const Text('User Support Hub'),
-                    leading: const Icon(Icons.support_agent_outlined),
-                    onTap: () {
-                      navigateTo(
-                        AdminGate(
-                          child: ResponsiveScaffold(
-                            childBuilder: (device) => const UserSupportHubScreen(),
-                          ),
+                        ListTile(
+                          title: const Text('User Support Hub'),
+                          leading: const Icon(Icons.support_agent_outlined),
+                          onTap: () {
+                            navigateTo(
+                              AdminGate(
+                                child: ResponsiveScaffold(
+                                  childBuilder: (device) => const UserSupportHubScreen(),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  const Divider(),
-                ],
+                        const Divider(),
+                      ],
+                    )
+                  : const SizedBox(
+                      key: ValueKey('no-admin-section'),
+                    );
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (child, animation) {
+                  return SizeTransition(
+                    sizeFactor: animation,
+                    axisAlignment: -1,
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: adminSection,
               );
             },
           ),
