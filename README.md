@@ -52,6 +52,15 @@ To enable CivSnap issue reporting, create the required tables, storage bucket, a
 2. Run the schema in `supabase_civsnap_schema.sql` to create the `civsnap_reports` and `civsnap_votes` tables, plus the `civsnap` storage bucket and policies.
 3. Confirm authenticated users can insert reports, votes, and upload photos to the `civsnap` bucket.
 
+## Role claim refresh (Supabase Auth)
+
+If you write an `app_role` value into `raw_app_meta_data`, the JWT will not update until the
+client refreshes the session. Make sure the user refreshes their session after role changes:
+
+```dart
+await supabase.auth.refreshSession();
+```
+
 ## Local Setup
 
 1. Create a `.env` file in the project root (or use `--dart-define`) with the following values:
