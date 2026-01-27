@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/screens/externalservices.dart';
+import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
-import 'package:local_app_tt/screens/user_support_hub.dart';
+import 'package:local_app_tt/screens/services.dart';
+import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
+import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CivSnapPortalScreen extends StatefulWidget {
@@ -40,15 +46,47 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
     );
   }
 
-  void _openUserSupport() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const UserSupportHubScreen()),
+  void _handleBottomNavTap(BuildContext context, int index) {
+    if (index == 3) {
+      return;
+    }
+    Widget destination;
+    switch (index) {
+      case 0:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => HomePage(device: device),
+        );
+        break;
+      case 1:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ServicesPage(device: device),
+        );
+        break;
+      case 2:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => InternalServices(),
+        );
+        break;
+      case 4:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => SettingsPage(device: device),
+        );
+        break;
+      default:
+        destination = ResponsiveScaffold(
+          childBuilder: (device) => ExternalServices(),
+        );
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final showBottomNav = MediaQuery.of(context).size.width < 1200;
     return FutureBuilder<AppRole>(
       future: _roleFuture,
       builder: (context, snapshot) {
@@ -103,6 +141,12 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               ),
             ),
           ),
+          bottomNavigationBar: showBottomNav
+              ? BottomNavBar(
+                  currentIndex: 3,
+                  onTap: (index) => _handleBottomNavTap(context, index),
+                )
+              : null,
         );
       },
     );
@@ -349,6 +393,40 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
   String? _organization;
   bool _isContextLoading = true;
   String? _contextError;
+  static const List<_InitiativeItem> _initiativeItems = [
+    _InitiativeItem(
+      title: 'Storm drain sweep',
+      subtitle: 'Phase 2 audit across priority districts.',
+      icon: Icons.water_damage_outlined,
+    ),
+    _InitiativeItem(
+      title: 'Sidewalk lighting refresh',
+      subtitle: 'Replace fixtures along five commuter corridors.',
+      icon: Icons.lightbulb_outline,
+    ),
+    _InitiativeItem(
+      title: 'Pothole sprint',
+      subtitle: 'Targeted repair plan for the north loop.',
+      icon: Icons.construction_outlined,
+    ),
+  ];
+  static const List<_ScheduleItem> _scheduleItems = [
+    _ScheduleItem(
+      title: 'Compliance review',
+      subtitle: 'Week of Oct 7 • Quarterly readiness audit.',
+      icon: Icons.fact_check_outlined,
+    ),
+    _ScheduleItem(
+      title: 'Leadership sync',
+      subtitle: 'Oct 15 • Progress readout and resource planning.',
+      icon: Icons.groups_outlined,
+    ),
+    _ScheduleItem(
+      title: 'Vendor check-in',
+      subtitle: 'Oct 28 • SLA review with external crews.',
+      icon: Icons.handshake_outlined,
+    ),
+  ];
 
   @override
   void initState() {
@@ -445,13 +523,64 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
     await _refresh();
   }
 
+  List<_MetricItem> _staticMetrics(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return [
+      _MetricItem(
+        label: 'Active contracts',
+        value: '12',
+        icon: Icons.assignment_outlined,
+        color: colors.primary,
+      ),
+      _MetricItem(
+        label: 'Crews in field',
+        value: '38',
+        icon: Icons.groups_outlined,
+        color: colors.secondary,
+      ),
+      _MetricItem(
+        label: 'Open inspections',
+        value: '7',
+        icon: Icons.fact_check_outlined,
+        color: colors.tertiary,
+      ),
+      _MetricItem(
+        label: 'Avg. response time',
+        value: '2.6 days',
+        icon: Icons.timer_outlined,
+        color: colors.primaryContainer,
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const _SectionHeader(
+          title: 'Corporate Snapshot',
+          subtitle: 'Static performance metrics for leadership reporting.',
+        ),
+        const SizedBox(height: 12),
+        _MetricsGrid(items: _staticMetrics(context)),
+        const SizedBox(height: 20),
+        const _SectionHeader(
+          title: 'Priority Initiatives',
+          subtitle: 'Planned workstreams and delivery focus areas.',
+        ),
+        const SizedBox(height: 12),
+        _InitiativeList(items: _initiativeItems),
+        const SizedBox(height: 20),
+        const _SectionHeader(
+          title: 'Scheduled Reviews',
+          subtitle: 'Upcoming governance and progress checkpoints.',
+        ),
+        const SizedBox(height: 12),
+        _ScheduleList(items: _scheduleItems),
+        const SizedBox(height: 20),
         _SectionHeader(
-          title: 'Operations Overview',
+          title: 'Live Operations Overview',
           subtitle: 'Monitor live issue volume and update work progress.',
           action: OutlinedButton.icon(
             onPressed: _refresh,
@@ -1532,6 +1661,126 @@ class _MetricCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InitiativeItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _InitiativeItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+}
+
+class _InitiativeList extends StatelessWidget {
+  final List<_InitiativeItem> items;
+
+  const _InitiativeList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: items.map((item) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                child: Icon(item.icon, size: 18, color: theme.colorScheme.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _ScheduleItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _ScheduleItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+}
+
+class _ScheduleList extends StatelessWidget {
+  final List<_ScheduleItem> items;
+
+  const _ScheduleList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: items.map((item) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Icon(item.icon, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.subtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
