@@ -10,6 +10,7 @@ import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
+import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -91,8 +92,10 @@ class AppDrawer extends StatelessWidget {
                     leading: const Icon(Icons.admin_panel_settings_outlined),
                     onTap: () {
                       navigateTo(
-                        ResponsiveScaffold(
-                          childBuilder: (device) => AdminDashboardScreen(device: device),
+                        AdminGate(
+                          child: ResponsiveScaffold(
+                            childBuilder: (device) => AdminDashboardScreen(device: device),
+                          ),
                         ),
                       );
                     },
@@ -102,8 +105,10 @@ class AppDrawer extends StatelessWidget {
                     leading: const Icon(Icons.support_agent_outlined),
                     onTap: () {
                       navigateTo(
-                        ResponsiveScaffold(
-                          childBuilder: (device) => const UserSupportHubScreen(),
+                        AdminGate(
+                          child: ResponsiveScaffold(
+                            childBuilder: (device) => const UserSupportHubScreen(),
+                          ),
                         ),
                       );
                     },
