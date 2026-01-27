@@ -111,6 +111,22 @@ class UserRoleService {
         .toList();
   }
 
+  Future<UserRoleAssignment?> fetchCurrentAssignment() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return null;
+    }
+    final response = await _client
+        .from('user_roles')
+        .select('user_id,role,organization,display_name,email,updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+    if (response == null || response is! Map<String, dynamic>) {
+      return null;
+    }
+    return UserRoleAssignment.fromJson(response);
+  }
+
   Future<void> upsertAssignment({
     required String userId,
     required AppRole role,

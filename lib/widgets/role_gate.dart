@@ -80,6 +80,8 @@ class _RoleGateState extends State<RoleGate> {
       case 'admin':
         return '/admin';
       case 'corp_staff':
+      case 'corp':
+      case 'corporation':
         return '/corp';
       default:
         return '/public';
