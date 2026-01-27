@@ -54,3 +54,40 @@ create policy "Authenticated insert" on public.files
 create policy "Authenticated insert" on public.departments
   for insert with check (auth.role() = 'authenticated');
 
+-- Admin view and RPC to list users
+create or replace view public.admin_users_view as
+select
+  u.id as user_id,
+  u.email,
+  u.created_at,
+  p.role,
+  p.corporation_id
+from auth.users u
+left join public.user_profiles p on p.user_id = u.id;
+
+create or replace function public.admin_list_users()
+returns table (
+  user_id uuid,
+  email text,
+  created_at timestamptz,
+  role text,
+  corporation_id uuid
+)
+language sql
+security definer
+set search_path = ''
+as $$
+  select
+    u.id,
+    u.email,
+    u.created_at,
+    p.role,
+    p.corporation_id
+  from auth.users u
+  left join public.user_profiles p on p.user_id = u.id
+  where (select auth.jwt()) ->> 'app_role' = 'admin'
+  order by u.created_at desc;
+$$;
+
+revoke all on function public.admin_list_users() from public;
+grant execute on function public.admin_list_users() to authenticated;

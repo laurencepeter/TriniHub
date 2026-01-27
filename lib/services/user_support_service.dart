@@ -75,19 +75,6 @@ class UserSupportService {
     return SupabaseClient(url, serviceKey);
   }
 
-  String? _displayNameFromMetadata(Map<String, dynamic>? metadata) {
-    if (metadata == null) {
-      return null;
-    }
-    final firstName = metadata['first_name'];
-    final lastName = metadata['last_name'];
-    final displayName = [
-      if (firstName is String && firstName.trim().isNotEmpty) firstName.trim(),
-      if (lastName is String && lastName.trim().isNotEmpty) lastName.trim(),
-    ].join(' ');
-    return displayName.isEmpty ? null : displayName;
-  }
-
   DateTime? _parseSupabaseTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.trim().isEmpty) {
       return null;
@@ -139,33 +126,37 @@ class UserSupportService {
       }
     }
 
-    if (adminClient != null) {
-      try {
-        final users = await adminClient.auth.admin.listUsers();
-        for (final user in users) {
-          final existing = byUserId[user.id];
-          final displayName = _displayNameFromMetadata(user.userMetadata);
-          final email = user.email;
-          final updatedAt = _parseSupabaseTimestamp(user.updatedAt) ?? _parseSupabaseTimestamp(user.createdAt);
+    try {
+      final adminResponse = await _client.rpc('admin_list_users');
+      if (adminResponse is List) {
+        for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
+          final userId = row['user_id']?.toString();
+          if (userId == null || userId.isEmpty) {
+            continue;
+          }
+          final email = row['email'] as String?;
+          final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
+          final roleValue = row['role'] as String?;
+          final rpcRole = AppRoleX.fromValue(roleValue);
+          final existing = byUserId[userId];
           if (existing == null) {
-            byUserId[user.id] = SupportUser(
-              userId: user.id,
-              role: AppRole.public,
-              displayName: displayName,
+            byUserId[userId] = SupportUser(
+              userId: userId,
+              role: rpcRole,
               email: email,
-              updatedAt: updatedAt,
+              updatedAt: createdAt,
             );
           } else {
-            final mergedDisplayName = existing.displayName ?? displayName;
+            final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
             final mergedEmail = existing.email ?? email;
-            final mergedUpdatedAt = existing.updatedAt ?? updatedAt;
-            if (mergedDisplayName != existing.displayName ||
+            final mergedUpdatedAt = existing.updatedAt ?? createdAt;
+            if (mergedRole != existing.role ||
                 mergedEmail != existing.email ||
                 mergedUpdatedAt != existing.updatedAt) {
-              byUserId[user.id] = SupportUser(
+              byUserId[userId] = SupportUser(
                 userId: existing.userId,
-                role: existing.role,
-                displayName: mergedDisplayName,
+                role: mergedRole,
+                displayName: existing.displayName,
                 email: mergedEmail,
                 organization: existing.organization,
                 updatedAt: mergedUpdatedAt,
@@ -173,8 +164,8 @@ class UserSupportService {
             }
           }
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
 
     return byUserId.values.toList();
   }
