@@ -152,4 +152,8 @@ class UserRoleService {
 
     await _client.from('user_roles').upsert(payload, onConflict: 'user_id');
   }
+
+  Future<void> deleteAssignment(String userId) async {
+    await _client.from('user_roles').delete().eq('user_id', userId);
+  }
 }

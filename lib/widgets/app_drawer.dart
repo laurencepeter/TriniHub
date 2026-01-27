@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/about.dart';
+import 'package:local_app_tt/screens/admin_dashboard.dart';
+import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/profile.dart';
 import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/settings.dart';
-import 'package:local_app_tt/screens/qr_scannerpage.dart';
+import 'package:local_app_tt/screens/user_support_hub.dart';
+import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,6 +38,7 @@ class AppDrawer extends StatelessWidget {
       );
     }
 
+    final roleService = UserRoleService();
     return Drawer(
       child: ListView(
         children: [
@@ -69,6 +74,42 @@ class AppDrawer extends StatelessWidget {
                 ResponsiveScaffold(
                   childBuilder: (device) => HomePage(device: device),
                 ),
+              );
+            },
+          ),
+          FutureBuilder<AppRole>(
+            future: roleService.fetchCurrentRole(),
+            builder: (context, snapshot) {
+              final role = snapshot.data ?? AppRole.public;
+              if (role != AppRole.admin) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: [
+                  ListTile(
+                    title: const Text('Admin Dashboard'),
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    onTap: () {
+                      navigateTo(
+                        ResponsiveScaffold(
+                          childBuilder: (device) => AdminDashboardScreen(device: device),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    title: const Text('User Support Hub'),
+                    leading: const Icon(Icons.support_agent_outlined),
+                    onTap: () {
+                      navigateTo(
+                        ResponsiveScaffold(
+                          childBuilder: (device) => const UserSupportHubScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(),
+                ],
               );
             },
           ),
@@ -117,39 +158,65 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
-          const Divider(),
-          ListTile(
-            title: const Text('Internal'),
+          ExpansionTile(
             leading: const Icon(Icons.apartment_rounded),
-            onTap: () {
-              closeDrawer();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ResponsiveScaffold(
-                    childBuilder: (device) => InternalServices(),
-                  ),
-                ),
-              );
-            },
-          ),
-          ListTile(
-            title: const Text('External'),
-            leading: const Icon(Icons.public_rounded),
-            onTap: () {
-              closeDrawer();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ResponsiveScaffold(
-                    childBuilder: (device) => const QRScannerPage(
-                      departmentId: 'internal-services',
-                      eventType: 'internal',
+            title: const Text('Internal services'),
+            children: [
+              ListTile(
+                title: const Text('All internal services'),
+                leading: const Icon(Icons.dashboard_customize_outlined),
+                onTap: () {
+                  closeDrawer();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ResponsiveScaffold(
+                        childBuilder: (device) => InternalServices(),
+                      ),
                     ),
-                  ),
+                  );
+                },
+              ),
+              for (final option in internalServiceOptions)
+                ListTile(
+                  title: Text(option.label),
+                  leading: Icon(option.icon),
+                  onTap: () {
+                    closeDrawer();
+                    handleInternalServiceTap(context, option);
+                  },
                 ),
-              );
-            },
+            ],
+          ),
+          ExpansionTile(
+            leading: const Icon(Icons.public_rounded),
+            title: const Text('External services'),
+            children: [
+              ListTile(
+                title: const Text('All external services'),
+                leading: const Icon(Icons.dashboard_customize_outlined),
+                onTap: () {
+                  closeDrawer();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ResponsiveScaffold(
+                        childBuilder: (device) => ExternalServices(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              for (final option in externalServiceOptions)
+                ListTile(
+                  title: Text(option.label),
+                  leading: Icon(option.icon),
+                  onTap: () {
+                    closeDrawer();
+                    handleExternalServiceTap(context, option);
+                  },
+                ),
+            ],
           ),
           const Divider(),
           const Divider(),
