@@ -139,8 +139,8 @@ class UserSupportService {
 
     if (adminClient != null) {
       try {
-        final response = await adminClient.auth.admin.listUsers();
-        for (final user in response.users) {
+        final users = await adminClient.auth.admin.listUsers();
+        for (final user in users) {
           final existing = byUserId[user.id];
           final displayName = _displayNameFromMetadata(user.userMetadata);
           final email = user.email;
