@@ -160,6 +160,130 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     }
   }
 
+  Future<void> _createUser() async {
+    final displayNameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final orgController = TextEditingController();
+    var selectedRole = AppRole.public;
+
+    try {
+      final shouldCreate = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Create new user'),
+            content: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: displayNameController,
+                        decoration: const InputDecoration(labelText: 'Display name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: passwordController,
+                        decoration: const InputDecoration(labelText: 'Temporary password'),
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: orgController,
+                        decoration: const InputDecoration(labelText: 'Organization'),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<AppRole>(
+                        value: selectedRole,
+                        decoration: const InputDecoration(labelText: 'Role'),
+                        items: AppRole.values
+                            .map((role) => DropdownMenuItem(
+                                  value: role,
+                                  child: Text(role.label),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => selectedRole = value);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Create'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldCreate == true) {
+        final email = emailController.text.trim();
+        final password = passwordController.text;
+        if (email.isEmpty || password.isEmpty) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Email and temporary password are required.')),
+          );
+          return;
+        }
+        await _supportService.createUser(
+          email: email,
+          password: password,
+          role: selectedRole,
+          displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
+          organization: orgController.text.trim().isEmpty ? null : orgController.text.trim(),
+        );
+        await _refresh();
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User created and added to the directory.')),
+        );
+      }
+    } on StateError catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to create the user right now.')),
+      );
+    } finally {
+      displayNameController.dispose();
+      emailController.dispose();
+      passwordController.dispose();
+      orgController.dispose();
+    }
+  }
+
   Future<void> _deleteUser(SupportUser user) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -192,6 +316,11 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
       appBar: AppBar(
         title: const Text('User Support Hub'),
         actions: [
+          IconButton(
+            tooltip: 'Create user',
+            onPressed: _createUser,
+            icon: const Icon(Icons.person_add_alt),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _refresh,

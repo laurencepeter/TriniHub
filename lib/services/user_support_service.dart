@@ -95,7 +95,9 @@ class UserSupportService {
   }
 
   Future<List<SupportUser>> fetchUsers() async {
-    final response = await _client
+    final adminClient = _buildServiceRoleClient();
+    final roleClient = adminClient ?? _client;
+    final response = await roleClient
         .from('user_roles')
         .select('user_id,role,display_name,email,organization,updated_at')
         .order('updated_at', ascending: false);
@@ -107,7 +109,6 @@ class UserSupportService {
         .map(SupportUser.fromJson)
         .toList();
 
-    final adminClient = _buildServiceRoleClient();
     final ownerClient = adminClient ?? _client;
 
     final ownerResponse = await ownerClient
@@ -175,6 +176,55 @@ class UserSupportService {
     }
 
     return byUserId.values.toList();
+  }
+
+  Future<SupportUser> createUser({
+    required String email,
+    required String password,
+    required AppRole role,
+    String? displayName,
+    String? organization,
+  }) async {
+    final adminClient = _buildServiceRoleClient();
+    if (adminClient == null) {
+      throw StateError('Service role credentials are required to create users.');
+    }
+
+    final metadata = <String, dynamic>{};
+    if (displayName != null && displayName.trim().isNotEmpty) {
+      metadata['display_name'] = displayName.trim();
+    }
+
+    final response = await adminClient.auth.admin.createUser(
+      AdminUserAttributes(
+        email: email.trim(),
+        password: password,
+        emailConfirm: true,
+        userMetadata: metadata.isEmpty ? null : metadata,
+      ),
+    );
+
+    final user = response.user;
+    if (user == null) {
+      throw StateError('User creation failed.');
+    }
+
+    await updateUser(
+      userId: user.id,
+      role: role,
+      displayName: displayName,
+      email: email.trim(),
+      organization: organization,
+    );
+
+    return SupportUser(
+      userId: user.id,
+      role: role,
+      displayName: displayName,
+      email: email.trim(),
+      organization: organization,
+      updatedAt: DateTime.now(),
+    );
   }
 
   Future<OwnerProfile?> fetchOwnerProfile(String userId) async {
