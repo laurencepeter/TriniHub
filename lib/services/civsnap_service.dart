@@ -117,6 +117,7 @@ class CivSnapService {
     required double longitude,
     double? accuracyMeters,
     XFile? photo,
+    String? userIdOverride,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -128,6 +129,7 @@ class CivSnapService {
       photoUrl = await _uploadPhoto(photo, userId);
     }
 
+    final targetUserId = userIdOverride ?? userId;
     final payload = <String, dynamic>{
       'title': title,
       'description': description,
@@ -136,7 +138,7 @@ class CivSnapService {
       'longitude': longitude,
       'accuracy_m': accuracyMeters,
       'location_label': locationLabel,
-      'user_id': userId,
+      'user_id': targetUserId,
       'status': 'pending',
     }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
 

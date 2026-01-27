@@ -111,6 +111,7 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               ? _AdminNavigationDrawer(
                   onDashboard: () => Navigator.of(context).pop(),
                   onManageUsers: _openAdminUsers,
+                  onUserSupport: _openUserSupport,
                 )
               : null,
           body: Container(
@@ -132,8 +133,9 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
                   const SizedBox(height: 12),
                   _RoleHeader(role: role),
                   const SizedBox(height: 20),
-                  if (role == AppRole.admin) const _AdminDashboard(),
-                  if (role == AppRole.corporation) const _CorporationDashboard(),
+                  if (role == AppRole.admin) _AdminDashboard(onOpenUserSupport: _openUserSupport),
+                  if (role == AppRole.corporation)
+                    _CorporationDashboard(onOpenUserSupport: _openUserSupport),
                   if (role == AppRole.public) const _PublicDashboard(),
                 ],
               ),
@@ -154,10 +156,12 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
 class _AdminNavigationDrawer extends StatelessWidget {
   final VoidCallback onDashboard;
   final VoidCallback onManageUsers;
+  final VoidCallback onUserSupport;
 
   const _AdminNavigationDrawer({
     required this.onDashboard,
     required this.onManageUsers,
+    required this.onUserSupport,
   });
 
   @override
@@ -185,6 +189,15 @@ class _AdminNavigationDrawer extends StatelessWidget {
             onTap: () {
               Navigator.of(context).pop();
               onManageUsers();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.support_agent_outlined),
+            title: const Text('User Support'),
+            subtitle: const Text('View users and act on their behalf'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onUserSupport();
             },
           ),
         ],
@@ -363,7 +376,9 @@ class _PublicDashboardState extends State<_PublicDashboard> {
 }
 
 class _CorporationDashboard extends StatefulWidget {
-  const _CorporationDashboard();
+  const _CorporationDashboard({required this.onOpenUserSupport});
+
+  final VoidCallback onOpenUserSupport;
 
   @override
   State<_CorporationDashboard> createState() => _CorporationDashboardState();
@@ -579,6 +594,16 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
           errorMessage: _contextError,
           regionLabel: _activeRegionFilter,
         ),
+        const SizedBox(height: 16),
+        _SectionHeader(
+          title: 'User Support Hub',
+          subtitle: 'View user profiles, reports, and register dogs on their behalf.',
+          action: FilledButton.icon(
+            onPressed: widget.onOpenUserSupport,
+            icon: const Icon(Icons.support_agent_outlined),
+            label: const Text('Open support hub'),
+          ),
+        ),
         const SizedBox(height: 12),
         FutureBuilder<List<CivSnapReport>>(
           future: _reportsFuture,
@@ -657,7 +682,9 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
 }
 
 class _AdminDashboard extends StatefulWidget {
-  const _AdminDashboard();
+  const _AdminDashboard({required this.onOpenUserSupport});
+
+  final VoidCallback onOpenUserSupport;
 
   @override
   State<_AdminDashboard> createState() => _AdminDashboardState();
@@ -831,6 +858,16 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               onEdit: _editAssignment,
             );
           },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
+          title: 'User Support Hub',
+          subtitle: 'View every user, review their reports, and take action on their behalf.',
+          action: FilledButton.icon(
+            onPressed: widget.onOpenUserSupport,
+            icon: const Icon(Icons.support_agent_outlined),
+            label: const Text('Open support hub'),
+          ),
         ),
         const SizedBox(height: 20),
         _SectionHeader(
@@ -1136,6 +1173,40 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     await _refresh();
   }
 
+  Future<void> _deleteAssignment(UserRoleAssignment assignment) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove user access?'),
+        content: const Text('This removes the access entry but keeps any submissions intact.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _roleService.deleteAssignment(assignment.userId);
+      await _refresh();
+    }
+  }
+
+  void _logIssueForUser(UserRoleAssignment assignment) {
+    Navigator.of(context).push(
+      IssueSnapScreen.route(
+        onBehalfUserId: assignment.userId,
+        onBehalfName: assignment.displayName ?? assignment.email,
+      ),
+    );
+  }
+
   List<UserRoleAssignment> _applySearch(List<UserRoleAssignment> assignments) {
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) {
@@ -1215,6 +1286,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                     assignment: assignment,
                     onEdit: () => _editAssignment(assignment),
                     onRoleChanged: (role) => _updateRole(assignment, role),
+                    onDelete: () => _deleteAssignment(assignment),
+                    onLogIssue: () => _logIssueForUser(assignment),
                   );
                 }).toList(),
               );
@@ -1401,11 +1474,15 @@ class _AccessManagementCard extends StatelessWidget {
   final UserRoleAssignment assignment;
   final VoidCallback onEdit;
   final ValueChanged<AppRole> onRoleChanged;
+  final VoidCallback onDelete;
+  final VoidCallback onLogIssue;
 
   const _AccessManagementCard({
     required this.assignment,
     required this.onEdit,
     required this.onRoleChanged,
+    required this.onDelete,
+    required this.onLogIssue,
   });
 
   @override
@@ -1462,32 +1539,42 @@ class _AccessManagementCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
+          DropdownButtonFormField<AppRole>(
+            value: assignment.role,
+            decoration: const InputDecoration(labelText: 'Access level'),
+            items: AppRole.values
+                .map(
+                  (role) => DropdownMenuItem(
+                    value: role,
+                    child: Text(role.label),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null && value != assignment.role) {
+                onRoleChanged(value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: DropdownButtonFormField<AppRole>(
-                  value: assignment.role,
-                  decoration: const InputDecoration(labelText: 'Access level'),
-                  items: AppRole.values
-                      .map(
-                        (role) => DropdownMenuItem(
-                          value: role,
-                          child: Text(role.label),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null && value != assignment.role) {
-                      onRoleChanged(value);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
               OutlinedButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Edit'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onLogIssue,
+                icon: const Icon(Icons.report_gmailerrorred_outlined),
+                label: const Text('Log issue'),
+              ),
+              TextButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Remove'),
               ),
             ],
           ),

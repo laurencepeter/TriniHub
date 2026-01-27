@@ -113,7 +113,38 @@ class DogRegistrationService {
   }
 
   Future<List<DogSubmission>> fetchSubmissions() async {
-    final ownerId = await _fetchOwnerId();
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return [];
+    }
+    return fetchSubmissionsForUser(userId);
+  }
+
+  Future<List<DogSubmission>> fetchAllSubmissions() async {
+    final response = await _client
+        .from('dogs')
+        .select('id,dog_number,name,status,life_status,updated_at')
+        .order('updated_at', ascending: false);
+
+    if (response is! List) {
+      return [];
+    }
+
+    return response.whereType<Map<String, dynamic>>().map((row) {
+      final dogNumber = _stringValue(row['dog_number']);
+      return DogSubmission(
+        id: _stringValue(row['id']),
+        dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
+        dogName: row['name'] as String?,
+        status: _stringValue(row['status'], fallback: 'pending'),
+        lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
+        updatedAt: _parseDate(row['updated_at']),
+      );
+    }).toList();
+  }
+
+  Future<List<DogSubmission>> fetchSubmissionsForUser(String authUserId) async {
+    final ownerId = await _fetchOwnerIdForUser(authUserId);
     if (ownerId == null) {
       return [];
     }
@@ -205,11 +236,13 @@ class DogRegistrationService {
     String? dogLifeStatus,
     DateTime? ownershipStartDate,
     String? existingDogId,
+    String? ownerAuthUserId,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
+    final currentUserId = _client.auth.currentUser?.id;
+    if (currentUserId == null) {
       throw Exception('User not authenticated');
     }
+    final userId = ownerAuthUserId ?? currentUserId;
 
     final ownerPayload = <String, dynamic>{
       'auth_user_id': userId,
@@ -271,11 +304,7 @@ class DogRegistrationService {
     return ownerResponse['id'] as String;
   }
 
-  Future<String?> _fetchOwnerId() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      return null;
-    }
+  Future<String?> _fetchOwnerIdForUser(String userId) async {
     final existingOwner = await _client
         .from('owners')
         .select('id')

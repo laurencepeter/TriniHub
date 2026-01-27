@@ -9,13 +9,26 @@ import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class IssueSnapScreen extends StatefulWidget {
-  const IssueSnapScreen({super.key});
+  const IssueSnapScreen({
+    super.key,
+    this.onBehalfUserId,
+    this.onBehalfName,
+  });
 
-  static Route<void> route() {
+  final String? onBehalfUserId;
+  final String? onBehalfName;
+
+  static Route<void> route({
+    String? onBehalfUserId,
+    String? onBehalfName,
+  }) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
       pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
-        childBuilder: (device) => const IssueSnapScreen(),
+        childBuilder: (device) => IssueSnapScreen(
+          onBehalfUserId: onBehalfUserId,
+          onBehalfName: onBehalfName,
+        ),
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
@@ -52,6 +65,19 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
   bool _submitting = false;
   bool _photoMismatch = false;
   bool _voted = false;
+
+  bool get _isAssisting {
+    final id = widget.onBehalfUserId?.trim();
+    return id != null && id.isNotEmpty;
+  }
+
+  String get _assistLabel {
+    final name = widget.onBehalfName?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+    return widget.onBehalfUserId ?? 'this user';
+  }
 
   @override
   void initState() {
@@ -102,6 +128,11 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
                           message: _errorMessage!,
                           tone: _StatusTone.error,
                           onDismiss: () => setState(() => _errorMessage = null),
+                        ),
+                      if (_isAssisting)
+                        _StatusBanner(
+                          message: 'Logging this issue on behalf of $_assistLabel.',
+                          tone: _StatusTone.info,
                         ),
                       if (_submitting)
                         const _StatusBanner(
@@ -293,6 +324,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
         longitude: position.longitude,
         accuracyMeters: position.accuracy,
         photo: _photo,
+        userIdOverride: _isAssisting ? widget.onBehalfUserId : null,
       );
       if (!mounted) {
         return;
