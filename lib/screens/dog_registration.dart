@@ -7,15 +7,34 @@ import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DogRegistrationScreen extends StatefulWidget {
-  const DogRegistrationScreen({super.key, this.initialDogId});
+  const DogRegistrationScreen({
+    super.key,
+    this.initialDogId,
+    this.ownerUserId,
+    this.ownerDisplayName,
+    this.ownerEmail,
+  });
 
   final String? initialDogId;
+  final String? ownerUserId;
+  final String? ownerDisplayName;
+  final String? ownerEmail;
 
-  static Route<void> route({String? dogId}) {
+  static Route<void> route({
+    String? dogId,
+    String? ownerUserId,
+    String? ownerDisplayName,
+    String? ownerEmail,
+  }) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 450),
       pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
-        childBuilder: (device) => DogRegistrationScreen(initialDogId: dogId),
+        childBuilder: (device) => DogRegistrationScreen(
+          initialDogId: dogId,
+          ownerUserId: ownerUserId,
+          ownerDisplayName: ownerDisplayName,
+          ownerEmail: ownerEmail,
+        ),
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
@@ -75,12 +94,34 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
   bool _showLanding = false;
   List<DogSubmission> _submissions = [];
 
+  bool get _isAssisting => widget.ownerUserId != null && widget.ownerUserId!.trim().isNotEmpty;
+
+  String get _assistedUserLabel {
+    final display = widget.ownerDisplayName?.trim();
+    final email = widget.ownerEmail?.trim();
+    if (display != null && display.isNotEmpty) {
+      return display;
+    }
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+    if (_isAssisting) {
+      return widget.ownerUserId!;
+    }
+    return 'yourself';
+  }
+
   @override
   void initState() {
     super.initState();
-    final currentEmail = Supabase.instance.client.auth.currentUser?.email;
-    if (currentEmail != null && currentEmail.trim().isNotEmpty) {
-      _ownerEmailController.text = currentEmail;
+    final providedEmail = widget.ownerEmail?.trim();
+    if (providedEmail != null && providedEmail.isNotEmpty) {
+      _ownerEmailController.text = providedEmail;
+    } else if (!_isAssisting) {
+      final currentEmail = Supabase.instance.client.auth.currentUser?.email;
+      if (currentEmail != null && currentEmail.trim().isNotEmpty) {
+        _ownerEmailController.text = currentEmail;
+      }
     }
     _initialize();
   }
@@ -139,7 +180,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   Future<void> _refreshSubmissions() async {
     try {
-      final submissions = await _registrationService.fetchSubmissions();
+      final submissions = _isAssisting
+          ? await _registrationService.fetchSubmissionsForUser(widget.ownerUserId!)
+          : await _registrationService.fetchSubmissions();
       if (!mounted) return;
       setState(() {
         _submissions = submissions;
@@ -244,6 +287,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         dogLifeStatus: _selectedLifeStatus,
         ownershipStartDate: _ownershipStartDate,
         existingDogId: _submittedDogId,
+        ownerAuthUserId: _isAssisting ? widget.ownerUserId : null,
       );
 
       if (!mounted) return;
@@ -413,7 +457,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
           CircularProgressIndicator(color: theme.colorScheme.secondary),
           const SizedBox(height: 12),
           Text(
-            'Loading your submissions...',
+            _isAssisting ? 'Loading submissions for $_assistedUserLabel...' : 'Loading your submissions...',
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
         ],
@@ -817,6 +861,29 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                 : 'Updates to approved submissions will return to pending for review.',
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
+          if (_isAssisting) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.18)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.support_agent, color: Colors.white70, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Registering on behalf of $_assistedUserLabel',
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
@@ -857,7 +924,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Manage dog registrations',
+                      _isAssisting
+                          ? 'Manage registrations for $_assistedUserLabel'
+                          : 'Manage dog registrations',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -865,7 +934,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Start a new submission or pick an existing registration to edit. Approved edits will return to pending status.',
+                      _isAssisting
+                          ? 'Create or update registrations on behalf of this resident. Approved edits will return to pending status.'
+                          : 'Start a new submission or pick an existing registration to edit. Approved edits will return to pending status.',
                       style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
                     ),
                     const SizedBox(height: 14),
@@ -881,21 +952,22 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                             child: Text('Create new registration'),
                           ),
                         ),
-                        OutlinedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ResponsiveScaffold(
-                                childBuilder: (device) => const DogSubmissionsScreen(),
+                        if (!_isAssisting)
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResponsiveScaffold(
+                                  childBuilder: (device) => const DogSubmissionsScreen(),
+                                ),
                               ),
                             ),
+                            icon: const Icon(Icons.visibility_outlined),
+                            label: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
+                              child: Text('View submissions'),
+                            ),
                           ),
-                          icon: const Icon(Icons.visibility_outlined),
-                          label: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 12),
-                            child: Text('View submissions'),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -930,7 +1002,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Your submissions',
+            _isAssisting ? 'Submissions for $_assistedUserLabel' : 'Your submissions',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
@@ -948,7 +1020,9 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
           const SizedBox(height: 12),
           if (_submissions.isEmpty)
             Text(
-              'No submissions yet. Start a new registration above.',
+              _isAssisting
+                  ? 'No submissions yet for this resident. Start a new registration above.'
+                  : 'No submissions yet. Start a new registration above.',
               style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
             )
           else

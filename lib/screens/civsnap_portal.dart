@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
+import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
@@ -39,6 +40,12 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
     );
   }
 
+  void _openUserSupport() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const UserSupportHubScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -66,6 +73,7 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               ? _AdminNavigationDrawer(
                   onDashboard: () => Navigator.of(context).pop(),
                   onManageUsers: _openAdminUsers,
+                  onUserSupport: _openUserSupport,
                 )
               : null,
           body: Container(
@@ -87,8 +95,9 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
                   const SizedBox(height: 12),
                   _RoleHeader(role: role),
                   const SizedBox(height: 20),
-                  if (role == AppRole.admin) const _AdminDashboard(),
-                  if (role == AppRole.corporation) const _CorporationDashboard(),
+                  if (role == AppRole.admin) _AdminDashboard(onOpenUserSupport: _openUserSupport),
+                  if (role == AppRole.corporation)
+                    _CorporationDashboard(onOpenUserSupport: _openUserSupport),
                   if (role == AppRole.public) const _PublicDashboard(),
                 ],
               ),
@@ -103,10 +112,12 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
 class _AdminNavigationDrawer extends StatelessWidget {
   final VoidCallback onDashboard;
   final VoidCallback onManageUsers;
+  final VoidCallback onUserSupport;
 
   const _AdminNavigationDrawer({
     required this.onDashboard,
     required this.onManageUsers,
+    required this.onUserSupport,
   });
 
   @override
@@ -134,6 +145,15 @@ class _AdminNavigationDrawer extends StatelessWidget {
             onTap: () {
               Navigator.of(context).pop();
               onManageUsers();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.support_agent_outlined),
+            title: const Text('User Support'),
+            subtitle: const Text('View users and act on their behalf'),
+            onTap: () {
+              Navigator.of(context).pop();
+              onUserSupport();
             },
           ),
         ],
@@ -312,7 +332,9 @@ class _PublicDashboardState extends State<_PublicDashboard> {
 }
 
 class _CorporationDashboard extends StatefulWidget {
-  const _CorporationDashboard();
+  const _CorporationDashboard({required this.onOpenUserSupport});
+
+  final VoidCallback onOpenUserSupport;
 
   @override
   State<_CorporationDashboard> createState() => _CorporationDashboardState();
@@ -443,6 +465,16 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
           errorMessage: _contextError,
           regionLabel: _activeRegionFilter,
         ),
+        const SizedBox(height: 16),
+        _SectionHeader(
+          title: 'User Support Hub',
+          subtitle: 'View user profiles, reports, and register dogs on their behalf.',
+          action: FilledButton.icon(
+            onPressed: widget.onOpenUserSupport,
+            icon: const Icon(Icons.support_agent_outlined),
+            label: const Text('Open support hub'),
+          ),
+        ),
         const SizedBox(height: 12),
         FutureBuilder<List<CivSnapReport>>(
           future: _reportsFuture,
@@ -521,7 +553,9 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
 }
 
 class _AdminDashboard extends StatefulWidget {
-  const _AdminDashboard();
+  const _AdminDashboard({required this.onOpenUserSupport});
+
+  final VoidCallback onOpenUserSupport;
 
   @override
   State<_AdminDashboard> createState() => _AdminDashboardState();
@@ -695,6 +729,16 @@ class _AdminDashboardState extends State<_AdminDashboard> {
               onEdit: _editAssignment,
             );
           },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
+          title: 'User Support Hub',
+          subtitle: 'View every user, review their reports, and take action on their behalf.',
+          action: FilledButton.icon(
+            onPressed: widget.onOpenUserSupport,
+            icon: const Icon(Icons.support_agent_outlined),
+            label: const Text('Open support hub'),
+          ),
         ),
         const SizedBox(height: 20),
         _SectionHeader(

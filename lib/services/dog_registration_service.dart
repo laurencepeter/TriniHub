@@ -113,7 +113,15 @@ class DogRegistrationService {
   }
 
   Future<List<DogSubmission>> fetchSubmissions() async {
-    final ownerId = await _fetchOwnerId();
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      return [];
+    }
+    return fetchSubmissionsForUser(userId);
+  }
+
+  Future<List<DogSubmission>> fetchSubmissionsForUser(String authUserId) async {
+    final ownerId = await _fetchOwnerIdForUser(authUserId);
     if (ownerId == null) {
       return [];
     }
@@ -205,11 +213,13 @@ class DogRegistrationService {
     String? dogLifeStatus,
     DateTime? ownershipStartDate,
     String? existingDogId,
+    String? ownerAuthUserId,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
+    final currentUserId = _client.auth.currentUser?.id;
+    if (currentUserId == null) {
       throw Exception('User not authenticated');
     }
+    final userId = ownerAuthUserId ?? currentUserId;
 
     final ownerPayload = <String, dynamic>{
       'auth_user_id': userId,
@@ -271,11 +281,7 @@ class DogRegistrationService {
     return ownerResponse['id'] as String;
   }
 
-  Future<String?> _fetchOwnerId() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      return null;
-    }
+  Future<String?> _fetchOwnerIdForUser(String userId) async {
     final existingOwner = await _client
         .from('owners')
         .select('id')
