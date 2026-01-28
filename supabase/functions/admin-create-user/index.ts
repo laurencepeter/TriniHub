@@ -26,19 +26,22 @@ serve(async (req) => {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabaseUser.auth.getUser();
-  if (userErr || !user) return new Response("Unauthorized", { status: 401 });
+  const { data: userData, error: userErr } =
+    await supabaseUser.auth.getUser();
+  if (userErr || !userData?.user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
 
-  const { data: profile } = await supabaseUser
+  const { data: profile, error: profErr } = await supabaseUser
     .from("user_profiles")
-    .select("app_role")
-    .eq("user_id", user.id)
+    .select("role, app_role")
+    .eq("user_id", userData.user.id)
     .single();
 
-  if ((profile?.app_role ?? "") !== "admin") {
+  if (profErr) return new Response(JSON.stringify(profErr), { status: 400 });
+
+  const effectiveRole = String(profile?.role ?? profile?.app_role ?? "");
+  if (effectiveRole !== "admin") {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -63,6 +66,7 @@ serve(async (req) => {
 
   const { error: profErr } = await supabaseAdmin.from("user_profiles").upsert({
     user_id: data.user.id,
+    role,
     app_role: role,
     corporation_id: corporation_id ?? null,
     region_code: region_code ?? null,
