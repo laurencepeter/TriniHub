@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -177,32 +179,39 @@ class UserSupportService {
     String? displayName,
     String? organization,
   }) async {
-    final adminClient = _buildServiceRoleClient();
-    if (adminClient == null) {
-      throw StateError('Service role credentials are required to create users.');
+    final session = _client.auth.currentSession;
+    if (session == null) {
+      throw StateError('Not logged in.');
     }
 
-    final metadata = <String, dynamic>{};
-    if (displayName != null && displayName.trim().isNotEmpty) {
-      metadata['display_name'] = displayName.trim();
-    }
-
-    final response = await adminClient.auth.admin.createUser(
-      AdminUserAttributes(
-        email: email.trim(),
-        password: password,
-        emailConfirm: true,
-        userMetadata: metadata.isEmpty ? null : metadata,
-      ),
+    final response = await _client.functions.invoke(
+      'admin-create-user',
+      headers: {
+        'Authorization': 'Bearer ${session.accessToken}',
+      },
+      body: {
+        'email': email.trim(),
+        'temp_password': password,
+        'role': role.value,
+      },
     );
 
-    final user = response.user;
-    if (user == null) {
+    final responseError = response.error;
+    if (responseError != null) {
+      throw StateError(responseError.message);
+    }
+
+    final data = response.data;
+    final payload = data is String
+        ? jsonDecode(data) as Map<String, dynamic>
+        : Map<String, dynamic>.from(data as Map);
+    final userId = payload['user_id']?.toString();
+    if (userId == null || userId.isEmpty) {
       throw StateError('User creation failed.');
     }
 
     await updateUser(
-      userId: user.id,
+      userId: userId,
       role: role,
       displayName: displayName,
       email: email.trim(),
@@ -210,7 +219,7 @@ class UserSupportService {
     );
 
     return SupportUser(
-      userId: user.id,
+      userId: userId,
       role: role,
       displayName: displayName,
       email: email.trim(),
