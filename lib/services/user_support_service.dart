@@ -13,6 +13,15 @@ class SupportUser {
   final String? organization;
   final AppRole role;
   final DateTime? updatedAt;
+  final String? ownerId;
+  final String? firstName;
+  final String? lastName;
+  final String? phone;
+  final String? nationalId;
+  final String? addressLine1;
+  final String? addressLine2;
+  final String? regionId;
+  final String? regionName;
 
   const SupportUser({
     required this.userId,
@@ -21,6 +30,15 @@ class SupportUser {
     this.email,
     this.organization,
     this.updatedAt,
+    this.ownerId,
+    this.firstName,
+    this.lastName,
+    this.phone,
+    this.nationalId,
+    this.addressLine1,
+    this.addressLine2,
+    this.regionId,
+    this.regionName,
   });
 
   factory SupportUser.fromJson(Map<String, dynamic> json) {
@@ -103,27 +121,55 @@ class UserSupportService {
 
     final ownerResponse = await ownerClient
         .from('owners')
-        .select('auth_user_id,first_name,last_name,email')
+        .select(
+          'id,auth_user_id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id',
+        )
         .not('auth_user_id', 'is', null);
 
     final byUserId = <String, SupportUser>{
       for (final assignment in roleAssignments) assignment.userId: assignment,
     };
 
+    Map<String, String> regionLookup = {};
     if (ownerResponse is List) {
+      final regionIds = ownerResponse
+          .whereType<Map<String, dynamic>>()
+          .map((row) => row['region_id'] as String?)
+          .whereType<String>()
+          .where((regionId) => regionId.isNotEmpty)
+          .toSet();
+      if (regionIds.isNotEmpty) {
+        final regions = await _dogService.fetchRegions();
+        regionLookup = {
+          for (final region in regions) region.id: region.name,
+        };
+      }
       for (final row in ownerResponse.whereType<Map<String, dynamic>>()) {
         final userId = row['auth_user_id'] as String?;
-        if (userId == null || byUserId.containsKey(userId)) {
+        if (userId == null) {
           continue;
         }
         final firstName = (row['first_name'] ?? '').toString();
         final lastName = (row['last_name'] ?? '').toString();
         final displayName = '$firstName $lastName'.trim();
+        final regionId = row['region_id'] as String?;
+        final existing = byUserId[userId];
         byUserId[userId] = SupportUser(
           userId: userId,
-          role: AppRole.public,
-          displayName: displayName.isEmpty ? null : displayName,
-          email: row['email'] as String?,
+          role: existing?.role ?? AppRole.public,
+          displayName: existing?.displayName ?? (displayName.isEmpty ? null : displayName),
+          email: existing?.email ?? row['email'] as String?,
+          organization: existing?.organization,
+          updatedAt: existing?.updatedAt,
+          ownerId: row['id'] as String?,
+          firstName: firstName.isEmpty ? existing?.firstName : firstName,
+          lastName: lastName.isEmpty ? existing?.lastName : lastName,
+          phone: row['phone'] as String? ?? existing?.phone,
+          nationalId: row['national_id'] as String? ?? existing?.nationalId,
+          addressLine1: row['address_line1'] as String? ?? existing?.addressLine1,
+          addressLine2: row['address_line2'] as String? ?? existing?.addressLine2,
+          regionId: regionId ?? existing?.regionId,
+          regionName: regionLookup[regionId] ?? existing?.regionName,
         );
       }
     }
@@ -162,6 +208,15 @@ class UserSupportService {
                 email: mergedEmail,
                 organization: existing.organization,
                 updatedAt: mergedUpdatedAt,
+                ownerId: existing.ownerId,
+                firstName: existing.firstName,
+                lastName: existing.lastName,
+                phone: existing.phone,
+                nationalId: existing.nationalId,
+                addressLine1: existing.addressLine1,
+                addressLine2: existing.addressLine2,
+                regionId: existing.regionId,
+                regionName: existing.regionName,
               );
             }
           }
@@ -302,5 +357,36 @@ class UserSupportService {
 
   Future<void> deleteUserRole(String userId) async {
     await _client.from('user_roles').delete().eq('user_id', userId);
+  }
+
+  Future<void> updateOwnerProfile({
+    required String userId,
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? email,
+    String? nationalId,
+    String? addressLine1,
+    String? addressLine2,
+    String? regionId,
+  }) async {
+    String? normalize(String? value) {
+      final trimmed = value?.trim() ?? '';
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    final payload = <String, dynamic>{
+      'auth_user_id': userId,
+      'first_name': firstName.trim(),
+      'last_name': lastName.trim(),
+      'phone': normalize(phone),
+      'email': normalize(email),
+      'national_id': normalize(nationalId),
+      'address_line1': normalize(addressLine1),
+      'address_line2': normalize(addressLine2),
+      'region_id': normalize(regionId),
+    };
+
+    await _client.from('owners').upsert(payload, onConflict: 'auth_user_id');
   }
 }

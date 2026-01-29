@@ -399,6 +399,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   late Future<OwnerProfile?> _ownerFuture;
   late Future<List<CivSnapReport>> _reportsFuture;
   late Future<List<DogSubmission>> _dogsFuture;
+  late Future<List<LookupOption>> _regionsFuture;
 
   @override
   void initState() {
@@ -406,6 +407,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     _ownerFuture = _supportService.fetchOwnerProfile(widget.user.userId);
     _reportsFuture = _supportService.fetchReportsForUser(widget.user.userId);
     _dogsFuture = _dogService.fetchSubmissionsForUser(widget.user.userId);
+    _regionsFuture = _dogService.fetchRegions();
   }
 
   Future<void> _refresh() async {
@@ -413,6 +415,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
       _ownerFuture = _supportService.fetchOwnerProfile(widget.user.userId);
       _reportsFuture = _supportService.fetchReportsForUser(widget.user.userId);
       _dogsFuture = _dogService.fetchSubmissionsForUser(widget.user.userId);
+      _regionsFuture = _dogService.fetchRegions();
     });
   }
 
@@ -519,6 +522,142 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     }
   }
 
+  Future<void> _editOwnerProfile(OwnerProfile profile) async {
+    final firstNameController = TextEditingController(text: profile.firstName);
+    final lastNameController = TextEditingController(text: profile.lastName);
+    final phoneController = TextEditingController(text: profile.phone ?? '');
+    final emailController = TextEditingController(text: profile.email ?? '');
+    final nationalIdController = TextEditingController(text: profile.nationalId ?? '');
+    final addressLine1Controller = TextEditingController(text: profile.addressLine1 ?? '');
+    final addressLine2Controller = TextEditingController(text: profile.addressLine2 ?? '');
+    String? selectedRegionId = profile.regionId;
+    String? errorMessage;
+
+    try {
+      final shouldSave = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Edit owner profile'),
+            content: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(labelText: 'First name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(labelText: 'Last name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: phoneController,
+                        decoration: const InputDecoration(labelText: 'Phone'),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: emailController,
+                        decoration: const InputDecoration(labelText: 'Email'),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: nationalIdController,
+                        decoration: const InputDecoration(labelText: 'National ID'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: addressLine1Controller,
+                        decoration: const InputDecoration(labelText: 'Address line 1'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: addressLine2Controller,
+                        decoration: const InputDecoration(labelText: 'Address line 2'),
+                      ),
+                      const SizedBox(height: 10),
+                      FutureBuilder<List<LookupOption>>(
+                        future: _regionsFuture,
+                        builder: (context, snapshot) {
+                          final regions = snapshot.data ?? [];
+                          return DropdownButtonFormField<String>(
+                            value: selectedRegionId,
+                            items: regions
+                                .map((region) => DropdownMenuItem(
+                                      value: region.id,
+                                      child: Text(region.name),
+                                    ))
+                                .toList(),
+                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            decoration: const InputDecoration(labelText: 'Region'),
+                          );
+                        },
+                      ),
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final firstName = firstNameController.text.trim();
+                  final lastName = lastNameController.text.trim();
+                  if (firstName.isEmpty || lastName.isEmpty) {
+                    setState(() => errorMessage = 'First and last name are required.');
+                    return;
+                  }
+                  Navigator.of(context).pop(true);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (shouldSave == true) {
+        await _supportService.updateOwnerProfile(
+          userId: widget.user.userId,
+          firstName: firstNameController.text.trim(),
+          lastName: lastNameController.text.trim(),
+          phone: phoneController.text,
+          email: emailController.text,
+          nationalId: nationalIdController.text,
+          addressLine1: addressLine1Controller.text,
+          addressLine2: addressLine2Controller.text,
+          regionId: selectedRegionId,
+        );
+        await _refresh();
+      }
+    } finally {
+      firstNameController.dispose();
+      lastNameController.dispose();
+      phoneController.dispose();
+      emailController.dispose();
+      nationalIdController.dispose();
+      addressLine1Controller.dispose();
+      addressLine2Controller.dispose();
+    }
+  }
+
   Future<void> _deleteUser() async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -591,7 +730,10 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                   subtitle: 'Register a dog or add owner details to create a profile.',
                 );
               }
-              return _OwnerProfileCard(profile: profile);
+              return _OwnerProfileCard(
+                profile: profile,
+                onEdit: () => _editOwnerProfile(profile),
+              );
             },
           ),
           const SizedBox(height: 20),
@@ -668,6 +810,19 @@ class _UserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final registrationFields = [
+      _MetadataRow(label: 'First name', value: user.firstName ?? ''),
+      _MetadataRow(label: 'Last name', value: user.lastName ?? ''),
+      _MetadataRow(label: 'Phone', value: user.phone ?? ''),
+      _MetadataRow(label: 'Region', value: user.regionName ?? user.regionId ?? ''),
+    ];
+    final extraFields = [
+      _MetadataRow(label: 'National ID', value: user.nationalId ?? ''),
+      _MetadataRow(
+        label: 'Address',
+        value: [user.addressLine1, user.addressLine2].whereType<String>().where((item) => item.isNotEmpty).join(', '),
+      ),
+    ];
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -721,6 +876,14 @@ class _UserCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          Text(
+            'Registration details',
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          ...registrationFields,
+          ...extraFields,
+          const SizedBox(height: 8),
           Wrap(
             spacing: 12,
             runSpacing: 8,
@@ -941,8 +1104,9 @@ class _SupportActionsCard extends StatelessWidget {
 
 class _OwnerProfileCard extends StatelessWidget {
   final OwnerProfile profile;
+  final VoidCallback? onEdit;
 
-  const _OwnerProfileCard({required this.profile});
+  const _OwnerProfileCard({required this.profile, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -958,9 +1122,21 @@ class _OwnerProfileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            name.isEmpty ? 'Owner profile' : name,
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name.isEmpty ? 'Owner profile' : name,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (onEdit != null)
+                TextButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit'),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           _MetadataRow(label: 'Phone', value: profile.phone ?? 'Not provided'),
