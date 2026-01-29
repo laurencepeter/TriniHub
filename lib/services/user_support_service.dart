@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:functions_client/functions_client.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
@@ -239,21 +240,27 @@ class UserSupportService {
       throw StateError('Not logged in.');
     }
 
-    final response = await _client.functions.invoke(
-      'admin-create-user',
-      headers: {
-        'Authorization': 'Bearer ${session.accessToken}',
-      },
-      body: {
-        'email': email.trim(),
-        'temp_password': password,
-        'role': role.value,
-      },
-    );
-
-    final responseError = response.error;
-    if (responseError != null) {
-      throw StateError(responseError.message);
+    final FunctionResponse response;
+    try {
+      response = await _client.functions.invoke(
+        'admin-create-user',
+        headers: {
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
+        body: {
+          'email': email.trim(),
+          'temp_password': password,
+          'role': role.value,
+        },
+      );
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final message = details is Map && details['message'] != null
+          ? details['message'].toString()
+          : details is String && details.isNotEmpty
+              ? details
+              : error.reasonPhrase ?? 'User creation failed.';
+      throw StateError(message);
     }
 
     final data = response.data;
