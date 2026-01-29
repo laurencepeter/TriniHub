@@ -54,6 +54,7 @@ serve(async (req) => {
   }
 
   const { email, temp_password, role, corporation_id, region_code } = body;
+  const normalizedRole = role === "public" ? "public_user" : role;
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
@@ -67,8 +68,8 @@ serve(async (req) => {
 
   const { error: profErr } = await supabaseAdmin.from("user_profiles").upsert({
     user_id: data.user.id,
-    role,
-    app_role: role,
+    role: normalizedRole,
+    app_role: normalizedRole,
     corporation_id: corporation_id ?? null,
     region_code: region_code ?? null,
   });
