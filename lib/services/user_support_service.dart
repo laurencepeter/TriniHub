@@ -49,7 +49,9 @@ class SupportUser {
       email: json['email'] as String?,
       organization: json['organization'] as String?,
       role: AppRoleX.fromValue(json['role'] as String?),
-      updatedAt: json['updated_at'] == null ? null : DateTime.parse(json['updated_at'] as String),
+      updatedAt: json['updated_at'] == null && json['created_at'] == null
+          ? null
+          : DateTime.parse((json['updated_at'] ?? json['created_at']) as String),
     );
   }
 }
@@ -128,9 +130,9 @@ class UserSupportService {
     final adminClient = _buildServiceRoleClient();
     final roleClient = adminClient ?? _client;
     final response = await roleClient
-        .from('user_roles')
-        .select('user_id,role,display_name,email,organization,updated_at')
-        .order('updated_at', ascending: false);
+        .from('user_profiles')
+        .select('user_id,role,display_name,created_at')
+        .order('created_at', ascending: false);
     if (response is! List) {
       return [];
     }
@@ -441,16 +443,13 @@ class UserSupportService {
       'user_id': userId,
       'role': role.value,
       'display_name': displayName,
-      'email': email,
-      'organization': organization,
-      'updated_at': DateTime.now().toIso8601String(),
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
-    await _client.from('user_roles').upsert(payload, onConflict: 'user_id');
+    await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
   }
 
   Future<void> deleteUserRole(String userId) async {
-    await _client.from('user_roles').delete().eq('user_id', userId);
+    await _client.from('user_profiles').delete().eq('user_id', userId);
   }
 
   Future<void> updateOwnerProfile({

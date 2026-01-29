@@ -68,7 +68,9 @@ class UserRoleAssignment {
       organization: json['organization'] as String?,
       displayName: json['display_name'] as String?,
       email: json['email'] as String?,
-      updatedAt: json['updated_at'] == null ? null : DateTime.parse(json['updated_at'] as String),
+      updatedAt: json['updated_at'] == null && json['created_at'] == null
+          ? null
+          : DateTime.parse((json['updated_at'] ?? json['created_at']) as String),
     );
   }
 }
@@ -110,7 +112,7 @@ class UserRoleService {
       return AppRoleX.fromValue(metadataRole.toString());
     }
     final response = await _client
-        .from('user_roles')
+        .from('user_profiles')
         .select('role')
         .eq('user_id', user.id)
         .maybeSingle();
@@ -122,9 +124,9 @@ class UserRoleService {
 
   Future<List<UserRoleAssignment>> fetchAssignments() async {
     final response = await _client
-        .from('user_roles')
-        .select('user_id,role,organization,display_name,email,updated_at')
-        .order('updated_at', ascending: false);
+        .from('user_profiles')
+        .select('user_id,role,display_name,created_at')
+        .order('created_at', ascending: false);
     if (response is! List) {
       return [];
     }
@@ -140,8 +142,8 @@ class UserRoleService {
       return null;
     }
     final response = await _client
-        .from('user_roles')
-        .select('user_id,role,organization,display_name,email,updated_at')
+        .from('user_profiles')
+        .select('user_id,role,display_name,created_at')
         .eq('user_id', user.id)
         .maybeSingle();
     if (response == null || response is! Map<String, dynamic>) {
@@ -160,16 +162,13 @@ class UserRoleService {
     final payload = <String, dynamic>{
       'user_id': userId,
       'role': role.value,
-      'organization': organization,
       'display_name': displayName,
-      'email': email,
-      'updated_at': DateTime.now().toIso8601String(),
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
-    await _client.from('user_roles').upsert(payload, onConflict: 'user_id');
+    await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
   }
 
   Future<void> deleteAssignment(String userId) async {
-    await _client.from('user_roles').delete().eq('user_id', userId);
+    await _client.from('user_profiles').delete().eq('user_id', userId);
   }
 }
