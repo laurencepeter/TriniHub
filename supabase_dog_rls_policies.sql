@@ -101,4 +101,29 @@ using (
   )
 );
 
+-- Admin access: allow administrators to manage all dog registry data.
+drop policy if exists owners_admin_all on public.owners;
+create policy owners_admin_all
+on public.owners
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists dogs_admin_all on public.dogs;
+create policy dogs_admin_all
+on public.dogs
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
+drop policy if exists dog_ownerships_admin_all on public.dog_ownerships;
+create policy dog_ownerships_admin_all
+on public.dog_ownerships
+for all
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());
+
 commit;

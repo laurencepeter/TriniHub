@@ -340,6 +340,8 @@ class UserSupportService {
           'email': email.trim(),
           'temp_password': password,
           'role': role.value,
+          'display_name': displayName,
+          'corporation_id': organization?.trim().isEmpty ?? true ? null : organization?.trim(),
         },
       );
     } on FunctionException catch (error) {
@@ -439,10 +441,12 @@ class UserSupportService {
     String? email,
     String? organization,
   }) async {
+    final trimmedOrg = organization?.trim();
     final payload = <String, dynamic>{
       'user_id': userId,
       'role': role.value,
       'display_name': displayName,
+      'corporation_id': trimmedOrg,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
     await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
