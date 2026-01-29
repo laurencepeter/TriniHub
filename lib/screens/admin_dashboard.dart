@@ -428,12 +428,21 @@ class AdminUserAnalyticsScreen extends StatefulWidget {
 class _AdminUserAnalyticsScreenState extends State<AdminUserAnalyticsScreen> {
   String _groupBy = 'Role';
   String _timeframe = 'All time';
+  String _query = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final filtered = _applyTimeframe(widget.users);
     final entries = _groupedUserEntries(theme, filtered, _groupBy);
+    final directoryUsers = _applySearch(filtered);
     return Scaffold(
       appBar: AppBar(title: const Text('User analytics')),
       body: ListView(
@@ -489,6 +498,48 @@ class _AdminUserAnalyticsScreenState extends State<AdminUserAnalyticsScreen> {
             title: 'Highlights',
             items: _userHighlights(filtered),
           ),
+          const SizedBox(height: 20),
+          Text(
+            'User directory',
+            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Browse, search, and manage registered users from the admin directory.',
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.search),
+              hintText: 'Search by name, email, organization, or role',
+            ),
+            onChanged: (value) => setState(() => _query = value),
+          ),
+          const SizedBox(height: 12),
+          if (directoryUsers.isEmpty)
+            _EmptyState(
+              title: 'No users available',
+              subtitle: 'Sync users from the admin directory or adjust your filters.',
+            )
+          else
+            Column(
+              children: directoryUsers
+                  .map(
+                    (user) => _UserDirectoryCard(
+                      user: user,
+                      onView: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => UserSupportDetailScreen(user: user),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
         ],
       ),
     );
@@ -500,6 +551,71 @@ class _AdminUserAnalyticsScreenState extends State<AdminUserAnalyticsScreen> {
       return users.where((user) => user.updatedAt != null && user.updatedAt!.isAfter(cutoff)).toList();
     }
     return users;
+  }
+
+  List<SupportUser> _applySearch(List<SupportUser> users) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) {
+      return users;
+    }
+    return users.where((user) {
+      final fields = [
+        user.displayName,
+        user.email,
+        user.organization,
+        user.role.label,
+        user.regionName,
+      ].whereType<String>().map((value) => value.toLowerCase());
+      return fields.any((value) => value.contains(query)) || user.userId.toLowerCase().contains(query);
+    }).toList();
+  }
+}
+
+class _UserDirectoryCard extends StatelessWidget {
+  final SupportUser user;
+  final VoidCallback onView;
+
+  const _UserDirectoryCard({required this.user, required this.onView});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = user.displayName?.trim().isNotEmpty == true
+        ? user.displayName!.trim()
+        : (user.email ?? 'Unnamed user');
+    final subtitleParts = <String>[];
+    if (user.email != null && user.displayName?.trim().isNotEmpty == true) {
+      subtitleParts.add(user.email!);
+    }
+    if (user.organization != null && user.organization!.trim().isNotEmpty) {
+      subtitleParts.add(user.organization!.trim());
+    }
+    if (user.regionName != null && user.regionName!.trim().isNotEmpty) {
+      subtitleParts.add(user.regionName!.trim());
+    }
+    final subtitle = subtitleParts.isEmpty ? 'ID: ${user.userId}' : subtitleParts.join(' · ');
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+        subtitle: Text(subtitle),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+          child: Icon(Icons.person_outline, color: theme.colorScheme.primary),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(user.role.label, style: theme.textTheme.labelMedium),
+            TextButton(
+              onPressed: onView,
+              child: const Text('View'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
