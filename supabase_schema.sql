@@ -85,7 +85,13 @@ as $$
     p.corporation_id
   from auth.users u
   left join public.user_profiles p on p.user_id = u.id
-  where (select auth.jwt()) ->> 'app_role' = 'admin'
+  where exists (
+    select 1
+    from public.user_profiles ap
+    where ap.user_id = auth.uid()
+      and (ap.role = 'admin' or ap.app_role = 'admin')
+  )
+  or (select auth.jwt()) ->> 'app_role' = 'admin'
   order by u.created_at desc;
 $$;
 

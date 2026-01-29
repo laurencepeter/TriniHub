@@ -108,7 +108,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -146,12 +146,22 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
       );
 
       if (shouldSave == true) {
+        final trimmedOrg = orgController.text.trim();
+        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+          );
+          return;
+        }
         await _supportService.updateUser(
           userId: user.userId,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-          organization: orgController.text.trim().isEmpty ? null : orgController.text.trim(),
+          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
         await _refresh();
       }
@@ -200,7 +210,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -249,12 +259,22 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           );
           return;
         }
+        final trimmedOrg = orgController.text.trim();
+        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+          );
+          return;
+        }
         await _supportService.createUser(
           email: email,
           password: password,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
-          organization: orgController.text.trim().isEmpty ? null : orgController.text.trim(),
+          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
         await _refresh();
         if (!mounted) {
@@ -470,7 +490,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -508,12 +528,22 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
       );
 
       if (shouldSave == true) {
+        final trimmedOrg = orgController.text.trim();
+        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+          if (!mounted) {
+            return;
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+          );
+          return;
+        }
         await _supportService.updateUser(
           userId: widget.user.userId,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-          organization: orgController.text.trim().isEmpty ? null : orgController.text.trim(),
+          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
         await _refresh();
       }

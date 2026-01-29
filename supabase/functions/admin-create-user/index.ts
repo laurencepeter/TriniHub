@@ -53,8 +53,47 @@ serve(async (req) => {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const { email, temp_password, role, corporation_id, region_code } = body;
-  const normalizedRole = role === "public" ? "public_user" : role;
+  const {
+    email,
+    temp_password,
+    role,
+    corporation_id,
+    organization,
+    region_code,
+    display_name,
+  } = body;
+
+  const normalizeRole = (value: string | undefined | null) => {
+    const raw = (value ?? "").toString().trim().toLowerCase();
+    if (raw === "public") return "public_user";
+    if (raw === "corp") return "corporation";
+    if (raw === "corp_staff" || raw === "staff") return "corp_staff";
+    if (raw === "administrator") return "admin";
+    return raw;
+  };
+
+  const normalizedRole = normalizeRole(role);
+  const allowedRoles = new Set([
+    "admin",
+    "corporation",
+    "corp_staff",
+    "public_user",
+  ]);
+  if (!allowedRoles.has(normalizedRole)) {
+    return new Response("Invalid role.", { status: 400 });
+  }
+
+  const corporationId =
+    (corporation_id ?? organization ?? null)?.toString().trim() || null;
+
+  if (
+    ["corporation", "corp_staff"].includes(normalizedRole) &&
+    !corporationId
+  ) {
+    return new Response("Corporation ID is required for staff accounts.", {
+      status: 400,
+    });
+  }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
@@ -66,12 +105,26 @@ serve(async (req) => {
 
   if (error) return new Response(JSON.stringify(error), { status: 400 });
 
+  const metadata = {
+    app_role: normalizedRole,
+    role: normalizedRole,
+    ...(corporationId ? { corporation_id: corporationId } : {}),
+  };
+  const { error: metadataErr } =
+    await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
+      app_metadata: metadata,
+    });
+  if (metadataErr) {
+    console.warn("Unable to set app metadata", metadataErr);
+  }
+
   const { error: profErr } = await supabaseAdmin.from("user_profiles").upsert({
     user_id: data.user.id,
     role: normalizedRole,
     app_role: normalizedRole,
-    corporation_id: corporation_id ?? null,
+    corporation_id: corporationId,
     region_code: region_code ?? null,
+    display_name: display_name ?? null,
   });
 
   if (profErr) return new Response(JSON.stringify(profErr), { status: 400 });
