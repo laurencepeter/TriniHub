@@ -33,14 +33,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   void initState() {
     super.initState();
     _usersFuture = _supportService.fetchUsers();
-    _reportsFuture = _civsnapService.fetchReports(limit: 200);
+    _reportsFuture = _civsnapService.fetchAllReports();
     _dogsFuture = _dogService.fetchAllSubmissions();
   }
 
   Future<void> _refresh() async {
     setState(() {
       _usersFuture = _supportService.fetchUsers();
-      _reportsFuture = _civsnapService.fetchReports(limit: 200);
+      _reportsFuture = _civsnapService.fetchAllReports();
       _dogsFuture = _dogService.fetchAllSubmissions();
     });
   }

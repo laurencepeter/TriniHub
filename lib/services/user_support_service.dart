@@ -85,6 +85,7 @@ class UserSupportService {
 
   final SupabaseClient _client;
   final DogRegistrationService _dogService = DogRegistrationService.instance;
+  static const int _adminPageSize = 200;
 
   SupabaseClient? _buildServiceRoleClient() {
     final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
@@ -101,6 +102,26 @@ class UserSupportService {
       return null;
     }
     return DateTime.tryParse(timestamp);
+  }
+
+  Future<List<User>> _listAdminUsers(SupabaseClient adminClient) async {
+    final users = <User>[];
+    var page = 1;
+    while (true) {
+      final batch = await adminClient.auth.admin.listUsers(
+        page: page,
+        perPage: _adminPageSize,
+      );
+      if (batch.isEmpty) {
+        break;
+      }
+      users.addAll(batch);
+      if (batch.length < _adminPageSize) {
+        break;
+      }
+      page += 1;
+    }
+    return users;
   }
 
   Future<List<SupportUser>> fetchUsers() async {
@@ -176,27 +197,28 @@ class UserSupportService {
     }
 
     try {
-      final adminResponse = await roleClient.rpc('admin_list_users');
-      if (adminResponse is List) {
-        for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
-          final userId = row['user_id']?.toString();
-          if (userId == null || userId.isEmpty) {
+      if (adminClient != null) {
+        final adminUsers = await _listAdminUsers(adminClient);
+        for (final user in adminUsers) {
+          final userId = user.id;
+          if (userId.isEmpty) {
             continue;
           }
-          final email = row['email'] as String?;
-          final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
-          final roleValue = row['role'] as String?;
-          final rpcRole = AppRoleX.fromValue(roleValue);
+          final email = user.email;
+          final createdAt = _parseSupabaseTimestamp(user.createdAt);
+          final roleValue =
+              user.appMetadata['role'] ?? user.appMetadata['app_role'] ?? user.userMetadata?['role'];
+          final authRole = AppRoleX.fromValue(roleValue?.toString());
           final existing = byUserId[userId];
           if (existing == null) {
             byUserId[userId] = SupportUser(
               userId: userId,
-              role: rpcRole,
+              role: authRole,
               email: email,
               updatedAt: createdAt,
             );
           } else {
-            final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
+            final mergedRole = existing.role == AppRole.public ? authRole : existing.role;
             final mergedEmail = existing.email ?? email;
             final mergedUpdatedAt = existing.updatedAt ?? createdAt;
             if (mergedRole != existing.role ||
@@ -222,10 +244,75 @@ class UserSupportService {
             }
           }
         }
+      } else {
+        final adminResponse = await roleClient.rpc('admin_list_users');
+        if (adminResponse is List) {
+          for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
+            final userId = row['user_id']?.toString();
+            if (userId == null || userId.isEmpty) {
+              continue;
+            }
+            final email = row['email'] as String?;
+            final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
+            final roleValue = row['role'] as String?;
+            final rpcRole = AppRoleX.fromValue(roleValue);
+            final existing = byUserId[userId];
+            if (existing == null) {
+              byUserId[userId] = SupportUser(
+                userId: userId,
+                role: rpcRole,
+                email: email,
+                updatedAt: createdAt,
+              );
+            } else {
+              final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
+              final mergedEmail = existing.email ?? email;
+              final mergedUpdatedAt = existing.updatedAt ?? createdAt;
+              if (mergedRole != existing.role ||
+                  mergedEmail != existing.email ||
+                  mergedUpdatedAt != existing.updatedAt) {
+                byUserId[userId] = SupportUser(
+                  userId: existing.userId,
+                  role: mergedRole,
+                  displayName: existing.displayName,
+                  email: mergedEmail,
+                  organization: existing.organization,
+                  updatedAt: mergedUpdatedAt,
+                  ownerId: existing.ownerId,
+                  firstName: existing.firstName,
+                  lastName: existing.lastName,
+                  phone: existing.phone,
+                  nationalId: existing.nationalId,
+                  addressLine1: existing.addressLine1,
+                  addressLine2: existing.addressLine2,
+                  regionId: existing.regionId,
+                  regionName: existing.regionName,
+                );
+              }
+            }
+          }
+        }
       }
     } catch (_) {}
 
-    return byUserId.values.toList();
+    final users = byUserId.values.toList();
+    users.sort((a, b) {
+      final left = a.updatedAt;
+      final right = b.updatedAt;
+      if (left == null && right == null) {
+        return (a.displayName ?? a.email ?? a.userId)
+            .toLowerCase()
+            .compareTo((b.displayName ?? b.email ?? b.userId).toLowerCase());
+      }
+      if (left == null) {
+        return 1;
+      }
+      if (right == null) {
+        return -1;
+      }
+      return right.compareTo(left);
+    });
+    return users;
   }
 
   Future<SupportUser> createUser({

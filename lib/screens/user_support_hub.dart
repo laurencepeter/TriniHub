@@ -46,6 +46,8 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     return users.where((user) {
       return user.userId.toLowerCase().contains(query) ||
           (user.displayName ?? '').toLowerCase().contains(query) ||
+          (user.firstName ?? '').toLowerCase().contains(query) ||
+          (user.lastName ?? '').toLowerCase().contains(query) ||
           (user.email ?? '').toLowerCase().contains(query) ||
           (user.organization ?? '').toLowerCase().contains(query);
     }).toList();

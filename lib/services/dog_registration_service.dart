@@ -120,27 +120,39 @@ class DogRegistrationService {
     return fetchSubmissionsForUser(userId);
   }
 
-  Future<List<DogSubmission>> fetchAllSubmissions() async {
-    final response = await _client
-        .from('dogs')
-        .select('id,dog_number,name,status,life_status,updated_at')
-        .order('updated_at', ascending: false);
+  Future<List<DogSubmission>> fetchAllSubmissions({int pageSize = 200}) async {
+    final submissions = <DogSubmission>[];
+    var offset = 0;
+    while (true) {
+      final response = await _client
+          .from('dogs')
+          .select('id,dog_number,name,status,life_status,updated_at')
+          .order('updated_at', ascending: false)
+          .range(offset, offset + pageSize - 1);
 
-    if (response is! List) {
-      return [];
+      if (response is! List) {
+        break;
+      }
+
+      final batch = response.whereType<Map<String, dynamic>>().map((row) {
+        final dogNumber = _stringValue(row['dog_number']);
+        return DogSubmission(
+          id: _stringValue(row['id']),
+          dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
+          dogName: row['name'] as String?,
+          status: _stringValue(row['status'], fallback: 'pending'),
+          lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
+          updatedAt: _parseDate(row['updated_at']),
+        );
+      }).toList();
+
+      submissions.addAll(batch);
+      if (batch.length < pageSize) {
+        break;
+      }
+      offset += pageSize;
     }
-
-    return response.whereType<Map<String, dynamic>>().map((row) {
-      final dogNumber = _stringValue(row['dog_number']);
-      return DogSubmission(
-        id: _stringValue(row['id']),
-        dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
-        dogName: row['name'] as String?,
-        status: _stringValue(row['status'], fallback: 'pending'),
-        lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
-        updatedAt: _parseDate(row['updated_at']),
-      );
-    }).toList();
+    return submissions;
   }
 
   Future<List<DogSubmission>> fetchSubmissionsForUser(String authUserId) async {
