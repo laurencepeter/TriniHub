@@ -14,7 +14,7 @@ extension AppRoleX on AppRole {
       case AppRole.corporation:
         return 'corporation';
       case AppRole.public:
-        return 'public';
+        return 'public_user';
     }
   }
 
@@ -37,6 +37,7 @@ extension AppRoleX on AppRole {
       case 'corporation':
       case 'corp':
         return AppRole.corporation;
+      case 'public_user':
       default:
         return AppRole.public;
     }
