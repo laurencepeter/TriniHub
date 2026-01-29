@@ -13,17 +13,7 @@ class BaseVersionFooter extends StatelessWidget {
       return 'v$version';
     }
 
-    final parsedBuild = int.tryParse(buildNumber);
-    if (parsedBuild == null) {
-      return 'v$version';
-    }
-
-    final parts = version.split('.');
-    if (parts.length >= 2) {
-      return 'v${parts[0]}.${parts[1]}.$buildNumber';
-    }
-
-    return 'v$version.$buildNumber';
+    return 'v$version+$buildNumber';
   }
 
   @override

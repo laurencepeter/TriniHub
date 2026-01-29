@@ -129,7 +129,7 @@ class UserSupportService {
     }
 
     try {
-      final adminResponse = await _client.rpc('admin_list_users');
+      final adminResponse = await roleClient.rpc('admin_list_users');
       if (adminResponse is List) {
         for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
           final userId = row['user_id']?.toString();
