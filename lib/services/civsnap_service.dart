@@ -177,6 +177,37 @@ class CivSnapService {
         .toList();
   }
 
+  Future<List<CivSnapReport>> fetchAllReports({
+    String? status,
+    int pageSize = 200,
+  }) async {
+    final reports = <CivSnapReport>[];
+    var offset = 0;
+    while (true) {
+      final query = _client
+          .from('civsnap_reports')
+          .select(
+            'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
+          );
+      if (status != null) {
+        query.eq('status', status);
+      }
+      final response = await query
+          .order('created_at', ascending: false)
+          .range(offset, offset + pageSize - 1);
+      if (response is! List) {
+        break;
+      }
+      final batch = response.whereType<Map<String, dynamic>>().map(CivSnapReport.fromJson).toList();
+      reports.addAll(batch);
+      if (batch.length < pageSize) {
+        break;
+      }
+      offset += pageSize;
+    }
+    return reports;
+  }
+
   Future<Map<String, int>> fetchStatusCounts() async {
     final response = await _client.from('civsnap_reports').select('status');
     if (response is! List) {
