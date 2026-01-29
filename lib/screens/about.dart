@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutPage extends StatelessWidget {
   final String device;
@@ -10,6 +11,15 @@ class AboutPage extends StatelessWidget {
     super.key,
     required this.device,
   });
+
+  Future<String> _loadVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    final version = info.version.trim();
+    if (version.isEmpty) {
+      return '';
+    }
+    return 'Trini Hub · Version $version';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,9 +79,15 @@ class AboutPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Trini Hub · Version 1.4.2',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      FutureBuilder<String>(
+                        future: _loadVersion(),
+                        builder: (context, snapshot) {
+                          final label = snapshot.data ?? '';
+                          return Text(
+                            label,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          );
+                        },
                       ),
                       const SizedBox(height: 8),
                       Text(
