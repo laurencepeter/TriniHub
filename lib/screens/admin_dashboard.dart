@@ -57,9 +57,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _openDogAnalytics(List<DogSubmission> submissions) {
+  void _openDogAnalytics(List<DogSubmission> submissions, List<CivSnapReport> reports) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => AdminDogAnalyticsScreen(submissions: submissions)),
+      MaterialPageRoute(
+        builder: (_) => AdminDogAnalyticsScreen(
+          submissions: submissions,
+          reports: reports,
+        ),
+      ),
     );
   }
 
@@ -156,10 +161,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               _DashboardMetricCard(
                                 label: 'Dog registrations',
                                 value: dogs.length.toString(),
-                                subtitle: '${_countDogs(dogs, 'pending')} pending · ${_countDogs(dogs, 'approved')} approved',
+                                subtitle:
+                                    '${_countDogsByLifeStatus(dogs, 'alive')} alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
                                 icon: Icons.pets,
                                 color: theme.colorScheme.secondary,
-                                onTap: () => _openDogAnalytics(dogs),
+                                onTap: () => _openDogAnalytics(dogs, reports),
                               ),
                             ],
                           );
@@ -168,6 +174,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     },
                   );
                 },
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Executive insights',
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _ExecutiveInsightCard(
+                    title: 'People & access',
+                    subtitle: 'Directory coverage and role mix.',
+                    icon: Icons.people_outline,
+                    color: theme.colorScheme.primary,
+                    highlights: [
+                      '${_countByRole(users, AppRole.admin)} admins · ${_countByRole(users, AppRole.corporation)} corporations',
+                      '${_countDistinctOrganizations(users)} organizations represented',
+                      '${_countDistinctRegions(users)} regions with active users',
+                    ],
+                  ),
+                  _ExecutiveInsightCard(
+                    title: 'Public safety',
+                    subtitle: 'Dog population and incident risk.',
+                    icon: Icons.shield_outlined,
+                    color: theme.colorScheme.secondary,
+                    highlights: [
+                      '${_countDogsByLifeStatus(dogs, 'alive')} dogs alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
+                      '${_countDogIncidentsThisYear(reports)} dog incidents logged this year',
+                      _topIncidentRegionSummary(reports),
+                    ],
+                  ),
+                  _ExecutiveInsightCard(
+                    title: 'Service health',
+                    subtitle: 'Operational load across services.',
+                    icon: Icons.dashboard_outlined,
+                    color: theme.colorScheme.tertiary,
+                    highlights: [
+                      '${_countReports(reports, 'pending')} CivSnap reports pending',
+                      '${_countDogs(dogs, 'pending')} dog submissions pending',
+                      '${reports.length} total community reports',
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Text(
@@ -276,6 +327,33 @@ int _countReports(List<CivSnapReport> reports, String status) {
 
 int _countDogs(List<DogSubmission> submissions, String status) {
   return submissions.where((dog) => dog.status == status).length;
+}
+
+int _countDogsByLifeStatus(List<DogSubmission> submissions, String status) {
+  return submissions.where((dog) => dog.lifeStatus == status).length;
+}
+
+int _countDistinctOrganizations(List<SupportUser> users) {
+  final organizations = users
+      .map((user) => user.organization?.trim())
+      .where((value) => value != null && value!.isNotEmpty)
+      .cast<String>()
+      .toSet();
+  return organizations.length;
+}
+
+int _countDistinctRegions(List<SupportUser> users) {
+  final regions = users
+      .map((user) => user.regionName?.trim())
+      .where((value) => value != null && value!.isNotEmpty)
+      .cast<String>()
+      .toSet();
+  return regions.length;
+}
+
+int _countDogIncidentsThisYear(List<CivSnapReport> reports) {
+  final year = DateTime.now().year;
+  return _dogIncidentReports(reports).where((report) => report.createdAt.year == year).length;
 }
 
 class _DashboardMetricCard extends StatelessWidget {
@@ -395,6 +473,68 @@ class _ServiceActionCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ExecutiveInsightCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final List<String> highlights;
+
+  const _ExecutiveInsightCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.highlights,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withOpacity(0.15),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(height: 12),
+          Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor)),
+          const SizedBox(height: 12),
+          ...highlights.map(
+            (highlight) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.check_circle, size: 14, color: color),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      highlight,
+                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -583,17 +723,12 @@ class _UserDirectoryCard extends StatelessWidget {
     final title = user.displayName?.trim().isNotEmpty == true
         ? user.displayName!.trim()
         : (user.email ?? 'Unnamed user');
-    final subtitleParts = <String>[];
-    if (user.email != null && user.displayName?.trim().isNotEmpty == true) {
-      subtitleParts.add(user.email!);
-    }
-    if (user.organization != null && user.organization!.trim().isNotEmpty) {
-      subtitleParts.add(user.organization!.trim());
-    }
-    if (user.regionName != null && user.regionName!.trim().isNotEmpty) {
-      subtitleParts.add(user.regionName!.trim());
-    }
-    final subtitle = subtitleParts.isEmpty ? 'ID: ${user.userId}' : subtitleParts.join(' · ');
+    final corporation = user.organization?.trim();
+    final subtitle = [
+      'Corporation: ${corporation != null && corporation.isNotEmpty ? corporation : 'Unassigned'}',
+      if (user.regionName != null && user.regionName!.trim().isNotEmpty) 'Region: ${user.regionName!.trim()}',
+      if (user.email != null && user.email!.trim().isNotEmpty) user.email!.trim(),
+    ].join(' · ');
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
@@ -725,8 +860,13 @@ class _AdminCivSnapAnalyticsScreenState extends State<AdminCivSnapAnalyticsScree
 
 class AdminDogAnalyticsScreen extends StatefulWidget {
   final List<DogSubmission> submissions;
+  final List<CivSnapReport> reports;
 
-  const AdminDogAnalyticsScreen({super.key, required this.submissions});
+  const AdminDogAnalyticsScreen({
+    super.key,
+    required this.submissions,
+    required this.reports,
+  });
 
   @override
   State<AdminDogAnalyticsScreen> createState() => _AdminDogAnalyticsScreenState();
@@ -741,14 +881,15 @@ class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
     final filtered = _lifeStatus == 'All'
         ? widget.submissions
         : widget.submissions.where((dog) => dog.lifeStatus == _lifeStatus.toLowerCase()).toList();
+    final incidentReports = _dogIncidentReports(widget.reports);
     return Scaffold(
       appBar: AppBar(title: const Text('Dog registration analytics')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           _AnalyticsHeader(
-            title: 'Dog registration insights',
-            subtitle: 'Track submission statuses and life-status mix.',
+            title: 'Dog population and incident risk',
+            subtitle: 'Monitor life status, incident trends, and hotspot regions.',
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
@@ -767,13 +908,44 @@ class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
             },
           ),
           const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: 420,
+                child: _ChartCard(
+                  title: 'Life status breakdown',
+                  child: _BarChart(entries: _dogLifeStatusEntries(theme, filtered)),
+                ),
+              ),
+              SizedBox(
+                width: 420,
+                child: _ChartCard(
+                  title: 'Registration status mix',
+                  child: _BarChart(entries: _dogStatusEntries(theme, filtered)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           _ChartCard(
-            title: 'Status breakdown',
-            child: _BarChart(entries: _dogEntries(theme, filtered)),
+            title: 'Dog incidents by month',
+            child: _BarChart(entries: _incidentMonthEntries(theme, incidentReports)),
+          ),
+          const SizedBox(height: 16),
+          _ChartCard(
+            title: 'Dog incidents by region',
+            child: _BarChart(entries: _incidentRegionEntries(theme, incidentReports)),
           ),
           const SizedBox(height: 16),
           _InsightsList(
-            title: 'Recent submissions',
+            title: 'Incident risk insights',
+            items: _dogIncidentHighlights(incidentReports),
+          ),
+          const SizedBox(height: 16),
+          _InsightsList(
+            title: 'Recent registrations',
             items: _recentDogHighlights(filtered),
           ),
         ],
@@ -970,7 +1142,7 @@ List<_ChartEntry> _reportEntries(ThemeData theme, List<CivSnapReport> reports) {
   }).toList();
 }
 
-List<_ChartEntry> _dogEntries(ThemeData theme, List<DogSubmission> submissions) {
+List<_ChartEntry> _dogStatusEntries(ThemeData theme, List<DogSubmission> submissions) {
   final map = <String, int>{};
   for (final dog in submissions) {
     map[dog.status] = (map[dog.status] ?? 0) + 1;
@@ -980,6 +1152,26 @@ List<_ChartEntry> _dogEntries(ThemeData theme, List<DogSubmission> submissions) 
       label: _statusLabel(entry.key),
       value: entry.value,
       color: theme.colorScheme.secondary,
+    );
+  }).toList();
+}
+
+List<_ChartEntry> _dogLifeStatusEntries(ThemeData theme, List<DogSubmission> submissions) {
+  final map = <String, int>{};
+  for (final dog in submissions) {
+    final status = dog.lifeStatus.isEmpty ? 'unknown' : dog.lifeStatus;
+    map[status] = (map[status] ?? 0) + 1;
+  }
+  final colorMap = <String, Color>{
+    'alive': Colors.green,
+    'deceased': theme.colorScheme.error,
+    'unknown': theme.colorScheme.tertiary,
+  };
+  return map.entries.map((entry) {
+    return _ChartEntry(
+      label: _lifeStatusLabel(entry.key),
+      value: entry.value,
+      color: colorMap[entry.key] ?? theme.colorScheme.secondary,
     );
   }).toList();
 }
@@ -1020,6 +1212,99 @@ List<String> _recentDogHighlights(List<DogSubmission> submissions) {
   return recent;
 }
 
+List<CivSnapReport> _dogIncidentReports(List<CivSnapReport> reports) {
+  return reports.where(_isDogIncident).toList();
+}
+
+bool _isDogIncident(CivSnapReport report) {
+  final text = '${report.title} ${report.description ?? ''}'.toLowerCase();
+  final mentionsDog = text.contains('dog') || text.contains('canine');
+  final mentionsAttack = text.contains('attack') || text.contains('bite') || text.contains('bit') || text.contains('maul');
+  return mentionsDog && mentionsAttack;
+}
+
+List<_ChartEntry> _incidentMonthEntries(ThemeData theme, List<CivSnapReport> reports) {
+  final map = <int, int>{};
+  for (final report in reports) {
+    final key = report.createdAt.year * 100 + report.createdAt.month;
+    map[key] = (map[key] ?? 0) + 1;
+  }
+  final keys = map.keys.toList()..sort();
+  final displayKeys = keys.length > 6 ? keys.sublist(keys.length - 6) : keys;
+  return displayKeys.map((key) {
+    final year = key ~/ 100;
+    final month = key % 100;
+    final label = '${_monthNames[month - 1]} $year';
+    return _ChartEntry(
+      label: label,
+      value: map[key] ?? 0,
+      color: theme.colorScheme.secondary,
+    );
+  }).toList();
+}
+
+List<_ChartEntry> _incidentRegionEntries(ThemeData theme, List<CivSnapReport> reports) {
+  final map = <String, int>{};
+  for (final report in reports) {
+    final region = report.locationLabel?.trim().isNotEmpty == true ? report.locationLabel!.trim() : 'Unknown region';
+    map[region] = (map[region] ?? 0) + 1;
+  }
+  final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  return sorted.take(6).map((entry) {
+    return _ChartEntry(
+      label: entry.key,
+      value: entry.value,
+      color: theme.colorScheme.tertiary,
+    );
+  }).toList();
+}
+
+List<String> _dogIncidentHighlights(List<CivSnapReport> reports) {
+  if (reports.isEmpty) {
+    return ['No dog attack incidents have been logged yet.'];
+  }
+  final now = DateTime.now();
+  final monthTotal = reports
+      .where((report) => report.createdAt.year == now.year && report.createdAt.month == now.month)
+      .length;
+  final yearTotal = reports.where((report) => report.createdAt.year == now.year).length;
+  final monthMap = <int, int>{};
+  final regionMap = <String, int>{};
+  for (final report in reports) {
+    final monthKey = report.createdAt.year * 100 + report.createdAt.month;
+    monthMap[monthKey] = (monthMap[monthKey] ?? 0) + 1;
+    final region = report.locationLabel?.trim().isNotEmpty == true ? report.locationLabel!.trim() : 'Unknown region';
+    regionMap[region] = (regionMap[region] ?? 0) + 1;
+  }
+  final peakMonthEntry = monthMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final peakMonthKey = peakMonthEntry.first.key;
+  final peakLabel = '${_monthNames[(peakMonthKey % 100) - 1]} ${peakMonthKey ~/ 100}';
+  final regionEntries = regionMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final highRisk = regionEntries.first;
+  final lowRisk = regionEntries.length > 1 ? regionEntries.last : null;
+  return [
+    'Incidents this month: $monthTotal.',
+    'Incidents this year: $yearTotal.',
+    'Peak month: $peakLabel (${peakMonthEntry.first.value}).',
+    'High risk region: ${highRisk.key} (${highRisk.value}).',
+    if (lowRisk != null) 'Lower risk region: ${lowRisk.key} (${lowRisk.value}).',
+  ];
+}
+
+String _topIncidentRegionSummary(List<CivSnapReport> reports) {
+  final incidents = _dogIncidentReports(reports);
+  if (incidents.isEmpty) {
+    return 'No dog incident hotspots reported yet';
+  }
+  final map = <String, int>{};
+  for (final report in incidents) {
+    final region = report.locationLabel?.trim().isNotEmpty == true ? report.locationLabel!.trim() : 'Unknown region';
+    map[region] = (map[region] ?? 0) + 1;
+  }
+  final top = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  return 'Top risk region: ${top.first.key} (${top.first.value})';
+}
+
 String _statusLabel(String status) {
   switch (status) {
     case 'pending':
@@ -1037,5 +1322,33 @@ String _statusLabel(String status) {
       return 'Deleted';
     default:
       return 'Open';
+  }
+}
+
+const List<String> _monthNames = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+String _lifeStatusLabel(String status) {
+  switch (status) {
+    case 'alive':
+      return 'Alive';
+    case 'deceased':
+      return 'Deceased';
+    case 'unknown':
+      return 'Unknown';
+    default:
+      return 'Unknown';
   }
 }
