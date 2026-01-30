@@ -472,13 +472,11 @@ class UserSupportService {
         'role': role.value,
         'corporation_id': (trimmedOrg == null || trimmedOrg.isEmpty) ? null : trimmedOrg,
       };
-      final updatePayload = <String, dynamic>{
-        'app_metadata': metadata,
-      };
-      if (trimmedEmail != null && trimmedEmail.isNotEmpty) {
-        updatePayload['email'] = trimmedEmail;
-      }
-      await adminClient.auth.admin.updateUserById(userId, updatePayload);
+      final attributes = AdminUserAttributes(
+        appMetadata: metadata,
+        email: trimmedEmail != null && trimmedEmail.isNotEmpty ? trimmedEmail : null,
+      );
+      await adminClient.auth.admin.updateUserById(userId, attributes: attributes);
     }
   }
 
