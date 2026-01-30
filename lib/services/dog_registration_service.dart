@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LookupOption {
@@ -78,6 +79,18 @@ class DogRegistrationService {
   static final DogRegistrationService instance = DogRegistrationService._();
 
   final SupabaseClient _client = Supabase.instance.client;
+
+  SupabaseClient? _buildServiceRoleClient() {
+    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
+    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
+        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
+    if (url == null || url.trim().isEmpty || serviceKey == null || serviceKey.trim().isEmpty) {
+      return null;
+    }
+    return SupabaseClient(url, serviceKey);
+  }
+
+  SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
   static DateTime? _parseDate(dynamic value) {
     if (value == null) {
       return null;
@@ -121,10 +134,11 @@ class DogRegistrationService {
   }
 
   Future<List<DogSubmission>> fetchAllSubmissions({int pageSize = 200}) async {
+    final readClient = _readClient();
     final submissions = <DogSubmission>[];
     var offset = 0;
     while (true) {
-      final response = await _client
+      final response = await readClient
           .from('dogs')
           .select('id,dog_number,name,status,life_status,updated_at')
           .order('updated_at', ascending: false)
@@ -156,11 +170,12 @@ class DogRegistrationService {
   }
 
   Future<List<DogSubmission>> fetchSubmissionsForUser(String authUserId) async {
-    final ownerId = await _fetchOwnerIdForUser(authUserId);
+    final readClient = _readClient();
+    final ownerId = await _fetchOwnerIdForUser(authUserId, readClient);
     if (ownerId == null) {
       return [];
     }
-    final response = await _client
+    final response = await readClient
         .from('dogs')
         .select('id,dog_number,name,status,life_status,updated_at')
         .eq('current_owner_id', ownerId)
@@ -180,7 +195,8 @@ class DogRegistrationService {
   }
 
   Future<DogSubmissionDetail?> fetchSubmissionDetail(String dogId) async {
-    final dog = await _client
+    final readClient = _readClient();
+    final dog = await readClient
         .from('dogs')
         .select('id,dog_number,name,sex,breed_id,color,dob,microchip_id,notes,status,life_status,current_owner_id')
         .eq('id', dogId)
@@ -189,7 +205,7 @@ class DogRegistrationService {
       return null;
     }
     final ownerId = dog['current_owner_id'] as String;
-    final owner = await _client
+    final owner = await readClient
         .from('owners')
         .select('id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id')
         .eq('id', ownerId)
@@ -197,7 +213,7 @@ class DogRegistrationService {
     if (owner == null) {
       return null;
     }
-    final ownership = await _client
+    final ownership = await readClient
         .from('dog_ownerships')
         .select('start_date')
         .eq('dog_id', dogId)
@@ -316,8 +332,8 @@ class DogRegistrationService {
     return ownerResponse['id'] as String;
   }
 
-  Future<String?> _fetchOwnerIdForUser(String userId) async {
-    final existingOwner = await _client
+  Future<String?> _fetchOwnerIdForUser(String userId, SupabaseClient readClient) async {
+    final existingOwner = await readClient
         .from('owners')
         .select('id')
         .eq('auth_user_id', userId)

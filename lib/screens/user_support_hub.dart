@@ -15,6 +15,7 @@ class UserSupportHubScreen extends StatefulWidget {
 
 class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
   final UserSupportService _supportService = UserSupportService();
+  final DogRegistrationService _dogService = DogRegistrationService.instance;
   final TextEditingController _searchController = TextEditingController();
 
   late Future<List<SupportUser>> _usersFuture;
@@ -82,7 +83,12 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     final displayNameController = TextEditingController(text: user.displayName ?? '');
     final emailController = TextEditingController(text: user.email ?? '');
     final orgController = TextEditingController(text: user.organization ?? '');
+    final firstNameController = TextEditingController(text: user.firstName ?? '');
+    final lastNameController = TextEditingController(text: user.lastName ?? '');
+    final nationalIdController = TextEditingController(text: user.nationalId ?? '');
+    String? selectedRegionId = user.regionId;
     var selectedRole = user.role;
+    String? errorMessage;
 
     try {
       final shouldSave = await showDialog<bool>(
@@ -107,6 +113,39 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(labelText: 'First name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(labelText: 'Last name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: nationalIdController,
+                        decoration: const InputDecoration(labelText: 'National ID'),
+                      ),
+                      const SizedBox(height: 10),
+                      FutureBuilder<List<LookupOption>>(
+                        future: _dogService.fetchRegions(),
+                        builder: (context, snapshot) {
+                          final regions = snapshot.data ?? [];
+                          return DropdownButtonFormField<String>(
+                            value: selectedRegionId,
+                            items: regions
+                                .map((region) => DropdownMenuItem(
+                                      value: region.id,
+                                      child: Text(region.name),
+                                    ))
+                                .toList(),
+                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            decoration: const InputDecoration(labelText: 'Region'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
                         controller: orgController,
                         decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
@@ -126,6 +165,13 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                           }
                         },
                       ),
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -137,7 +183,20 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () {
+                  final firstName = firstNameController.text.trim();
+                  final lastName = lastNameController.text.trim();
+                  final hasOwnerData = user.ownerId != null ||
+                      firstName.isNotEmpty ||
+                      lastName.isNotEmpty ||
+                      (nationalIdController.text.trim().isNotEmpty) ||
+                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                  if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
+                    setState(() => errorMessage = 'First and last name are required.');
+                    return;
+                  }
+                  Navigator.of(context).pop(true);
+                },
                 child: const Text('Save'),
               ),
             ],
@@ -163,12 +222,27 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
           organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
+        final firstName = firstNameController.text.trim();
+        final lastName = lastNameController.text.trim();
+        if (firstName.isNotEmpty && lastName.isNotEmpty) {
+          await _supportService.updateOwnerProfile(
+            userId: user.userId,
+            firstName: firstName,
+            lastName: lastName,
+            email: emailController.text.trim(),
+            nationalId: nationalIdController.text.trim(),
+            regionId: selectedRegionId,
+          );
+        }
         await _refresh();
       }
     } finally {
       displayNameController.dispose();
       emailController.dispose();
       orgController.dispose();
+      firstNameController.dispose();
+      lastNameController.dispose();
+      nationalIdController.dispose();
     }
   }
 
@@ -461,10 +535,22 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   }
 
   Future<void> _editUser() async {
+    final ownerProfile = await _supportService.fetchOwnerProfile(widget.user.userId);
     final displayNameController = TextEditingController(text: widget.user.displayName ?? '');
     final emailController = TextEditingController(text: widget.user.email ?? '');
     final orgController = TextEditingController(text: widget.user.organization ?? '');
+    final firstNameController = TextEditingController(
+      text: ownerProfile?.firstName ?? widget.user.firstName ?? '',
+    );
+    final lastNameController = TextEditingController(
+      text: ownerProfile?.lastName ?? widget.user.lastName ?? '',
+    );
+    final nationalIdController = TextEditingController(
+      text: ownerProfile?.nationalId ?? widget.user.nationalId ?? '',
+    );
+    String? selectedRegionId = ownerProfile?.regionId ?? widget.user.regionId;
     var selectedRole = widget.user.role;
+    String? errorMessage;
 
     try {
       final shouldSave = await showDialog<bool>(
@@ -489,6 +575,39 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(labelText: 'First name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(labelText: 'Last name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: nationalIdController,
+                        decoration: const InputDecoration(labelText: 'National ID'),
+                      ),
+                      const SizedBox(height: 10),
+                      FutureBuilder<List<LookupOption>>(
+                        future: _regionsFuture,
+                        builder: (context, snapshot) {
+                          final regions = snapshot.data ?? [];
+                          return DropdownButtonFormField<String>(
+                            value: selectedRegionId,
+                            items: regions
+                                .map((region) => DropdownMenuItem(
+                                      value: region.id,
+                                      child: Text(region.name),
+                                    ))
+                                .toList(),
+                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            decoration: const InputDecoration(labelText: 'Region'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
                         controller: orgController,
                         decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
@@ -508,6 +627,13 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                           }
                         },
                       ),
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -519,7 +645,20 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () {
+                  final firstName = firstNameController.text.trim();
+                  final lastName = lastNameController.text.trim();
+                  final hasOwnerData = widget.user.ownerId != null ||
+                      firstName.isNotEmpty ||
+                      lastName.isNotEmpty ||
+                      (nationalIdController.text.trim().isNotEmpty) ||
+                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                  if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
+                    setState(() => errorMessage = 'First and last name are required.');
+                    return;
+                  }
+                  Navigator.of(context).pop(true);
+                },
                 child: const Text('Save'),
               ),
             ],
@@ -545,12 +684,27 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
           organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
+        final firstName = firstNameController.text.trim();
+        final lastName = lastNameController.text.trim();
+        if (firstName.isNotEmpty && lastName.isNotEmpty) {
+          await _supportService.updateOwnerProfile(
+            userId: widget.user.userId,
+            firstName: firstName,
+            lastName: lastName,
+            email: emailController.text.trim(),
+            nationalId: nationalIdController.text.trim(),
+            regionId: selectedRegionId,
+          );
+        }
         await _refresh();
       }
     } finally {
       displayNameController.dispose();
       emailController.dispose();
       orgController.dispose();
+      firstNameController.dispose();
+      lastNameController.dispose();
+      nationalIdController.dispose();
     }
   }
 
