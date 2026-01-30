@@ -140,7 +140,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                                     ))
                                 .toList(),
                             onChanged: (value) => setState(() => selectedRegionId = value),
-                            decoration: const InputDecoration(labelText: 'Region'),
+                            decoration: const InputDecoration(labelText: 'Corporation'),
                           );
                         },
                       ),
@@ -251,7 +251,11 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final orgController = TextEditingController();
+    final firstNameController = TextEditingController();
+    final lastNameController = TextEditingController();
+    String? selectedRegionId;
     var selectedRole = AppRole.public;
+    String? errorMessage;
 
     try {
       final shouldCreate = await showDialog<bool>(
@@ -283,6 +287,34 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        controller: firstNameController,
+                        decoration: const InputDecoration(labelText: 'First name'),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: lastNameController,
+                        decoration: const InputDecoration(labelText: 'Last name'),
+                      ),
+                      const SizedBox(height: 10),
+                      FutureBuilder<List<LookupOption>>(
+                        future: _dogService.fetchRegions(),
+                        builder: (context, snapshot) {
+                          final regions = snapshot.data ?? [];
+                          return DropdownButtonFormField<String>(
+                            value: selectedRegionId,
+                            items: regions
+                                .map((region) => DropdownMenuItem(
+                                      value: region.id,
+                                      child: Text(region.name),
+                                    ))
+                                .toList(),
+                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            decoration: const InputDecoration(labelText: 'Corporation'),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
                         controller: orgController,
                         decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
                       ),
@@ -302,6 +334,13 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                           }
                         },
                       ),
+                      if (errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          errorMessage!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -313,7 +352,18 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () {
+                  final firstName = firstNameController.text.trim();
+                  final lastName = lastNameController.text.trim();
+                  final hasOwnerData = firstName.isNotEmpty ||
+                      lastName.isNotEmpty ||
+                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                  if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
+                    setState(() => errorMessage = 'First and last name are required for owner profiles.');
+                    return;
+                  }
+                  Navigator.of(context).pop(true);
+                },
                 child: const Text('Create'),
               ),
             ],
@@ -343,13 +393,24 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           );
           return;
         }
-        await _supportService.createUser(
+        final createdUser = await _supportService.createUser(
           email: email,
           password: password,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           organization: trimmedOrg.isEmpty ? null : trimmedOrg,
         );
+        final firstName = firstNameController.text.trim();
+        final lastName = lastNameController.text.trim();
+        if (firstName.isNotEmpty && lastName.isNotEmpty) {
+          await _supportService.updateOwnerProfile(
+            userId: createdUser.userId,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            regionId: selectedRegionId,
+          );
+        }
         await _refresh();
         if (!mounted) {
           return;
@@ -377,6 +438,8 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
       emailController.dispose();
       passwordController.dispose();
       orgController.dispose();
+      firstNameController.dispose();
+      lastNameController.dispose();
     }
   }
 
@@ -1000,7 +1063,7 @@ class _UserCard extends StatelessWidget {
       _MetadataRow(label: 'First name', value: user.firstName ?? ''),
       _MetadataRow(label: 'Last name', value: user.lastName ?? ''),
       _MetadataRow(label: 'Phone', value: user.phone ?? ''),
-      _MetadataRow(label: 'Region', value: user.regionName ?? user.regionId ?? ''),
+      _MetadataRow(label: 'Corporation', value: user.regionName ?? 'Not assigned'),
     ];
     final extraFields = [
       _MetadataRow(label: 'National ID', value: user.nationalId ?? ''),
@@ -1333,8 +1396,8 @@ class _OwnerProfileCard extends StatelessWidget {
             value: [profile.addressLine1, profile.addressLine2].whereType<String>().where((item) => item.isNotEmpty).join(', '),
           ),
           _MetadataRow(
-            label: 'Region',
-            value: profile.regionName ?? profile.regionId ?? 'Not assigned',
+            label: 'Corporation',
+            value: profile.regionName ?? 'Not assigned',
           ),
         ],
       ),

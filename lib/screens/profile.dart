@@ -300,7 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     .toList(),
                                 onChanged: _isLoading ? null : (value) => setState(() => _selectedRegionId = value),
                                 decoration: const InputDecoration(
-                                  labelText: 'Region',
+                                  labelText: 'Corporation',
                                   filled: true,
                                 ),
                               ),
