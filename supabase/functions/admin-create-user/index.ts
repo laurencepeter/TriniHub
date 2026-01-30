@@ -62,6 +62,12 @@ serve(async (req) => {
     region_code,
     display_name,
   } = body;
+  const normalizeText = (value: unknown) =>
+    (value ?? "").toString().trim();
+  const isUuid = (value: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value,
+    );
 
   const normalizeRole = (value: string | undefined | null) => {
     const raw = (value ?? "").toString().trim().toLowerCase();
@@ -83,19 +89,54 @@ serve(async (req) => {
     return new Response("Invalid role.", { status: 400 });
   }
 
-  const corporationId =
-    (corporation_id ?? organization ?? null)?.toString().trim() || null;
+  const rawCorporationId = normalizeText(corporation_id);
+  const rawOrganization = normalizeText(organization);
+  let corporationId = rawCorporationId || null;
+  let corporationName = rawOrganization || null;
 
-  if (
-    ["corporation", "corp_staff"].includes(normalizedRole) &&
-    !corporationId
-  ) {
-    return new Response("Corporation ID is required for staff accounts.", {
-      status: 400,
-    });
+  if (corporationId && !isUuid(corporationId) && !corporationName) {
+    corporationName = corporationId;
+    corporationId = null;
   }
 
   const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+  if (!corporationId && corporationName) {
+    const { data: region, error: regionError } = await supabaseAdmin
+      .from("regions")
+      .select("id,name")
+      .ilike("name", corporationName)
+      .limit(1)
+      .maybeSingle();
+    if (!regionError && region) {
+      corporationId = region.id;
+      corporationName = region.name;
+    }
+  }
+
+  if (corporationId && !corporationName) {
+    const { data: region, error: regionError } = await supabaseAdmin
+      .from("regions")
+      .select("id,name")
+      .eq("id", corporationId)
+      .maybeSingle();
+    if (!regionError && region) {
+      corporationName = region.name;
+    }
+  }
+
+  if (
+    ["corporation", "corp_staff"].includes(normalizedRole) &&
+    !corporationId &&
+    !corporationName
+  ) {
+    return new Response(
+      "Corporation name is required for staff accounts.",
+      {
+        status: 400,
+      },
+    );
+  }
 
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
@@ -123,6 +164,7 @@ serve(async (req) => {
     role: normalizedRole,
     app_role: normalizedRole,
     corporation_id: corporationId,
+    organization: corporationName,
     region_code: region_code ?? null,
     display_name: display_name ?? null,
   });

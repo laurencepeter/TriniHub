@@ -88,6 +88,8 @@ class UserSupportService {
   final SupabaseClient _client;
   final DogRegistrationService _dogService = DogRegistrationService.instance;
   static const int _adminPageSize = 200;
+  static final RegExp _uuidPattern =
+      RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
 
   SupabaseClient? _buildServiceRoleClient() {
     final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
@@ -131,7 +133,7 @@ class UserSupportService {
     final roleClient = adminClient ?? _client;
     final response = await roleClient
         .from('user_profiles')
-        .select('user_id,role,display_name,created_at')
+        .select('user_id,role,display_name,organization,created_at')
         .order('created_at', ascending: false);
     if (response is! List) {
       return [];
@@ -329,6 +331,9 @@ class UserSupportService {
       throw StateError('Not logged in.');
     }
 
+    final trimmedOrg = organization?.trim();
+    final corporationId = await _resolveCorporationId(trimmedOrg);
+    final corporationName = await _resolveCorporationName(trimmedOrg, corporationId);
     final FunctionResponse response;
     try {
       response = await _client.functions.invoke(
@@ -341,7 +346,8 @@ class UserSupportService {
           'temp_password': password,
           'role': role.value,
           'display_name': displayName,
-          'corporation_id': organization?.trim().isEmpty ?? true ? null : organization?.trim(),
+          'corporation_id': corporationId,
+          'organization': corporationName,
         },
       );
     } on FunctionException catch (error) {
@@ -368,7 +374,7 @@ class UserSupportService {
       role: role,
       displayName: displayName,
       email: email.trim(),
-      organization: organization,
+      organization: corporationName,
     );
 
     return SupportUser(
@@ -376,7 +382,7 @@ class UserSupportService {
       role: role,
       displayName: displayName,
       email: email.trim(),
-      organization: organization,
+      organization: corporationName,
       updatedAt: DateTime.now(),
     );
   }
@@ -442,11 +448,14 @@ class UserSupportService {
     String? organization,
   }) async {
     final trimmedOrg = organization?.trim();
+    final corporationId = await _resolveCorporationId(trimmedOrg);
+    final corporationName = await _resolveCorporationName(trimmedOrg, corporationId);
     final payload = <String, dynamic>{
       'user_id': userId,
       'role': role.value,
       'display_name': displayName,
-      'corporation_id': trimmedOrg,
+      'organization': corporationName,
+      'corporation_id': corporationId,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
     await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
@@ -485,5 +494,40 @@ class UserSupportService {
     };
 
     await _client.from('owners').upsert(payload, onConflict: 'auth_user_id');
+  }
+
+  Future<String?> _resolveCorporationId(String? organization) async {
+    final trimmed = organization?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    if (_uuidPattern.hasMatch(trimmed)) {
+      return trimmed;
+    }
+    final regions = await _dogService.fetchRegions();
+    final match = regions.firstWhere(
+      (region) => region.name.trim().toLowerCase() == trimmed.toLowerCase(),
+      orElse: () => const LookupOption(id: '', name: ''),
+    );
+    return match.id.isEmpty ? null : match.id;
+  }
+
+  Future<String?> _resolveCorporationName(String? organization, String? corporationId) async {
+    final trimmed = organization?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    if (!_uuidPattern.hasMatch(trimmed)) {
+      return trimmed;
+    }
+    if (corporationId == null || corporationId.isEmpty) {
+      return null;
+    }
+    final regions = await _dogService.fetchRegions();
+    final match = regions.firstWhere(
+      (region) => region.id == corporationId,
+      orElse: () => const LookupOption(id: '', name: ''),
+    );
+    return match.name.isEmpty ? null : match.name;
   }
 }
