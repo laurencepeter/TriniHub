@@ -893,6 +893,38 @@ class AdminDogAnalyticsScreen extends StatefulWidget {
 
 class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
   String _lifeStatus = 'All';
+  String _incidentRegion = 'All';
+  final Map<String, String> _regionLookup = {};
+  bool _regionsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRegions();
+  }
+
+  Future<void> _loadRegions() async {
+    if (_regionsLoaded) {
+      return;
+    }
+    try {
+      final regions = await DogRegistrationService.instance.fetchRegions();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        for (final region in regions) {
+          _regionLookup[region.id] = region.name;
+        }
+        _regionsLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _regionsLoaded = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -901,6 +933,17 @@ class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
         ? widget.submissions
         : widget.submissions.where((dog) => dog.lifeStatus == _lifeStatus.toLowerCase()).toList();
     final incidentReports = _dogIncidentReports(widget.reports);
+    final incidentRegions = _incidentRegionOptions(incidentReports);
+    final resolvedIncidentRegion = incidentRegions.contains(_incidentRegion) ? _incidentRegion : 'All';
+    final incidentFiltered = resolvedIncidentRegion == 'All'
+        ? const <DogSubmission>[]
+        : filtered.where((dog) {
+            final regionName = _resolveOwnerRegionName(dog, _regionLookup);
+            if (regionName == null || regionName.trim().isEmpty) {
+              return false;
+            }
+            return regionName.toLowerCase().contains(resolvedIncidentRegion.toLowerCase());
+          }).toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Dog registration analytics')),
       body: ListView(
@@ -923,6 +966,22 @@ class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
             onChanged: (value) {
               if (value != null) {
                 setState(() => _lifeStatus = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: resolvedIncidentRegion,
+            decoration: const InputDecoration(labelText: 'Incident region'),
+            items: [
+              const DropdownMenuItem(value: 'All', child: Text('All regions')),
+              ...incidentRegions
+                  .where((region) => region != 'All')
+                  .map((region) => DropdownMenuItem(value: region, child: Text(region))),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _incidentRegion = value);
               }
             },
           ),
@@ -961,6 +1020,11 @@ class _AdminDogAnalyticsScreenState extends State<AdminDogAnalyticsScreen> {
           _InsightsList(
             title: 'Incident risk insights',
             items: _dogIncidentHighlights(incidentReports),
+          ),
+          const SizedBox(height: 16),
+          _InsightsList(
+            title: 'Dogs tied to incident regions',
+            items: _incidentDogMatches(incidentFiltered, resolvedIncidentRegion, _regionLookup),
           ),
           const SizedBox(height: 16),
           _InsightsList(
@@ -1229,6 +1293,44 @@ List<String> _recentDogHighlights(List<DogSubmission> submissions) {
     return '$name · ${_statusLabel(dog.status)}';
   }).toList();
   return recent;
+}
+
+List<String> _incidentDogMatches(
+  List<DogSubmission> submissions,
+  String incidentRegion,
+  Map<String, String> regionLookup,
+) {
+  if (incidentRegion == 'All') {
+    return ['Select an incident region to view matched dog owners.'];
+  }
+  if (submissions.isEmpty) {
+    return ['No dog registrations match the selected incident region.'];
+  }
+  return submissions.take(6).map((dog) {
+    final name = dog.dogName?.isNotEmpty == true ? dog.dogName! : 'Dog #${dog.dogNumber}';
+    final owner = dog.ownerName?.isNotEmpty == true ? dog.ownerName! : 'Owner unknown';
+    final regionName = _resolveOwnerRegionName(dog, regionLookup) ?? 'Unknown region';
+    return '$name · $owner · $regionName';
+  }).toList();
+}
+
+List<String> _incidentRegionOptions(List<CivSnapReport> reports) {
+  final regions = reports
+      .map((report) => report.locationLabel?.trim())
+      .whereType<String>()
+      .where((label) => label.isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return ['All', ...regions];
+}
+
+String? _resolveOwnerRegionName(DogSubmission dog, Map<String, String> regionLookup) {
+  final regionId = dog.ownerRegionId;
+  if (regionId == null || regionId.trim().isEmpty) {
+    return null;
+  }
+  return regionLookup[regionId] ?? regionId;
 }
 
 List<CivSnapReport> _dogIncidentReports(List<CivSnapReport> reports) {

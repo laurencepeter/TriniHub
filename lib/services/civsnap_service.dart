@@ -84,7 +84,7 @@ class CivSnapService {
   }) async {
     final deltaLat = radiusMeters / 111111;
     final deltaLng = radiusMeters / (111111 * cos(_toRadians(latitude)));
-    final response = await _client
+    final response = await _readClient()
         .from('civsnap_reports')
         .select(
           'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
@@ -170,7 +170,7 @@ class CivSnapService {
     String? status,
     int limit = 50,
   }) async {
-    final query = _client
+    final query = _readClient()
         .from('civsnap_reports')
         .select(
           'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
