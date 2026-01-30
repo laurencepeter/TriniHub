@@ -555,6 +555,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   final UserSupportService _supportService = UserSupportService();
   final DogRegistrationService _dogService = DogRegistrationService.instance;
 
+  late SupportUser _user;
   late Future<OwnerProfile?> _ownerFuture;
   late Future<List<CivSnapReport>> _reportsFuture;
   late Future<List<DogSubmission>> _dogsFuture;
@@ -563,17 +564,18 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _ownerFuture = _supportService.fetchOwnerProfile(widget.user.userId);
-    _reportsFuture = _supportService.fetchReportsForUser(widget.user.userId);
-    _dogsFuture = _dogService.fetchSubmissionsForUser(widget.user.userId);
+    _user = widget.user;
+    _ownerFuture = _supportService.fetchOwnerProfile(_user.userId);
+    _reportsFuture = _supportService.fetchReportsForUser(_user.userId);
+    _dogsFuture = _dogService.fetchSubmissionsForUser(_user.userId);
     _regionsFuture = _dogService.fetchRegions();
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _ownerFuture = _supportService.fetchOwnerProfile(widget.user.userId);
-      _reportsFuture = _supportService.fetchReportsForUser(widget.user.userId);
-      _dogsFuture = _dogService.fetchSubmissionsForUser(widget.user.userId);
+      _ownerFuture = _supportService.fetchOwnerProfile(_user.userId);
+      _reportsFuture = _supportService.fetchReportsForUser(_user.userId);
+      _dogsFuture = _dogService.fetchSubmissionsForUser(_user.userId);
       _regionsFuture = _dogService.fetchRegions();
     });
   }
@@ -581,9 +583,9 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   void _registerDog() {
     Navigator.of(context).push(
       DogRegistrationScreen.route(
-        ownerUserId: widget.user.userId,
-        ownerDisplayName: widget.user.displayName,
-        ownerEmail: widget.user.email,
+        ownerUserId: _user.userId,
+        ownerDisplayName: _user.displayName,
+        ownerEmail: _user.email,
       ),
     );
   }
@@ -591,28 +593,28 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
   void _logIssue() {
     Navigator.of(context).push(
       IssueSnapScreen.route(
-        onBehalfUserId: widget.user.userId,
-        onBehalfName: widget.user.displayName ?? widget.user.email,
+        onBehalfUserId: _user.userId,
+        onBehalfName: _user.displayName ?? _user.email,
       ),
     );
   }
 
   Future<void> _editUser() async {
-    final ownerProfile = await _supportService.fetchOwnerProfile(widget.user.userId);
-    final displayNameController = TextEditingController(text: widget.user.displayName ?? '');
-    final emailController = TextEditingController(text: widget.user.email ?? '');
-    final orgController = TextEditingController(text: widget.user.organization ?? '');
+    final ownerProfile = await _supportService.fetchOwnerProfile(_user.userId);
+    final displayNameController = TextEditingController(text: _user.displayName ?? '');
+    final emailController = TextEditingController(text: _user.email ?? '');
+    final orgController = TextEditingController(text: _user.organization ?? '');
     final firstNameController = TextEditingController(
-      text: ownerProfile?.firstName ?? widget.user.firstName ?? '',
+      text: ownerProfile?.firstName ?? _user.firstName ?? '',
     );
     final lastNameController = TextEditingController(
-      text: ownerProfile?.lastName ?? widget.user.lastName ?? '',
+      text: ownerProfile?.lastName ?? _user.lastName ?? '',
     );
     final nationalIdController = TextEditingController(
-      text: ownerProfile?.nationalId ?? widget.user.nationalId ?? '',
+      text: ownerProfile?.nationalId ?? _user.nationalId ?? '',
     );
-    String? selectedRegionId = ownerProfile?.regionId ?? widget.user.regionId;
-    var selectedRole = widget.user.role;
+    String? selectedRegionId = ownerProfile?.regionId ?? _user.regionId;
+    var selectedRole = _user.role;
     String? errorMessage;
 
     try {
@@ -711,7 +713,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                 onPressed: () {
                   final firstName = firstNameController.text.trim();
                   final lastName = lastNameController.text.trim();
-                  final hasOwnerData = widget.user.ownerId != null ||
+                  final hasOwnerData = _user.ownerId != null ||
                       firstName.isNotEmpty ||
                       lastName.isNotEmpty ||
                       (nationalIdController.text.trim().isNotEmpty) ||
@@ -741,7 +743,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
           return;
         }
         await _supportService.updateUser(
-          userId: widget.user.userId,
+          userId: _user.userId,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
@@ -751,7 +753,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
         final lastName = lastNameController.text.trim();
         if (firstName.isNotEmpty && lastName.isNotEmpty) {
           await _supportService.updateOwnerProfile(
-            userId: widget.user.userId,
+            userId: _user.userId,
             firstName: firstName,
             lastName: lastName,
             email: emailController.text.trim(),
@@ -759,6 +761,26 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
             regionId: selectedRegionId,
           );
         }
+        setState(() {
+          _user = SupportUser(
+            userId: _user.userId,
+            role: selectedRole,
+            displayName:
+                displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
+            email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
+            organization: trimmedOrg.isEmpty ? null : trimmedOrg,
+            updatedAt: _user.updatedAt,
+            ownerId: _user.ownerId,
+            firstName: _user.firstName,
+            lastName: _user.lastName,
+            phone: _user.phone,
+            nationalId: _user.nationalId,
+            addressLine1: _user.addressLine1,
+            addressLine2: _user.addressLine2,
+            regionId: _user.regionId,
+            regionName: _user.regionName,
+          );
+        });
         await _refresh();
       }
     } finally {
@@ -884,7 +906,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
 
       if (shouldSave == true) {
         await _supportService.updateOwnerProfile(
-          userId: widget.user.userId,
+          userId: _user.userId,
           firstName: firstNameController.text.trim(),
           lastName: lastNameController.text.trim(),
           phone: phoneController.text,
@@ -927,7 +949,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     );
 
     if (shouldDelete == true) {
-      await _supportService.deleteUserRole(widget.user.userId);
+      await _supportService.deleteUserRole(_user.userId);
       if (!mounted) {
         return;
       }
@@ -940,7 +962,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.user.displayName ?? widget.user.email ?? 'User Profile'),
+        title: Text(_user.displayName ?? _user.email ?? 'User Profile'),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -952,7 +974,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
-          _UserOverviewCard(user: widget.user),
+          _UserOverviewCard(user: _user),
           const SizedBox(height: 16),
           _SupportActionsCard(
             onRegisterDog: _registerDog,
