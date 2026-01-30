@@ -105,6 +105,8 @@ class UserSupportService {
     return SupabaseClient(url, serviceKey);
   }
 
+  SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
+
   DateTime? _parseSupabaseTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.trim().isEmpty) {
       return null;
@@ -134,8 +136,8 @@ class UserSupportService {
 
   Future<List<SupportUser>> fetchUsers() async {
     final adminClient = _buildServiceRoleClient();
-    final roleClient = adminClient ?? _client;
-    final response = await roleClient
+    final readClient = adminClient ?? _readClient();
+    final response = await readClient
         .from('user_profiles')
         .select('user_id,role,display_name,organization,corporation_id,created_at')
         .order('created_at', ascending: false);
@@ -147,9 +149,7 @@ class UserSupportService {
         .map(SupportUser.fromJson)
         .toList();
 
-    final ownerClient = adminClient ?? _client;
-
-    final ownerResponse = await ownerClient
+    final ownerResponse = await readClient
         .from('owners')
         .select(
           'id,auth_user_id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id',
@@ -287,7 +287,7 @@ class UserSupportService {
           }
         }
       } else {
-        final adminResponse = await roleClient.rpc('admin_list_users');
+        final adminResponse = await readClient.rpc('admin_list_users');
         if (adminResponse is List) {
           for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
             final userId = row['user_id']?.toString();

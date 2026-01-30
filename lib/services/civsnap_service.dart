@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -63,6 +64,18 @@ class CivSnapService {
   static final CivSnapService instance = CivSnapService._();
 
   final SupabaseClient _client = Supabase.instance.client;
+
+  SupabaseClient? _buildServiceRoleClient() {
+    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
+    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
+        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
+    if (url.trim().isEmpty || serviceKey.trim().isEmpty) {
+      return null;
+    }
+    return SupabaseClient(url, serviceKey);
+  }
+
+  SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
   Future<CivSnapReport?> findNearbyReport({
     required double latitude,
@@ -184,7 +197,7 @@ class CivSnapService {
     final reports = <CivSnapReport>[];
     var offset = 0;
     while (true) {
-      final query = _client
+      final query = _readClient()
           .from('civsnap_reports')
           .select(
             'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
@@ -209,7 +222,7 @@ class CivSnapService {
   }
 
   Future<Map<String, int>> fetchStatusCounts() async {
-    final response = await _client.from('civsnap_reports').select('status');
+    final response = await _readClient().from('civsnap_reports').select('status');
     if (response is! List) {
       return {};
     }
