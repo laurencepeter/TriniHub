@@ -15,6 +15,9 @@ class DogSubmission {
   final String status;
   final String lifeStatus;
   final DateTime? updatedAt;
+  final String? ownerId;
+  final String? ownerName;
+  final String? ownerRegionId;
 
   const DogSubmission({
     required this.id,
@@ -23,6 +26,9 @@ class DogSubmission {
     required this.status,
     required this.lifeStatus,
     required this.updatedAt,
+    this.ownerId,
+    this.ownerName,
+    this.ownerRegionId,
   });
 }
 
@@ -140,7 +146,7 @@ class DogRegistrationService {
     while (true) {
       final response = await readClient
           .from('dogs')
-          .select('id,dog_number,name,status,life_status,updated_at')
+          .select('id,dog_number,name,status,life_status,updated_at,current_owner_id')
           .order('updated_at', ascending: false)
           .range(offset, offset + pageSize - 1);
 
@@ -148,17 +154,7 @@ class DogRegistrationService {
         break;
       }
 
-      final batch = response.whereType<Map<String, dynamic>>().map((row) {
-        final dogNumber = _stringValue(row['dog_number']);
-        return DogSubmission(
-          id: _stringValue(row['id']),
-          dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
-          dogName: row['name'] as String?,
-          status: _stringValue(row['status'], fallback: 'pending'),
-          lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
-          updatedAt: _parseDate(row['updated_at']),
-        );
-      }).toList();
+      final batch = await _mapDogSubmissions(response, readClient: readClient);
 
       submissions.addAll(batch);
       if (batch.length < pageSize) {
@@ -173,25 +169,28 @@ class DogRegistrationService {
     final readClient = _readClient();
     final ownerId = await _fetchOwnerIdForUser(authUserId, readClient);
     if (ownerId == null) {
-      return [];
+      final fallbackResponse = await readClient
+          .from('dogs')
+          .select(
+            'id,dog_number,name,status,life_status,updated_at,current_owner_id,owners!inner(auth_user_id,first_name,last_name,region_id)',
+          )
+          .eq('owners.auth_user_id', authUserId)
+          .order('updated_at', ascending: false);
+      if (fallbackResponse is! List) {
+        return [];
+      }
+      return _mapDogSubmissions(fallbackResponse, readClient: readClient);
     }
     final response = await readClient
         .from('dogs')
-        .select('id,dog_number,name,status,life_status,updated_at')
+        .select('id,dog_number,name,status,life_status,updated_at,current_owner_id')
         .eq('current_owner_id', ownerId)
         .order('updated_at', ascending: false);
 
-    return (response as List<dynamic>).map((row) {
-      final dogNumber = _stringValue(row['dog_number']);
-      return DogSubmission(
-        id: _stringValue(row['id']),
-        dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
-        dogName: row['name'] as String?,
-        status: _stringValue(row['status'], fallback: 'pending'),
-        lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
-        updatedAt: _parseDate(row['updated_at']),
-      );
-    }).toList();
+    if (response is! List) {
+      return [];
+    }
+    return _mapDogSubmissions(response, readClient: readClient);
   }
 
   Future<DogSubmissionDetail?> fetchSubmissionDetail(String dogId) async {
@@ -397,4 +396,104 @@ class DogRegistrationService {
 
     await _client.from('dog_ownerships').insert(ownershipPayload);
   }
+
+  Future<List<DogSubmission>> _mapDogSubmissions(
+    List<dynamic> response, {
+    required SupabaseClient readClient,
+  }) async {
+    final rows = response.whereType<Map<String, dynamic>>().toList();
+    final ownerIds = rows
+        .map((row) => row['current_owner_id'])
+        .whereType<String>()
+        .where((ownerId) => ownerId.isNotEmpty)
+        .toSet();
+    final ownerLookup = await _fetchOwnerSnapshots(ownerIds, readClient);
+    return rows.map((row) {
+      final dogNumber = _stringValue(row['dog_number']);
+      final ownerFromRow = _ownerFromRow(row['owners']);
+      final currentOwnerId = _stringValue(row['current_owner_id'], fallback: '').trim();
+      final ownerId = ownerFromRow?.id ?? (currentOwnerId.isEmpty ? null : currentOwnerId);
+      final ownerSnapshot = ownerFromRow ?? ownerLookup[ownerId];
+      return DogSubmission(
+        id: _stringValue(row['id']),
+        dogNumber: dogNumber.isEmpty ? 'Unknown' : dogNumber,
+        dogName: row['name'] as String?,
+        status: _stringValue(row['status'], fallback: 'pending'),
+        lifeStatus: _stringValue(row['life_status'], fallback: 'alive'),
+        updatedAt: _parseDate(row['updated_at']),
+        ownerId: ownerSnapshot?.id ?? ownerId,
+        ownerName: ownerSnapshot?.fullName,
+        ownerRegionId: ownerSnapshot?.regionId,
+      );
+    }).toList();
+  }
+
+  Future<Map<String, _OwnerSnapshot>> _fetchOwnerSnapshots(
+    Set<String> ownerIds,
+    SupabaseClient readClient,
+  ) async {
+    if (ownerIds.isEmpty) {
+      return {};
+    }
+    final response = await readClient
+        .from('owners')
+        .select('id,first_name,last_name,region_id')
+        .inFilter('id', ownerIds.toList());
+    if (response is! List) {
+      return {};
+    }
+    final map = <String, _OwnerSnapshot>{};
+    for (final row in response.whereType<Map<String, dynamic>>()) {
+      final id = _stringValue(row['id']);
+      if (id.isEmpty) {
+        continue;
+      }
+      final firstName = (row['first_name'] ?? '').toString();
+      final lastName = (row['last_name'] ?? '').toString();
+      final fullName = [firstName, lastName].where((name) => name.trim().isNotEmpty).join(' ').trim();
+      map[id] = _OwnerSnapshot(
+        id: id,
+        fullName: fullName.isEmpty ? null : fullName,
+        regionId: row['region_id'] as String?,
+      );
+    }
+    return map;
+  }
+
+  _OwnerSnapshot? _ownerFromRow(dynamic ownersValue) {
+    if (ownersValue == null) {
+      return null;
+    }
+    if (ownersValue is Map<String, dynamic>) {
+      return _ownerSnapshotFromMap(ownersValue);
+    }
+    if (ownersValue is List && ownersValue.isNotEmpty && ownersValue.first is Map<String, dynamic>) {
+      return _ownerSnapshotFromMap(ownersValue.first as Map<String, dynamic>);
+    }
+    return null;
+  }
+
+  _OwnerSnapshot _ownerSnapshotFromMap(Map<String, dynamic> ownerRow) {
+    final id = _stringValue(ownerRow['id']);
+    final firstName = (ownerRow['first_name'] ?? '').toString();
+    final lastName = (ownerRow['last_name'] ?? '').toString();
+    final fullName = [firstName, lastName].where((name) => name.trim().isNotEmpty).join(' ').trim();
+    return _OwnerSnapshot(
+      id: id,
+      fullName: fullName.isEmpty ? null : fullName,
+      regionId: ownerRow['region_id'] as String?,
+    );
+  }
+}
+
+class _OwnerSnapshot {
+  final String id;
+  final String? fullName;
+  final String? regionId;
+
+  const _OwnerSnapshot({
+    required this.id,
+    required this.fullName,
+    required this.regionId,
+  });
 }
