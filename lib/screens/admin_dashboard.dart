@@ -138,34 +138,86 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           final users = userSnapshot.data ?? [];
                           final reports = reportSnapshot.data ?? [];
                           final dogs = dogSnapshot.data ?? [];
-                          return Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _DashboardMetricCard(
-                                label: 'Users',
-                                value: users.length.toString(),
-                                subtitle: '${_countByRole(users, AppRole.admin)} admins · ${_countByRole(users, AppRole.corporation)} corp',
-                                icon: Icons.people_outline,
-                                color: theme.colorScheme.primary,
-                                onTap: () => _openUserAnalytics(users),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _DashboardMetricCard(
+                                    label: 'Users',
+                                    value: users.length.toString(),
+                                    subtitle:
+                                        '${_countByRole(users, AppRole.admin)} admins · ${_countByRole(users, AppRole.corporation)} corp',
+                                    icon: Icons.people_outline,
+                                    color: theme.colorScheme.primary,
+                                    onTap: () => _openUserAnalytics(users),
+                                  ),
+                                  _DashboardMetricCard(
+                                    label: 'CivSnap reports',
+                                    value: reports.length.toString(),
+                                    subtitle:
+                                        '${_countReports(reports, 'pending')} pending · ${_countReports(reports, 'completed')} completed',
+                                    icon: Icons.report_gmailerrorred_outlined,
+                                    color: theme.colorScheme.tertiary,
+                                    onTap: () => _openReportAnalytics(reports),
+                                  ),
+                                  _DashboardMetricCard(
+                                    label: 'Dog registrations',
+                                    value: dogs.length.toString(),
+                                    subtitle:
+                                        '${_countDogsByLifeStatus(dogs, 'alive')} alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
+                                    icon: Icons.pets,
+                                    color: theme.colorScheme.secondary,
+                                    onTap: () => _openDogAnalytics(dogs, reports),
+                                  ),
+                                ],
                               ),
-                              _DashboardMetricCard(
-                                label: 'CivSnap reports',
-                                value: reports.length.toString(),
-                                subtitle: '${_countReports(reports, 'pending')} pending · ${_countReports(reports, 'completed')} completed',
-                                icon: Icons.report_gmailerrorred_outlined,
-                                color: theme.colorScheme.tertiary,
-                                onTap: () => _openReportAnalytics(reports),
+                              const SizedBox(height: 24),
+                              Text(
+                                'Executive insights',
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                               ),
-                              _DashboardMetricCard(
-                                label: 'Dog registrations',
-                                value: dogs.length.toString(),
-                                subtitle:
-                                    '${_countDogsByLifeStatus(dogs, 'alive')} alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
-                                icon: Icons.pets,
-                                color: theme.colorScheme.secondary,
-                                onTap: () => _openDogAnalytics(dogs, reports),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _ExecutiveInsightCard(
+                                    title: 'People & access',
+                                    subtitle: 'Directory coverage and role mix.',
+                                    icon: Icons.people_outline,
+                                    color: theme.colorScheme.primary,
+                                    highlights: [
+                                      '${_countByRole(users, AppRole.admin)} admins · ${_countByRole(users, AppRole.corporation)} corporations',
+                                      '${_countDistinctOrganizations(users)} organizations represented',
+                                      '${_countDistinctRegions(users)} regions with active users',
+                                    ],
+                                  ),
+                                  _ExecutiveInsightCard(
+                                    title: 'Public safety',
+                                    subtitle: 'Dog population and incident risk.',
+                                    icon: Icons.shield_outlined,
+                                    color: theme.colorScheme.secondary,
+                                    highlights: [
+                                      '${_countDogsByLifeStatus(dogs, 'alive')} dogs alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
+                                      '${_countDogIncidentsThisYear(reports)} dog incidents logged this year',
+                                      _topIncidentRegionSummary(reports),
+                                    ],
+                                  ),
+                                  _ExecutiveInsightCard(
+                                    title: 'Service health',
+                                    subtitle: 'Operational load across services.',
+                                    icon: Icons.dashboard_outlined,
+                                    color: theme.colorScheme.tertiary,
+                                    highlights: [
+                                      '${_countReports(reports, 'pending')} CivSnap reports pending',
+                                      '${_countDogs(dogs, 'pending')} dog submissions pending',
+                                      '${reports.length} total community reports',
+                                    ],
+                                  ),
+                                ],
                               ),
                             ],
                           );
@@ -174,51 +226,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     },
                   );
                 },
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Executive insights',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _ExecutiveInsightCard(
-                    title: 'People & access',
-                    subtitle: 'Directory coverage and role mix.',
-                    icon: Icons.people_outline,
-                    color: theme.colorScheme.primary,
-                    highlights: [
-                      '${_countByRole(users, AppRole.admin)} admins · ${_countByRole(users, AppRole.corporation)} corporations',
-                      '${_countDistinctOrganizations(users)} organizations represented',
-                      '${_countDistinctRegions(users)} regions with active users',
-                    ],
-                  ),
-                  _ExecutiveInsightCard(
-                    title: 'Public safety',
-                    subtitle: 'Dog population and incident risk.',
-                    icon: Icons.shield_outlined,
-                    color: theme.colorScheme.secondary,
-                    highlights: [
-                      '${_countDogsByLifeStatus(dogs, 'alive')} dogs alive · ${_countDogsByLifeStatus(dogs, 'deceased')} deceased',
-                      '${_countDogIncidentsThisYear(reports)} dog incidents logged this year',
-                      _topIncidentRegionSummary(reports),
-                    ],
-                  ),
-                  _ExecutiveInsightCard(
-                    title: 'Service health',
-                    subtitle: 'Operational load across services.',
-                    icon: Icons.dashboard_outlined,
-                    color: theme.colorScheme.tertiary,
-                    highlights: [
-                      '${_countReports(reports, 'pending')} CivSnap reports pending',
-                      '${_countDogs(dogs, 'pending')} dog submissions pending',
-                      '${reports.length} total community reports',
-                    ],
-                  ),
-                ],
               ),
               const SizedBox(height: 24),
               Text(
