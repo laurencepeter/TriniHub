@@ -278,7 +278,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               .toList(),
                           onChanged: (value) => setState(() => _selectedRegionId = value),
                           decoration: const InputDecoration(
-                            labelText: 'Region (optional)',
+                            labelText: 'Corporation (optional)',
                             prefixIcon: Icon(Icons.map_outlined),
                           ),
                         );

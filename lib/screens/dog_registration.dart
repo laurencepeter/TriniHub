@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
+import 'package:local_app_tt/services/owner_service.dart';
+import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -145,6 +147,7 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
 
   Future<void> _initialize() async {
     await _loadLookups();
+    await _prefillOwnerProfile();
     await _refreshSubmissions();
     if (!mounted) return;
     if (widget.initialDogId != null) {
@@ -175,6 +178,40 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
         _loadingLookups = false;
         _lookupError = 'Unable to load dropdown options.';
       });
+    }
+  }
+
+  Future<void> _prefillOwnerProfile() async {
+    if (_isAssisting || widget.initialDogId != null) {
+      return;
+    }
+    try {
+      final role = await UserRoleService().fetchCurrentRole();
+      if (role != AppRole.public) {
+        return;
+      }
+      final ownerProfile = await OwnerService(Supabase.instance.client).fetchOwnerProfile();
+      if (!mounted || ownerProfile == null) {
+        return;
+      }
+      final resolvedRegionId = ownerProfile.regionId != null &&
+              _regions.any((region) => region.id == ownerProfile.regionId)
+          ? ownerProfile.regionId
+          : null;
+      setState(() {
+        if (_ownerFirstNameController.text.trim().isEmpty) {
+          _ownerFirstNameController.text = ownerProfile.firstName ?? '';
+        }
+        if (_ownerLastNameController.text.trim().isEmpty) {
+          _ownerLastNameController.text = ownerProfile.lastName ?? '';
+        }
+        if (_ownerPhoneController.text.trim().isEmpty) {
+          _ownerPhoneController.text = ownerProfile.phone ?? '';
+        }
+        _selectedRegionId ??= resolvedRegionId;
+      });
+    } catch (_) {
+      // Silent fail; prefill is best-effort.
     }
   }
 
@@ -602,8 +639,8 @@ class _DogRegistrationScreenState extends State<DogRegistrationScreen> {
                                 ),
                                 const SizedBox(height: 14),
                                 _buildDropdownField(
-                                  label: 'Region',
-                                  helper: 'Optional region of residence',
+                                  label: 'Corporation',
+                                  helper: 'Optional corporation of residence',
                                   value: _selectedRegionId,
                                   items: _regions,
                                   isRequired: false,
