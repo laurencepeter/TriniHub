@@ -125,7 +125,7 @@ class UserRoleService {
   Future<List<UserRoleAssignment>> fetchAssignments() async {
     final response = await _client
         .from('user_profiles')
-        .select('user_id,role,display_name,created_at')
+        .select('user_id,role,display_name,organization,created_at')
         .order('created_at', ascending: false);
     if (response is! List) {
       return [];
@@ -143,7 +143,7 @@ class UserRoleService {
     }
     final response = await _client
         .from('user_profiles')
-        .select('user_id,role,display_name,created_at')
+        .select('user_id,role,display_name,organization,created_at')
         .eq('user_id', user.id)
         .maybeSingle();
     if (response == null || response is! Map<String, dynamic>) {
@@ -163,6 +163,7 @@ class UserRoleService {
       'user_id': userId,
       'role': role.value,
       'display_name': displayName,
+      'organization': organization,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
     await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');

@@ -731,16 +731,28 @@ class _UserDirectoryCard extends StatelessWidget {
         ? user.displayName!.trim()
         : (user.email ?? 'Unnamed user');
     final corporation = user.organization?.trim();
-    final subtitle = [
+    final subtitleLines = [
+      'Role: ${user.role.label}',
       'Corporation: ${corporation != null && corporation.isNotEmpty ? corporation : 'Unassigned'}',
       if (user.regionName != null && user.regionName!.trim().isNotEmpty) 'Region: ${user.regionName!.trim()}',
       if (user.email != null && user.email!.trim().isNotEmpty) user.email!.trim(),
-    ].join(' · ');
+    ];
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
+        isThreeLine: true,
         title: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(subtitleLines.join(' · ')),
+            const SizedBox(height: 4),
+            Text(
+              'User ID: ${user.userId}',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+            ),
+          ],
+        ),
         leading: CircleAvatar(
           backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
           child: Icon(Icons.person_outline, color: theme.colorScheme.primary),

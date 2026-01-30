@@ -35,7 +35,7 @@ curl -i \
     "email": "new.user@example.com",
     "temp_password": "TempPass123!",
     "role": "corporation",
-    "corporation_id": "YOUR_CORP_ID",
+    "organization": "Central Region",
     "region_code": "YOUR_REGION_CODE"
   }' \
   "https://YOUR_PROJECT_REF.supabase.co/functions/v1/admin-create-user"

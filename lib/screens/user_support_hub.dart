@@ -147,7 +147,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -211,7 +211,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+            const SnackBar(content: Text('Corporation name is required for corporation users.')),
           );
           return;
         }
@@ -316,7 +316,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -389,7 +389,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+            const SnackBar(content: Text('Corporation name is required for corporation users.')),
           );
           return;
         }
@@ -674,7 +674,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation ID'),
+                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -738,7 +738,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation ID is required for corporation users.')),
+            const SnackBar(content: Text('Corporation name is required for corporation users.')),
           );
           return;
         }
