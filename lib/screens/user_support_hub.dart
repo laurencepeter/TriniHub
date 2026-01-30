@@ -82,11 +82,10 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
   Future<void> _editUser(SupportUser user) async {
     final displayNameController = TextEditingController(text: user.displayName ?? '');
     final emailController = TextEditingController(text: user.email ?? '');
-    final orgController = TextEditingController(text: user.organization ?? '');
     final firstNameController = TextEditingController(text: user.firstName ?? '');
     final lastNameController = TextEditingController(text: user.lastName ?? '');
     final nationalIdController = TextEditingController(text: user.nationalId ?? '');
-    String? selectedRegionId = user.regionId;
+    String? selectedCorporationId = user.corporationId ?? user.regionId;
     var selectedRole = user.role;
     String? errorMessage;
 
@@ -132,22 +131,17 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                         builder: (context, snapshot) {
                           final regions = snapshot.data ?? [];
                           return DropdownButtonFormField<String>(
-                            value: selectedRegionId,
+                            value: selectedCorporationId,
                             items: regions
                                 .map((region) => DropdownMenuItem(
                                       value: region.id,
                                       child: Text(region.name),
                                     ))
                                 .toList(),
-                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            onChanged: (value) => setState(() => selectedCorporationId = value),
                             decoration: const InputDecoration(labelText: 'Corporation'),
                           );
                         },
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -190,7 +184,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                       firstName.isNotEmpty ||
                       lastName.isNotEmpty ||
                       (nationalIdController.text.trim().isNotEmpty) ||
-                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                      (selectedCorporationId != null && selectedCorporationId!.isNotEmpty);
                   if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
                     setState(() => errorMessage = 'First and last name are required.');
                     return;
@@ -205,13 +199,13 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
       );
 
       if (shouldSave == true) {
-        final trimmedOrg = orgController.text.trim();
-        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+        if (selectedRole == AppRole.corporation &&
+            (selectedCorporationId == null || selectedCorporationId!.isEmpty)) {
           if (!mounted) {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation name is required for corporation users.')),
+            const SnackBar(content: Text('Corporation is required for corporation users.')),
           );
           return;
         }
@@ -220,7 +214,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
+          organization: selectedCorporationId,
         );
         final firstName = firstNameController.text.trim();
         final lastName = lastNameController.text.trim();
@@ -231,7 +225,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
             lastName: lastName,
             email: emailController.text.trim(),
             nationalId: nationalIdController.text.trim(),
-            regionId: selectedRegionId,
+            regionId: selectedCorporationId,
           );
         }
         await _refresh();
@@ -239,7 +233,6 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     } finally {
       displayNameController.dispose();
       emailController.dispose();
-      orgController.dispose();
       firstNameController.dispose();
       lastNameController.dispose();
       nationalIdController.dispose();
@@ -250,10 +243,9 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
     final displayNameController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
-    final orgController = TextEditingController();
     final firstNameController = TextEditingController();
     final lastNameController = TextEditingController();
-    String? selectedRegionId;
+    String? selectedCorporationId;
     var selectedRole = AppRole.public;
     String? errorMessage;
 
@@ -301,22 +293,17 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                         builder: (context, snapshot) {
                           final regions = snapshot.data ?? [];
                           return DropdownButtonFormField<String>(
-                            value: selectedRegionId,
+                            value: selectedCorporationId,
                             items: regions
                                 .map((region) => DropdownMenuItem(
                                       value: region.id,
                                       child: Text(region.name),
                                     ))
                                 .toList(),
-                            onChanged: (value) => setState(() => selectedRegionId = value),
+                            onChanged: (value) => setState(() => selectedCorporationId = value),
                             decoration: const InputDecoration(labelText: 'Corporation'),
                           );
                         },
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -357,7 +344,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
                   final lastName = lastNameController.text.trim();
                   final hasOwnerData = firstName.isNotEmpty ||
                       lastName.isNotEmpty ||
-                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                      (selectedCorporationId != null && selectedCorporationId!.isNotEmpty);
                   if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
                     setState(() => errorMessage = 'First and last name are required for owner profiles.');
                     return;
@@ -383,13 +370,13 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           );
           return;
         }
-        final trimmedOrg = orgController.text.trim();
-        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+        if (selectedRole == AppRole.corporation &&
+            (selectedCorporationId == null || selectedCorporationId!.isEmpty)) {
           if (!mounted) {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation name is required for corporation users.')),
+            const SnackBar(content: Text('Corporation is required for corporation users.')),
           );
           return;
         }
@@ -398,7 +385,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
           password: password,
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
-          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
+          organization: selectedCorporationId,
         );
         final firstName = firstNameController.text.trim();
         final lastName = lastNameController.text.trim();
@@ -408,7 +395,7 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
             firstName: firstName,
             lastName: lastName,
             email: email,
-            regionId: selectedRegionId,
+            regionId: selectedCorporationId,
           );
         }
         await _refresh();
@@ -437,7 +424,6 @@ class _UserSupportHubScreenState extends State<UserSupportHubScreen> {
       displayNameController.dispose();
       emailController.dispose();
       passwordController.dispose();
-      orgController.dispose();
       firstNameController.dispose();
       lastNameController.dispose();
     }
@@ -603,7 +589,6 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     final ownerProfile = await _supportService.fetchOwnerProfile(_user.userId);
     final displayNameController = TextEditingController(text: _user.displayName ?? '');
     final emailController = TextEditingController(text: _user.email ?? '');
-    final orgController = TextEditingController(text: _user.organization ?? '');
     final firstNameController = TextEditingController(
       text: ownerProfile?.firstName ?? _user.firstName ?? '',
     );
@@ -613,7 +598,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     final nationalIdController = TextEditingController(
       text: ownerProfile?.nationalId ?? _user.nationalId ?? '',
     );
-    String? selectedRegionId = ownerProfile?.regionId ?? _user.regionId;
+    String? selectedCorporationId = _user.corporationId ?? ownerProfile?.regionId ?? _user.regionId;
     var selectedRole = _user.role;
     String? errorMessage;
 
@@ -659,22 +644,17 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                         builder: (context, snapshot) {
                           final regions = snapshot.data ?? [];
                           return DropdownButtonFormField<String>(
-                            value: selectedRegionId,
+                            value: selectedCorporationId,
                             items: regions
                                 .map((region) => DropdownMenuItem(
                                       value: region.id,
                                       child: Text(region.name),
                                     ))
                                 .toList(),
-                            onChanged: (value) => setState(() => selectedRegionId = value),
-                            decoration: const InputDecoration(labelText: 'Region'),
+                            onChanged: (value) => setState(() => selectedCorporationId = value),
+                            decoration: const InputDecoration(labelText: 'Corporation'),
                           );
                         },
-                      ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: orgController,
-                        decoration: const InputDecoration(labelText: 'Organization / Corporation name'),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<AppRole>(
@@ -717,7 +697,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                       firstName.isNotEmpty ||
                       lastName.isNotEmpty ||
                       (nationalIdController.text.trim().isNotEmpty) ||
-                      (selectedRegionId != null && selectedRegionId!.isNotEmpty);
+                      (selectedCorporationId != null && selectedCorporationId!.isNotEmpty);
                   if (hasOwnerData && (firstName.isEmpty || lastName.isEmpty)) {
                     setState(() => errorMessage = 'First and last name are required.');
                     return;
@@ -732,13 +712,13 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
       );
 
       if (shouldSave == true) {
-        final trimmedOrg = orgController.text.trim();
-        if (selectedRole == AppRole.corporation && trimmedOrg.isEmpty) {
+        if (selectedRole == AppRole.corporation &&
+            (selectedCorporationId == null || selectedCorporationId!.isEmpty)) {
           if (!mounted) {
             return;
           }
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Corporation name is required for corporation users.')),
+            const SnackBar(content: Text('Corporation is required for corporation users.')),
           );
           return;
         }
@@ -747,7 +727,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
           role: selectedRole,
           displayName: displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
           email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-          organization: trimmedOrg.isEmpty ? null : trimmedOrg,
+          organization: selectedCorporationId,
         );
         final firstName = firstNameController.text.trim();
         final lastName = lastNameController.text.trim();
@@ -758,7 +738,7 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
             lastName: lastName,
             email: emailController.text.trim(),
             nationalId: nationalIdController.text.trim(),
-            regionId: selectedRegionId,
+            regionId: selectedCorporationId,
           );
         }
         setState(() {
@@ -768,7 +748,8 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
             displayName:
                 displayNameController.text.trim().isEmpty ? null : displayNameController.text.trim(),
             email: emailController.text.trim().isEmpty ? null : emailController.text.trim(),
-            organization: trimmedOrg.isEmpty ? null : trimmedOrg,
+            organization: _user.organization,
+            corporationId: selectedCorporationId,
             updatedAt: _user.updatedAt,
             ownerId: _user.ownerId,
             firstName: _user.firstName,
@@ -786,7 +767,6 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     } finally {
       displayNameController.dispose();
       emailController.dispose();
-      orgController.dispose();
       firstNameController.dispose();
       lastNameController.dispose();
       nationalIdController.dispose();
@@ -1081,11 +1061,12 @@ class _UserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final corporationName = (user.organization ?? user.regionName ?? '').trim();
     final registrationFields = [
       _MetadataRow(label: 'First name', value: user.firstName ?? ''),
       _MetadataRow(label: 'Last name', value: user.lastName ?? ''),
       _MetadataRow(label: 'Phone', value: user.phone ?? ''),
-      _MetadataRow(label: 'Corporation', value: user.regionName ?? 'Not assigned'),
+      _MetadataRow(label: 'Corporation', value: corporationName.isEmpty ? 'Not assigned' : corporationName),
     ];
     final extraFields = [
       _MetadataRow(label: 'National ID', value: user.nationalId ?? ''),

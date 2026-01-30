@@ -25,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+  final _nationalIdController = TextEditingController();
   bool _isLoading = true;
   bool _isSaving = false;
   String? _errorMessage;
@@ -43,6 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _lastNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _nationalIdController.dispose();
     super.dispose();
   }
 
@@ -67,6 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
         _firstNameController.text = profile?.firstName ?? '';
         _lastNameController.text = profile?.lastName ?? '';
         _phoneController.text = profile?.phone ?? '';
+        _nationalIdController.text = profile?.nationalId ?? '';
         _selectedRegionId = resolvedRegionId;
         _isLoading = false;
       });
@@ -102,6 +105,7 @@ class _ProfilePageState extends State<ProfilePage> {
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        nationalId: _nationalIdController.text.trim().isEmpty ? null : _nationalIdController.text.trim(),
         regionId: _selectedRegionId,
       );
       if (!mounted) return;
@@ -284,6 +288,12 @@ class _ProfilePageState extends State<ProfilePage> {
                               label: 'Phone number',
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
+                              isLoading: _isLoading,
+                            ),
+                            _ProfileInputField(
+                              width: isDesktop ? 260 : double.infinity,
+                              label: 'National ID',
+                              controller: _nationalIdController,
                               isLoading: _isLoading,
                             ),
                             SizedBox(

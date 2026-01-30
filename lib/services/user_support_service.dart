@@ -12,6 +12,7 @@ class SupportUser {
   final String? displayName;
   final String? email;
   final String? organization;
+  final String? corporationId;
   final AppRole role;
   final DateTime? updatedAt;
   final String? ownerId;
@@ -30,6 +31,7 @@ class SupportUser {
     this.displayName,
     this.email,
     this.organization,
+    this.corporationId,
     this.updatedAt,
     this.ownerId,
     this.firstName,
@@ -43,12 +45,13 @@ class SupportUser {
   });
 
   factory SupportUser.fromJson(Map<String, dynamic> json) {
-    final organization = json['organization'] as String? ?? json['corporation_id'] as String?;
+    final organization = json['organization'] as String?;
     return SupportUser(
       userId: json['user_id'] as String,
       displayName: json['display_name'] as String?,
       email: json['email'] as String?,
       organization: organization,
+      corporationId: json['corporation_id'] as String?,
       role: AppRoleX.fromValue(json['role'] as String?),
       updatedAt: json['updated_at'] == null && json['created_at'] == null
           ? null
@@ -134,7 +137,7 @@ class UserSupportService {
     final roleClient = adminClient ?? _client;
     final response = await roleClient
         .from('user_profiles')
-        .select('user_id,role,display_name,organization,created_at')
+        .select('user_id,role,display_name,organization,corporation_id,created_at')
         .order('created_at', ascending: false);
     if (response is! List) {
       return [];
@@ -165,11 +168,43 @@ class UserSupportService {
           .whereType<String>()
           .where((regionId) => regionId.isNotEmpty)
           .toSet();
-      if (regionIds.isNotEmpty) {
+      final corporationIds = roleAssignments
+          .map((assignment) => assignment.corporationId)
+          .whereType<String>()
+          .where((corpId) => corpId.isNotEmpty)
+          .toSet();
+      if (regionIds.isNotEmpty || corporationIds.isNotEmpty) {
         final regions = await _dogService.fetchRegions();
         regionLookup = {
           for (final region in regions) region.id: region.name,
         };
+      }
+      for (final assignment in roleAssignments) {
+        if ((assignment.organization == null || assignment.organization!.trim().isEmpty) &&
+            assignment.corporationId != null &&
+            assignment.corporationId!.trim().isNotEmpty) {
+          final regionName = regionLookup[assignment.corporationId!];
+          if (regionName != null && regionName.trim().isNotEmpty) {
+            byUserId[assignment.userId] = SupportUser(
+              userId: assignment.userId,
+              role: assignment.role,
+              displayName: assignment.displayName,
+              email: assignment.email,
+              organization: regionName,
+              corporationId: assignment.corporationId,
+              updatedAt: assignment.updatedAt,
+              ownerId: assignment.ownerId,
+              firstName: assignment.firstName,
+              lastName: assignment.lastName,
+              phone: assignment.phone,
+              nationalId: assignment.nationalId,
+              addressLine1: assignment.addressLine1,
+              addressLine2: assignment.addressLine2,
+              regionId: assignment.regionId,
+              regionName: assignment.regionName,
+            );
+          }
+        }
       }
       for (final row in ownerResponse.whereType<Map<String, dynamic>>()) {
         final userId = row['auth_user_id'] as String?;
@@ -187,6 +222,7 @@ class UserSupportService {
           displayName: existing?.displayName ?? (displayName.isEmpty ? null : displayName),
           email: existing?.email ?? row['email'] as String?,
           organization: existing?.organization,
+          corporationId: existing?.corporationId,
           updatedAt: existing?.updatedAt,
           ownerId: row['id'] as String?,
           firstName: firstName.isEmpty ? existing?.firstName : firstName,
@@ -235,6 +271,7 @@ class UserSupportService {
                 displayName: existing.displayName,
                 email: mergedEmail,
                 organization: existing.organization,
+                corporationId: existing.corporationId,
                 updatedAt: mergedUpdatedAt,
                 ownerId: existing.ownerId,
                 firstName: existing.firstName,
@@ -282,6 +319,7 @@ class UserSupportService {
                   displayName: existing.displayName,
                   email: mergedEmail,
                   organization: existing.organization,
+                  corporationId: existing.corporationId,
                   updatedAt: mergedUpdatedAt,
                   ownerId: existing.ownerId,
                   firstName: existing.firstName,
@@ -384,6 +422,7 @@ class UserSupportService {
       displayName: displayName,
       email: email.trim(),
       organization: corporationName,
+      corporationId: corporationId,
       updatedAt: DateTime.now(),
     );
   }
@@ -512,7 +551,9 @@ class UserSupportService {
       'region_id': normalize(regionId),
     };
 
-    await _client.from('owners').upsert(payload, onConflict: 'auth_user_id');
+    final adminClient = _buildServiceRoleClient();
+    final dataClient = adminClient ?? _client;
+    await dataClient.from('owners').upsert(payload, onConflict: 'auth_user_id');
   }
 
   Future<String?> _resolveCorporationId(String? organization) async {
