@@ -43,11 +43,12 @@ class SupportUser {
   });
 
   factory SupportUser.fromJson(Map<String, dynamic> json) {
+    final organization = json['organization'] as String? ?? json['corporation_id'] as String?;
     return SupportUser(
       userId: json['user_id'] as String,
       displayName: json['display_name'] as String?,
       email: json['email'] as String?,
-      organization: json['organization'] as String?,
+      organization: organization,
       role: AppRoleX.fromValue(json['role'] as String?),
       updatedAt: json['updated_at'] == null && json['created_at'] == null
           ? null
@@ -131,7 +132,7 @@ class UserSupportService {
     final roleClient = adminClient ?? _client;
     final response = await roleClient
         .from('user_profiles')
-        .select('user_id,role,display_name,created_at')
+        .select('user_id,role,display_name,created_at,corporation_id')
         .order('created_at', ascending: false);
     if (response is! List) {
       return [];
@@ -382,7 +383,8 @@ class UserSupportService {
   }
 
   Future<OwnerProfile?> fetchOwnerProfile(String userId) async {
-    final owner = await _client
+    final readClient = _buildServiceRoleClient() ?? _client;
+    final owner = await readClient
         .from('owners')
         .select(
           'id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id',
@@ -418,7 +420,8 @@ class UserSupportService {
   }
 
   Future<List<CivSnapReport>> fetchReportsForUser(String userId) async {
-    final response = await _client
+    final readClient = _buildServiceRoleClient() ?? _client;
+    final response = await readClient
         .from('civsnap_reports')
         .select(
           'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
@@ -446,10 +449,34 @@ class UserSupportService {
       'user_id': userId,
       'role': role.value,
       'display_name': displayName,
-      'corporation_id': trimmedOrg,
-    }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
+      'corporation_id': (trimmedOrg == null || trimmedOrg.isEmpty) ? null : trimmedOrg,
+    };
+    payload.removeWhere((key, value) {
+      if (key == 'corporation_id') {
+        return false;
+      }
+      return value == null || (value is String && value.trim().isEmpty);
+    });
 
-    await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
+    final adminClient = _buildServiceRoleClient();
+    final dataClient = adminClient ?? _client;
+    await dataClient.from('user_profiles').upsert(payload, onConflict: 'user_id');
+
+    if (adminClient != null) {
+      final trimmedEmail = email?.trim();
+      final metadata = <String, dynamic>{
+        'app_role': role.value,
+        'role': role.value,
+        'corporation_id': (trimmedOrg == null || trimmedOrg.isEmpty) ? null : trimmedOrg,
+      };
+      final updatePayload = <String, dynamic>{
+        'app_metadata': metadata,
+      };
+      if (trimmedEmail != null && trimmedEmail.isNotEmpty) {
+        updatePayload['email'] = trimmedEmail;
+      }
+      await adminClient.auth.admin.updateUserById(userId, updatePayload);
+    }
   }
 
   Future<void> deleteUserRole(String userId) async {
