@@ -4,7 +4,7 @@ create or replace function public.is_admin()
 returns boolean
 language sql
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select (auth.jwt() ->> 'app_role') = 'admin'
     or exists (
