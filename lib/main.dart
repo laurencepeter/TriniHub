@@ -94,21 +94,59 @@ class _MyAppState extends State<MyApp> {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: ThemeSettings.instance.themeMode,
       builder: (context, themeMode, _) {
+        Route<dynamic> _buildRoute(RouteSettings settings) {
+          switch (settings.name) {
+            case '/':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => AuthShell(
+                  key: ValueKey(themeMode),
+                  onThemeToggle: _handleThemeToggle,
+                ),
+              );
+            case '/role-gate':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const RoleGate(),
+              );
+            case '/admin':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => AdminGate(
+                  child: ResponsiveScaffold(
+                    childBuilder: (device) => AdminDashboardScreen(device: device),
+                  ),
+                ),
+              );
+            case '/corp':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const CivSnapPortalScreen(),
+              );
+            case '/public':
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => ResponsiveWrapper(onThemeToggle: _handleThemeToggle),
+              );
+            default:
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => AuthShell(
+                  key: ValueKey(themeMode),
+                  onThemeToggle: _handleThemeToggle,
+                ),
+              );
+          }
+        }
+
+        final initialRoute = Uri.base.path.isEmpty ? '/' : Uri.base.path;
         return MaterialApp(
           title: 'Trini Hub',
           theme: _buildTheme(Brightness.light),
           darkTheme: _buildTheme(Brightness.dark),
           themeMode: themeMode,
-          routes: {
-            '/role-gate': (_) => const RoleGate(),
-            '/admin': (_) => AdminGate(
-                  child: ResponsiveScaffold(
-                    childBuilder: (device) => AdminDashboardScreen(device: device),
-                  ),
-                ),
-            '/corp': (_) => const CivSnapPortalScreen(),
-            '/public': (_) => ResponsiveWrapper(onThemeToggle: _handleThemeToggle),
-          },
+          initialRoute: initialRoute,
+          onGenerateRoute: _buildRoute,
           builder: (context, child) {
             return Stack(
               fit: StackFit.expand,
@@ -125,10 +163,6 @@ class _MyAppState extends State<MyApp> {
               ],
             );
           },
-          home: AuthShell(
-            key: ValueKey(themeMode),
-            onThemeToggle: _handleThemeToggle,
-          ),
         );
       },
     );

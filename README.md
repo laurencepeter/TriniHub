@@ -61,6 +61,34 @@ client refreshes the session. Make sure the user refreshes their session after r
 await supabase.auth.refreshSession();
 ```
 
+## Admin access troubleshooting
+
+If admins cannot see user profiles, confirm the admin role is set on their `user_profiles` row
+or in the JWT `app_role`. When using SQL to grant admin access, **you must use the auth user ID
+(UUID)**, not the email address.
+
+### Find the admin user ID (by email)
+Run this in the Supabase SQL Editor (service role context is required to read `auth.users`):
+
+```sql
+select id, email
+from auth.users
+where email = '<ADMIN_EMAIL_HERE>';
+```
+
+If this returns **no rows**, the email does not exist in `auth.users`. Double‑check the exact
+email address and that the admin has signed up in your project.
+
+### Grant admin access using the user ID
+Replace `<ADMIN_USER_ID_HERE>` with the UUID returned above:
+
+```sql
+insert into public.user_profiles (user_id, role)
+values ('<ADMIN_USER_ID_HERE>', 'admin')
+on conflict (user_id)
+do update set role = 'admin';
+```
+
 ## Local Setup
 
 1. Create a `.env` file in the project root (or use `--dart-define`) with the following values:
