@@ -287,51 +287,61 @@ class UserSupportService {
           }
         }
       } else {
+        List<Map<String, dynamic>> adminRows = [];
         final adminResponse = await readClient.rpc('admin_list_users');
         if (adminResponse is List) {
-          for (final row in adminResponse.whereType<Map<String, dynamic>>()) {
-            final userId = row['user_id']?.toString();
-            if (userId == null || userId.isEmpty) {
-              continue;
-            }
-            final email = row['email'] as String?;
-            final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
-            final roleValue = row['role'] as String?;
-            final rpcRole = AppRoleX.fromValue(roleValue);
-            final existing = byUserId[userId];
-            if (existing == null) {
+          adminRows = adminResponse.whereType<Map<String, dynamic>>().toList();
+        }
+        if (adminRows.isEmpty) {
+          final viewResponse = await readClient
+              .from('admin_users_view')
+              .select('user_id,email,created_at,role,corporation_id');
+          if (viewResponse is List) {
+            adminRows = viewResponse.whereType<Map<String, dynamic>>().toList();
+          }
+        }
+        for (final row in adminRows) {
+          final userId = row['user_id']?.toString();
+          if (userId == null || userId.isEmpty) {
+            continue;
+          }
+          final email = row['email'] as String?;
+          final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
+          final roleValue = row['role'] as String?;
+          final rpcRole = AppRoleX.fromValue(roleValue);
+          final existing = byUserId[userId];
+          if (existing == null) {
+            byUserId[userId] = SupportUser(
+              userId: userId,
+              role: rpcRole,
+              email: email,
+              updatedAt: createdAt,
+            );
+          } else {
+            final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
+            final mergedEmail = existing.email ?? email;
+            final mergedUpdatedAt = existing.updatedAt ?? createdAt;
+            if (mergedRole != existing.role ||
+                mergedEmail != existing.email ||
+                mergedUpdatedAt != existing.updatedAt) {
               byUserId[userId] = SupportUser(
-                userId: userId,
-                role: rpcRole,
-                email: email,
-                updatedAt: createdAt,
+                userId: existing.userId,
+                role: mergedRole,
+                displayName: existing.displayName,
+                email: mergedEmail,
+                organization: existing.organization,
+                corporationId: existing.corporationId,
+                updatedAt: mergedUpdatedAt,
+                ownerId: existing.ownerId,
+                firstName: existing.firstName,
+                lastName: existing.lastName,
+                phone: existing.phone,
+                nationalId: existing.nationalId,
+                addressLine1: existing.addressLine1,
+                addressLine2: existing.addressLine2,
+                regionId: existing.regionId,
+                regionName: existing.regionName,
               );
-            } else {
-              final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
-              final mergedEmail = existing.email ?? email;
-              final mergedUpdatedAt = existing.updatedAt ?? createdAt;
-              if (mergedRole != existing.role ||
-                  mergedEmail != existing.email ||
-                  mergedUpdatedAt != existing.updatedAt) {
-                byUserId[userId] = SupportUser(
-                  userId: existing.userId,
-                  role: mergedRole,
-                  displayName: existing.displayName,
-                  email: mergedEmail,
-                  organization: existing.organization,
-                  corporationId: existing.corporationId,
-                  updatedAt: mergedUpdatedAt,
-                  ownerId: existing.ownerId,
-                  firstName: existing.firstName,
-                  lastName: existing.lastName,
-                  phone: existing.phone,
-                  nationalId: existing.nationalId,
-                  addressLine1: existing.addressLine1,
-                  addressLine2: existing.addressLine2,
-                  regionId: existing.regionId,
-                  regionName: existing.regionName,
-                );
-              }
             }
           }
         }
