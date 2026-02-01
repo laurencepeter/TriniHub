@@ -482,13 +482,23 @@ class UserSupportService {
 
   Future<List<CivSnapReport>> fetchReportsForUser(String userId) async {
     final readClient = _buildServiceRoleClient() ?? _client;
-    final response = await readClient
-        .from('civsnap_reports')
-        .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-        )
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+    List<dynamic> response;
+    try {
+      response = await readClient
+          .from('civsnap_reports')
+          .select(civSnapReportSelectColumnsWithVotes)
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+    } on PostgrestException catch (error) {
+      if (!isCivSnapVotesRelationshipMissing(error)) {
+        rethrow;
+      }
+      response = await readClient
+          .from('civsnap_reports')
+          .select(civSnapReportSelectColumns)
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
+    }
     if (response is! List) {
       return [];
     }

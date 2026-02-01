@@ -59,6 +59,19 @@ class CivSnapReport {
   }
 }
 
+const String civSnapReportSelectColumns =
+    'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at';
+const String civSnapReportSelectColumnsWithVotes =
+    '$civSnapReportSelectColumns,civsnap_votes(count)';
+
+bool isCivSnapVotesRelationshipMissing(Object error) {
+  if (error is PostgrestException) {
+    return error.message.contains("Could not find a relationship between 'civsnap_reports'") &&
+        error.message.contains("'civsnap_votes'");
+  }
+  return false;
+}
+
 class CivSnapService {
   CivSnapService._();
   static final CivSnapService instance = CivSnapService._();
@@ -84,18 +97,34 @@ class CivSnapService {
   }) async {
     final deltaLat = radiusMeters / 111111;
     final deltaLng = radiusMeters / (111111 * cos(_toRadians(latitude)));
-    final response = await _readClient()
-        .from('civsnap_reports')
-        .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-        )
-        .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
-        .gte('latitude', latitude - deltaLat)
-        .lte('latitude', latitude + deltaLat)
-        .gte('longitude', longitude - deltaLng)
-        .lte('longitude', longitude + deltaLng)
-        .order('created_at', ascending: false)
-        .limit(12);
+    final readClient = _readClient();
+    List<dynamic> response;
+    try {
+      response = await readClient
+          .from('civsnap_reports')
+          .select(civSnapReportSelectColumnsWithVotes)
+          .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
+          .gte('latitude', latitude - deltaLat)
+          .lte('latitude', latitude + deltaLat)
+          .gte('longitude', longitude - deltaLng)
+          .lte('longitude', longitude + deltaLng)
+          .order('created_at', ascending: false)
+          .limit(12);
+    } on PostgrestException catch (error) {
+      if (!isCivSnapVotesRelationshipMissing(error)) {
+        rethrow;
+      }
+      response = await readClient
+          .from('civsnap_reports')
+          .select(civSnapReportSelectColumns)
+          .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
+          .gte('latitude', latitude - deltaLat)
+          .lte('latitude', latitude + deltaLat)
+          .gte('longitude', longitude - deltaLng)
+          .lte('longitude', longitude + deltaLng)
+          .order('created_at', ascending: false)
+          .limit(12);
+    }
 
     if (response is! List) {
       return null;
@@ -158,9 +187,7 @@ class CivSnapService {
     final response = await _client
         .from('civsnap_reports')
         .insert(payload)
-        .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-        )
+        .select(civSnapReportSelectColumns)
         .single();
 
     return CivSnapReport.fromJson(response);
@@ -170,17 +197,24 @@ class CivSnapService {
     String? status,
     int limit = 50,
   }) async {
-    final query = _readClient()
-        .from('civsnap_reports')
-        .select(
-          'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-        );
-    if (status != null) {
-      query.eq('status', status);
+    final readClient = _readClient();
+    List<dynamic> response;
+    try {
+      final query = readClient.from('civsnap_reports').select(civSnapReportSelectColumnsWithVotes);
+      if (status != null) {
+        query.eq('status', status);
+      }
+      response = await query.order('created_at', ascending: false).limit(limit);
+    } on PostgrestException catch (error) {
+      if (!isCivSnapVotesRelationshipMissing(error)) {
+        rethrow;
+      }
+      final query = readClient.from('civsnap_reports').select(civSnapReportSelectColumns);
+      if (status != null) {
+        query.eq('status', status);
+      }
+      response = await query.order('created_at', ascending: false).limit(limit);
     }
-    final response = await query
-        .order('created_at', ascending: false)
-        .limit(limit);
     if (response is! List) {
       return [];
     }
@@ -196,18 +230,26 @@ class CivSnapService {
   }) async {
     final reports = <CivSnapReport>[];
     var offset = 0;
+    final readClient = _readClient();
+    var includeVotes = true;
     while (true) {
-      final query = _readClient()
-          .from('civsnap_reports')
-          .select(
-            'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at,civsnap_votes(count)',
-          );
-      if (status != null) {
-        query.eq('status', status);
+      List<dynamic> response;
+      try {
+        final query = readClient
+            .from('civsnap_reports')
+            .select(includeVotes ? civSnapReportSelectColumnsWithVotes : civSnapReportSelectColumns);
+        if (status != null) {
+          query.eq('status', status);
+        }
+        response =
+            await query.order('created_at', ascending: false).range(offset, offset + pageSize - 1);
+      } on PostgrestException catch (error) {
+        if (!includeVotes || !isCivSnapVotesRelationshipMissing(error)) {
+          rethrow;
+        }
+        includeVotes = false;
+        continue;
       }
-      final response = await query
-          .order('created_at', ascending: false)
-          .range(offset, offset + pageSize - 1);
       if (response is! List) {
         break;
       }
