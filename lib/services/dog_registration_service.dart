@@ -125,7 +125,7 @@ class DogRegistrationService {
   }
 
   Future<List<LookupOption>> fetchRegions() async {
-    final response = await _readClient().from('regions').select('id,name').order('name');
+    final response = await _readClient().from('corporations').select('id,name').order('name');
     return (response as List<dynamic>)
         .map((row) => LookupOption(id: row['id'] as String, name: row['name'] as String))
         .toList();
