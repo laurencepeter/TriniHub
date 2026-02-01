@@ -204,7 +204,18 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    final file = await _imagePicker.pickImage(source: source, imageQuality: 85);
+    var requestedSource = source;
+    if (source == ImageSource.camera) {
+      final supportsCamera = await _imagePicker.supportsImageSource(ImageSource.camera);
+      if (!supportsCamera) {
+        requestedSource = ImageSource.gallery;
+      }
+    }
+    final file = await _imagePicker.pickImage(
+      source: requestedSource,
+      imageQuality: 85,
+      preferredCameraDevice: CameraDevice.rear,
+    );
     if (file == null) {
       return;
     }
@@ -213,6 +224,11 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
       _photo = file;
       _photoBytes = bytes;
     });
+    if (source == ImageSource.camera && requestedSource != ImageSource.camera && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera unavailable on this device. Choose a photo instead.')),
+      );
+    }
   }
 
   Future<void> _refreshLocation() async {
