@@ -103,7 +103,7 @@ serve(async (req) => {
 
   if (!corporationId && corporationName) {
     const { data: region, error: regionError } = await supabaseAdmin
-      .from("regions")
+      .from("corporations")
       .select("id,name")
       .ilike("name", corporationName)
       .limit(1)
@@ -116,7 +116,7 @@ serve(async (req) => {
 
   if (corporationId && !corporationName) {
     const { data: region, error: regionError } = await supabaseAdmin
-      .from("regions")
+      .from("corporations")
       .select("id,name")
       .eq("id", corporationId)
       .maybeSingle();
