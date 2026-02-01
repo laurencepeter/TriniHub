@@ -137,24 +137,30 @@ class UserSupportService {
   Future<List<SupportUser>> fetchUsers() async {
     final adminClient = _buildServiceRoleClient();
     final readClient = adminClient ?? _readClient();
-    final response = await readClient
-        .from('user_profiles')
-        .select('user_id,role,display_name,organization,corporation_id,created_at')
-        .order('created_at', ascending: false);
-    if (response is! List) {
-      return [];
-    }
-    final roleAssignments = response
-        .whereType<Map<String, dynamic>>()
-        .map(SupportUser.fromJson)
-        .toList();
+    List<SupportUser> roleAssignments = [];
+    List<dynamic> ownerResponse = [];
+    try {
+      final response = await readClient
+          .from('user_profiles')
+          .select('user_id,role,display_name,organization,corporation_id,created_at')
+          .order('created_at', ascending: false);
+      if (response is List) {
+        roleAssignments = response
+            .whereType<Map<String, dynamic>>()
+            .map(SupportUser.fromJson)
+            .toList();
+      }
 
-    final ownerResponse = await readClient
-        .from('owners')
-        .select(
-          'id,auth_user_id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id',
-        )
-        .not('auth_user_id', 'is', null);
+      ownerResponse = await readClient
+          .from('owners')
+          .select(
+            'id,auth_user_id,first_name,last_name,phone,email,national_id,address_line1,address_line2,region_id',
+          )
+          .not('auth_user_id', 'is', null);
+    } catch (_) {
+      roleAssignments = [];
+      ownerResponse = [];
+    }
 
     final byUserId = <String, SupportUser>{
       for (final assignment in roleAssignments) assignment.userId: assignment,
