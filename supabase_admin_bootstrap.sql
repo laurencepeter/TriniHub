@@ -6,10 +6,9 @@ with target_user as (
   from auth.users
   where email = 'admin@example.com'
 )
-insert into public.user_profiles (user_id, role, app_role, created_at, updated_at)
-select id, 'admin', 'admin', now(), now()
+insert into public.user_profiles (user_id, role, app_role)
+select id, 'admin', 'admin'
 from target_user
 on conflict (user_id) do update
 set role = 'admin',
-    app_role = 'admin',
-    updated_at = now();
+    app_role = 'admin';
