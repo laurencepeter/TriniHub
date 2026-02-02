@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
@@ -103,11 +105,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     return trimmed;
   }
 
+  bool _isValentineUser() {
+    final email = Supabase.instance.client.auth.currentUser?.email;
+    return email?.toLowerCase() == 'elan.purville@gmail.com';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final showBottomNav = MediaQuery.of(context).size.width < 1200;
     final userName = _resolveUserName();
+    if (_isValentineUser()) {
+      return Scaffold(
+        body: _ValentineExperience(userName: userName),
+      );
+    }
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -275,6 +287,319 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           : null,
     );
   }
+}
+
+class _ValentineExperience extends StatefulWidget {
+  final String userName;
+
+  const _ValentineExperience({required this.userName});
+
+  @override
+  State<_ValentineExperience> createState() => _ValentineExperienceState();
+}
+
+class _ValentineExperienceState extends State<_ValentineExperience>
+    with TickerProviderStateMixin {
+  late final AnimationController _promptController;
+  late final AnimationController _catController;
+  late final AnimationController _waffleController;
+  final Random _random = Random();
+  Offset _noButtonOffset = const Offset(0.25, 0.65);
+  int _dodges = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _promptController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _catController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _waffleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    _catController.dispose();
+    _waffleController.dispose();
+    super.dispose();
+  }
+
+  void _dodgeNoButton() {
+    setState(() {
+      _dodges += 1;
+      final prefersYesZone = _dodges % 3 == 0;
+      final baseX = prefersYesZone ? 0.55 : _random.nextDouble();
+      final baseY = prefersYesZone ? 0.64 : _random.nextDouble();
+      final clampedX = baseX.clamp(0.05, 0.85);
+      final clampedY = baseY.clamp(0.2, 0.8);
+      _noButtonOffset = Offset(clampedX, clampedY);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFFFE4EC),
+            Color(0xFFFFF7F9),
+            Color(0xFFFFEED7),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final height = constraints.maxHeight;
+            return Stack(
+              children: [
+                Positioned(
+                  top: 24,
+                  left: 24,
+                  child: _AnimatedCat(
+                    controller: _catController,
+                    label: 'Poppy',
+                    accentColor: const Color(0xFFE75480),
+                    alignment: Alignment.topLeft,
+                  ),
+                ),
+                Positioned(
+                  top: 24,
+                  right: 24,
+                  child: _AnimatedCat(
+                    controller: _catController,
+                    label: 'Mochi',
+                    accentColor: const Color(0xFFFF9A3D),
+                    alignment: Alignment.topRight,
+                  ),
+                ),
+                Align(
+                  alignment: const Alignment(0, -0.2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _promptController,
+                        builder: (context, child) {
+                          final pulse = 1 + (_promptController.value * 0.08);
+                          return Transform.scale(
+                            scale: pulse,
+                            child: child,
+                          );
+                        },
+                        child: Text(
+                          'Hey ${widget.userName}, will you be my Valentine?',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFFB61C4F),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Tiny cats and waffle baby are cheering for a yes.',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: const Color(0xFF8B3A62),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: const Alignment(0, 0.1),
+                  child: _WaffleBaby(controller: _waffleController),
+                ),
+                Positioned(
+                  top: height * 0.62,
+                  left: width * 0.28,
+                  child: AnimatedBuilder(
+                    animation: _promptController,
+                    builder: (context, child) {
+                      final glow = 0.92 + (_promptController.value * 0.1);
+                      return Transform.scale(scale: glow, child: child);
+                    },
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE91E63),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
+                        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                        elevation: 12,
+                      ),
+                      child: const Text('YES PLEASE 💖'),
+                    ),
+                  ),
+                ),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 260),
+                  left: width * _noButtonOffset.dx,
+                  top: height * _noButtonOffset.dy,
+                  child: MouseRegion(
+                    onEnter: (_) => _dodgeNoButton(),
+                    child: GestureDetector(
+                      onTap: _dodgeNoButton,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFB61C4F),
+                          side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                          shape:
+                              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
+                        child: const Text('Nope'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedCat extends StatelessWidget {
+  final AnimationController controller;
+  final String label;
+  final Color accentColor;
+  final Alignment alignment;
+
+  const _AnimatedCat({
+    required this.controller,
+    required this.label,
+    required this.accentColor,
+    required this.alignment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final bob = sin(controller.value * pi * 2) * 6;
+        return Transform.translate(offset: Offset(0, bob), child: child);
+      },
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Text('🐱', style: TextStyle(fontSize: 38)),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFFB61C4F)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WaffleBaby extends StatelessWidget {
+  final AnimationController controller;
+
+  const _WaffleBaby({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final tilt = sin(controller.value * pi * 2) * 0.05;
+        return Transform.rotate(angle: tilt, child: child);
+      },
+      child: Container(
+        width: 160,
+        height: 170,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFD18A),
+          borderRadius: BorderRadius.circular(36),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(36),
+                child: CustomPaint(
+                  painter: _WaffleGridPainter(),
+                ),
+              ),
+            ),
+            Align(
+              alignment: const Alignment(0, 0.1),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text('👶', style: TextStyle(fontSize: 38)),
+                  SizedBox(height: 4),
+                  Text('Waffle Baby', style: TextStyle(fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+            const Positioned(
+              left: 36,
+              top: 50,
+              child: Icon(Icons.favorite, color: Color(0xFFE75480), size: 16),
+            ),
+            const Positioned(
+              right: 36,
+              top: 46,
+              child: Icon(Icons.favorite, color: Color(0xFFE75480), size: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WaffleGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFF5B85E)
+      ..strokeWidth = 2;
+    const spacing = 22.0;
+    for (double x = spacing; x < size.width; x += spacing) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = spacing; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _HighlightPill extends StatelessWidget {
