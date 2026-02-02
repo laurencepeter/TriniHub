@@ -303,20 +303,13 @@ class _ValentineExperienceState extends State<_ValentineExperience>
   late final AnimationController _promptController;
   late final AnimationController _catController;
   late final AnimationController _waffleController;
-  late final TextEditingController _travelController;
-  late final TextEditingController _loveController;
   final Random _random = Random();
   Offset _noButtonOffset = const Offset(0.25, 0.65);
   int _dodges = 0;
-  final Map<String, String> _answers = {};
-  String _travelOther = '';
-  String _loveOther = '';
 
   @override
   void initState() {
     super.initState();
-    _travelController = TextEditingController();
-    _loveController = TextEditingController();
     _promptController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -336,8 +329,6 @@ class _ValentineExperienceState extends State<_ValentineExperience>
     _promptController.dispose();
     _catController.dispose();
     _waffleController.dispose();
-    _travelController.dispose();
-    _loveController.dispose();
     super.dispose();
   }
 
@@ -350,84 +341,6 @@ class _ValentineExperienceState extends State<_ValentineExperience>
       final clampedX = baseX.clamp(0.05, 0.85);
       final clampedY = baseY.clamp(0.2, 0.8);
       _noButtonOffset = Offset(clampedX, clampedY);
-    });
-  }
-
-  void _showCongrats() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Congrats',
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFC1E3), Color(0xFFFFE8A7)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.pinkAccent.withOpacity(0.35),
-                    blurRadius: 30,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text('🎉💖🎉', style: TextStyle(fontSize: 36)),
-                  SizedBox(height: 12),
-                  Text(
-                    'Congratulations on making the right choice!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFFB61C4F),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'You just made a very lucky person smile.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Color(0xFF7A2E53)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutBack);
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(scale: curved, child: child),
-        );
-      },
-    );
-  }
-
-  void _selectAnswer(String key, String value) {
-    setState(() {
-      _answers[key] = value;
-      if (key == 'travel' && value != 'Other') {
-        _travelOther = '';
-        _travelController.clear();
-      }
-      if (key == 'love' && value != 'Other') {
-        _loveOther = '';
-        _loveController.clear();
-      }
     });
   }
 
@@ -473,9 +386,10 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                     alignment: Alignment.topRight,
                   ),
                 ),
-                SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                Align(
+                  alignment: const Alignment(0, -0.2),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       AnimatedBuilder(
                         animation: _promptController,
@@ -495,91 +409,23 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       Text(
                         'Tiny cats and waffle baby are cheering for a yes.',
-                        textAlign: TextAlign.center,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF8B3A62),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      _WaffleBaby(controller: _waffleController),
-                      const SizedBox(height: 26),
-                      _QuestionCard(
-                        number: 1,
-                        question: 'Where did we meet?',
-                        options: const ['Bedroom', 'House Party', 'School', 'Friend'],
-                        selected: _answers['meet'],
-                        onSelected: (value) => _selectAnswer('meet', value),
-                      ),
-                      _QuestionCard(
-                        number: 2,
-                        question: 'How long have we been together?',
-                        options: const ['4 years', 'Since birth', '1991', '6 years'],
-                        selected: _answers['time'],
-                        onSelected: (value) => _selectAnswer('time', value),
-                      ),
-                      _QuestionCard(
-                        number: 3,
-                        question: 'What item did we buy at the Aquarium?',
-                        options: const ['Chinese', 'Hot chocolato', 'Nothing', 'Lotties'],
-                        selected: _answers['aquarium'],
-                        onSelected: (value) => _selectAnswer('aquarium', value),
-                      ),
-                      _QuestionCard(
-                        number: 4,
-                        question: 'Where do you want to travel next?',
-                        options: const ['Mexico', 'Colombia', 'Peru', 'Other'],
-                        selected: _answers['travel'],
-                        onSelected: (value) => _selectAnswer('travel', value),
-                        child: _answers['travel'] == 'Other'
-                            ? _InlineTextField(
-                                label: 'Tell me where 💌',
-                                onChanged: (value) => setState(() => _travelOther = value),
-                                controller: _travelController,
-                              )
-                            : null,
-                      ),
-                      _QuestionCard(
-                        number: 5,
-                        question: 'Where did first realize you really loved me?',
-                        options: const [
-                          'Now',
-                          'Later',
-                          'Birth',
-                          'After the first "D"',
-                          'Other',
-                        ],
-                        selected: _answers['love'],
-                        onSelected: (value) => _selectAnswer('love', value),
-                        child: _answers['love'] == 'Other'
-                            ? _InlineTextField(
-                                label: 'Please say why ✨',
-                                onChanged: (value) => setState(() => _loveOther = value),
-                                controller: _loveController,
-                              )
-                            : null,
-                      ),
-                      _QuestionCard(
-                        number: 6,
-                        question: 'Will you be my Valentine?',
-                        options: const ['Yes'],
-                        selected: _answers['valentine'],
-                        onSelected: (value) => _selectAnswer('valentine', value),
-                        hideOptions: true,
-                        child: const Text(
-                          'Use the big buttons below 💘',
-                          style: TextStyle(color: Color(0xFF7A2E53), fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const SizedBox(height: 120),
                     ],
                   ),
                 ),
+                Align(
+                  alignment: const Alignment(0, 0.1),
+                  child: _WaffleBaby(controller: _waffleController),
+                ),
                 Positioned(
-                  top: height * 0.74,
-                  left: width * 0.18,
+                  top: height * 0.62,
+                  left: width * 0.28,
                   child: AnimatedBuilder(
                     animation: _promptController,
                     builder: (context, child) {
@@ -587,17 +433,14 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       return Transform.scale(scale: glow, child: child);
                     },
                     child: ElevatedButton(
-                      onPressed: () {
-                        _selectAnswer('valentine', 'Yes');
-                        _showCongrats();
-                      },
+                      onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE91E63),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 54, vertical: 26),
-                        textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(34)),
-                        elevation: 14,
+                        padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
+                        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                        elevation: 12,
                       ),
                       child: const Text('YES PLEASE 💖'),
                     ),
@@ -628,111 +471,6 @@ class _ValentineExperienceState extends State<_ValentineExperience>
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _QuestionCard extends StatelessWidget {
-  final int number;
-  final String question;
-  final List<String> options;
-  final String? selected;
-  final ValueChanged<String> onSelected;
-  final Widget? child;
-  final bool hideOptions;
-
-  const _QuestionCard({
-    required this.number,
-    required this.question,
-    required this.options,
-    required this.selected,
-    required this.onSelected,
-    this.child,
-    this.hideOptions = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.pinkAccent.withOpacity(0.15),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        border: Border.all(color: const Color(0xFFFFC1E3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$number. $question',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFFB61C4F),
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (!hideOptions)
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: options
-                  .map(
-                    (option) => ChoiceChip(
-                      label: Text(option),
-                      selected: selected == option,
-                      selectedColor: const Color(0xFFE91E63),
-                      labelStyle: TextStyle(
-                        color: selected == option ? Colors.white : const Color(0xFF6D2A4B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                      backgroundColor: const Color(0xFFFFE4EC),
-                      onSelected: (_) => onSelected(option),
-                    ),
-                  )
-                  .toList(),
-            ),
-          if (child != null) ...[
-            const SizedBox(height: 12),
-            child!,
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineTextField extends StatelessWidget {
-  final String label;
-  final ValueChanged<String> onChanged;
-  final TextEditingController controller;
-
-  const _InlineTextField({
-    required this.label,
-    required this.onChanged,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      onChanged: onChanged,
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
