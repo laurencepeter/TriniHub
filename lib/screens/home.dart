@@ -506,8 +506,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final questionIndex = _showSummary ? _questions.length - 1 : _questionIndex;
-    final isFinalQuestion = questionIndex == _questions.length - 1;
+    final isFinalQuestion = _questionIndex == _questions.length - 1;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -562,9 +561,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           );
                         },
                         child: Text(
-                          _showSummary
-                              ? 'All your answers, Waffles!'
-                              : _questions[questionIndex].prompt,
+                          _showSummary ? 'All your answers, Waffles!' : _questions[_questionIndex].prompt,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -576,7 +573,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       Text(
                         _showSummary
                             ? 'A perfect recap of every sweet answer.'
-                            : 'Question ${questionIndex + 1} of ${_questions.length}.',
+                            : 'Question ${_questionIndex + 1} of ${_questions.length}.',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF8B3A62),
                         ),
@@ -710,7 +707,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       ),
                       child: Column(
                         children: [
-                          for (final option in _questions[questionIndex].options)
+                          for (final option in _questions[_questionIndex].options)
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: SizedBox(
@@ -735,7 +732,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           if (_otherSelected) ...[
                             const SizedBox(height: 10),
                             Text(
-                              _questions[questionIndex].otherPrompt ?? '',
+                              _questions[_questionIndex].otherPrompt ?? '',
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Color(0xFF8B3A62)),
                             ),
