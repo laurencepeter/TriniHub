@@ -121,9 +121,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       );
     }
     return Scaffold(
-      body: isValentineUser
-          ? _ValentineExperience(userName: userName)
-          : Container(
+      body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
