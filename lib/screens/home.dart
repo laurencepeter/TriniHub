@@ -455,6 +455,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                     child: GestureDetector(
                       onTap: _dodgeNoButton,
                       child: OutlinedButton(
+                        onPressed: _dodgeNoButton,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFFB61C4F),
                           side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
