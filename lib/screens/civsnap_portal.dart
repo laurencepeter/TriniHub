@@ -2618,7 +2618,6 @@ class _ReportTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final photoUrl = _resolvePhotoUrl(report.photoUrl);
     final scope = _parseScope(report.locationLabel);
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 320),
@@ -2646,25 +2645,32 @@ class _ReportTile extends StatelessWidget {
               child: SizedBox(
                 height: imageHeight,
                 width: double.infinity,
-                child: photoUrl == null
-                    ? Container(
+                child: FutureBuilder<String?>(
+                  future: _resolvePhotoUrl(report.photoUrl),
+                  builder: (context, snapshot) {
+                    final photoUrl = snapshot.data;
+                    if (photoUrl == null || photoUrl.trim().isEmpty) {
+                      return Container(
                         color: theme.colorScheme.surfaceVariant,
                         alignment: Alignment.center,
                         child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
-                      )
-                    : Image.network(
-                        photoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: theme.colorScheme.surfaceVariant,
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: theme.hintColor,
-                            size: 32,
-                          ),
+                      );
+                    }
+                    return Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: theme.colorScheme.surfaceVariant,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: theme.hintColor,
+                          size: 32,
                         ),
                       ),
+                    );
+                  },
+                ),
               ),
             ),
             Expanded(
@@ -2799,7 +2805,6 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final photoUrl = _resolvePhotoUrl(report.photoUrl);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -2818,24 +2823,35 @@ class _ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (photoUrl != null && photoUrl.trim().isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  photoUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: theme.colorScheme.surfaceVariant,
-                    alignment: Alignment.center,
-                    child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor),
+          FutureBuilder<String?>(
+            future: _resolvePhotoUrl(report.photoUrl),
+            builder: (context, snapshot) {
+              final photoUrl = snapshot.data;
+              if (photoUrl == null || photoUrl.trim().isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.network(
+                        photoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: theme.colorScheme.surfaceVariant,
+                          alignment: Alignment.center,
+                          child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
+                  const SizedBox(height: 12),
+                ],
+              );
+            },
+          ),
           Row(
             children: [
               Expanded(
@@ -3384,7 +3400,7 @@ double _reportGridImageHeight(int columns) {
   }
 }
 
-String? _resolvePhotoUrl(String? rawUrl) {
+Future<String?> _resolvePhotoUrl(String? rawUrl) async {
   if (rawUrl == null) {
     return null;
   }
@@ -3392,18 +3408,29 @@ String? _resolvePhotoUrl(String? rawUrl) {
   if (trimmed.isEmpty) {
     return null;
   }
-  if (trimmed.startsWith('http')) {
-    return trimmed;
-  }
-  final normalized = _normalizeStoragePath(trimmed);
-  if (normalized.isEmpty) {
-    return null;
-  }
   try {
-    return Supabase.instance.client.storage.from('civsnap').getPublicUrl(normalized);
+    final normalized = _normalizeStoragePath(_pathFromUrl(trimmed));
+    if (normalized.isEmpty) {
+      return trimmed.startsWith('http') ? trimmed : null;
+    }
+    return await Supabase.instance.client.storage.from('civsnap').createSignedUrl(
+          normalized,
+          3600,
+        );
   } catch (_) {
     return trimmed;
   }
+}
+
+String _pathFromUrl(String url) {
+  if (!url.startsWith('http')) {
+    return url;
+  }
+  final uri = Uri.tryParse(url);
+  if (uri == null) {
+    return url;
+  }
+  return uri.path;
 }
 
 String _normalizeStoragePath(String path) {
