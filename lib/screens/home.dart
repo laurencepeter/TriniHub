@@ -117,7 +117,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final userName = _resolveUserName();
     if (_isValentineUser()) {
       return Scaffold(
-        body: _ValentineExperience(userName: userName),
+        body: const _ValentineExperience(userName: 'Waffles'),
       );
     }
     return Scaffold(
@@ -306,10 +306,47 @@ class _ValentineExperienceState extends State<_ValentineExperience>
   final Random _random = Random();
   Offset _noButtonOffset = const Offset(0.25, 0.65);
   int _dodges = 0;
+  bool _showSummary = false;
+  bool _otherSelected = false;
+  final TextEditingController _otherController = TextEditingController();
+  late final List<_ValentineQuestion> _questions;
+  late final List<String?> _answers;
 
   @override
   void initState() {
     super.initState();
+    _questions = const [
+      _ValentineQuestion(
+        prompt: 'Where did we meet?',
+        options: ['Bedroom', 'House Party', 'School', 'Friend'],
+      ),
+      _ValentineQuestion(
+        prompt: 'How long have we been together?',
+        options: ['4 years', 'Since birth', '1991', '6 years'],
+      ),
+      _ValentineQuestion(
+        prompt: 'What item did we buy at the Aqurium?',
+        options: ['Chinese', 'Hot chocolato', 'Nothing', 'Lotties'],
+      ),
+      _ValentineQuestion(
+        prompt: 'Where do you want to travel next?',
+        options: ['Mexico', 'Colombia', 'Peru', 'Other'],
+        allowsOther: true,
+        otherPrompt: 'If other, tell me where we should go.',
+      ),
+      _ValentineQuestion(
+        prompt: 'Where did first realize you really loved me?',
+        options: ['Now', 'Later', 'Birth', 'After the first "D"', 'Other'],
+        allowsOther: true,
+        otherPrompt: 'If other, please state why.',
+      ),
+      _ValentineQuestion(
+        prompt: 'Will you be my Valentine?',
+        options: ['Yes', 'No'],
+        isFinal: true,
+      ),
+    ];
+    _answers = List<String?>.filled(_questions.length, null);
     _promptController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -329,6 +366,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
     _promptController.dispose();
     _catController.dispose();
     _waffleController.dispose();
+    _otherController.dispose();
     super.dispose();
   }
 
@@ -344,9 +382,140 @@ class _ValentineExperienceState extends State<_ValentineExperience>
     });
   }
 
+  int get _currentQuestionIndex {
+    if (_showSummary) {
+      return _questions.length - 1;
+    }
+    final nextUnanswered = _answers.indexWhere((answer) => answer == null);
+    if (nextUnanswered == -1) {
+      return _questions.length - 1;
+    }
+    return nextUnanswered;
+  }
+
+  void _advanceQuestion() {
+    setState(() {
+      _otherSelected = false;
+      _otherController.clear();
+    });
+  }
+
+  void _selectOption(String option) {
+    final questionIndex = _currentQuestionIndex;
+    final question = _questions[questionIndex];
+    if (question.isFinal) {
+      if (option == 'Yes') {
+        setState(() {
+          _answers[questionIndex] = option;
+          _showSummary = true;
+        });
+        _showCongratsDialog();
+      } else {
+        _dodgeNoButton();
+      }
+      return;
+    }
+
+    if (question.allowsOther && option == 'Other') {
+      setState(() {
+        _otherSelected = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _answers[questionIndex] = option;
+    });
+    _advanceQuestion();
+  }
+
+  void _submitOtherAnswer() {
+    final response = _otherController.text.trim();
+    if (response.isEmpty) {
+      return;
+    }
+    setState(() {
+      _answers[_currentQuestionIndex] = response;
+    });
+    _advanceQuestion();
+  }
+
+  Future<void> _showCongratsDialog() async {
+    if (!mounted) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFFFF1C6),
+                  Color(0xFFFFE1F2),
+                  Color(0xFFE5FBFF),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉✨💖', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 12),
+                Text(
+                  'Congratulations, Waffles!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFB61C4F),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Congratulations on making the right choice!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF8B3A62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE91E63),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                  ),
+                  child: const Text('Seal the yes 💞'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final questionIndex = _showSummary ? _questions.length - 1 : _currentQuestionIndex;
+    final isFinalQuestion = questionIndex == _questions.length - 1;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -401,7 +570,9 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           );
                         },
                         child: Text(
-                          'Hey ${widget.userName}, will you be my Valentine?',
+                          _showSummary
+                              ? 'All your answers, Waffles!'
+                              : _questions[questionIndex].prompt,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -411,7 +582,9 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Tiny cats and waffle baby are cheering for a yes.',
+                        _showSummary
+                            ? 'A perfect recap of every sweet answer.'
+                            : 'Question ${questionIndex + 1} of ${_questions.length}.',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF8B3A62),
                         ),
@@ -423,51 +596,192 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                   alignment: const Alignment(0, 0.1),
                   child: _WaffleBaby(controller: _waffleController),
                 ),
-                Positioned(
-                  top: height * 0.62,
-                  left: width * 0.28,
-                  child: AnimatedBuilder(
-                    animation: _promptController,
-                    builder: (context, child) {
-                      final glow = 0.92 + (_promptController.value * 0.1);
-                      return Transform.scale(scale: glow, child: child);
-                    },
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE91E63),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
-                        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                        elevation: 12,
+                if (_showSummary)
+                  Positioned(
+                    top: height * 0.42,
+                    left: width * 0.08,
+                    right: width * 0.08,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      child: const Text('YES PLEASE 💖'),
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _questions.length; i++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${i + 1}. ',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFFB61C4F),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _questions[i].prompt,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _answers[i] ?? '—',
+                                          style: const TextStyle(color: Color(0xFF8B3A62)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 260),
-                  left: width * _noButtonOffset.dx,
-                  top: height * _noButtonOffset.dy,
-                  child: MouseRegion(
-                    onEnter: (_) => _dodgeNoButton(),
-                    child: GestureDetector(
-                      onTap: _dodgeNoButton,
-                      child: OutlinedButton(
-                        onPressed: _dodgeNoButton,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFB61C4F),
-                          side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
-                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                          shape:
-                              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  )
+                else if (isFinalQuestion) ...[
+                  Positioned(
+                    top: height * 0.56,
+                    left: width * 0.22,
+                    child: AnimatedBuilder(
+                      animation: _promptController,
+                      builder: (context, child) {
+                        final glow = 0.92 + (_promptController.value * 0.1);
+                        return Transform.scale(scale: glow, child: child);
+                      },
+                      child: ElevatedButton(
+                        onPressed: () => _selectOption('Yes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE91E63),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
+                          textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                          elevation: 12,
                         ),
-                        child: const Text('Nope'),
+                        child: const Text('Yes 💖'),
                       ),
                     ),
                   ),
-                ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 260),
+                    left: width * _noButtonOffset.dx,
+                    top: height * _noButtonOffset.dy,
+                    child: MouseRegion(
+                      onEnter: (_) => _dodgeNoButton(),
+                      child: GestureDetector(
+                        onTap: _dodgeNoButton,
+                        child: OutlinedButton(
+                          onPressed: _dodgeNoButton,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFB61C4F),
+                            side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                            shape:
+                                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          child: const Text('No'),
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  Positioned(
+                    top: height * 0.48,
+                    left: width * 0.12,
+                    right: width * 0.12,
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 18,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          for (final option in _questions[questionIndex].options)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => _selectOption(option),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF9A3D),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                  child: Text(option),
+                                ),
+                              ),
+                            ),
+                          if (_otherSelected) ...[
+                            const SizedBox(height: 10),
+                            Text(
+                              _questions[questionIndex].otherPrompt ?? '',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Color(0xFF8B3A62)),
+                            ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _otherController,
+                              decoration: InputDecoration(
+                                hintText: 'Type your answer here...',
+                                filled: true,
+                                fillColor: const Color(0xFFFFF4F7),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _submitOtherAnswer,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE91E63),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                child: const Text('Save answer'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             );
           },
@@ -601,6 +915,22 @@ class _WaffleGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ValentineQuestion {
+  final String prompt;
+  final List<String> options;
+  final bool allowsOther;
+  final String? otherPrompt;
+  final bool isFinal;
+
+  const _ValentineQuestion({
+    required this.prompt,
+    required this.options,
+    this.allowsOther = false,
+    this.otherPrompt,
+    this.isFinal = false,
+  });
 }
 
 class _HighlightPill extends StatelessWidget {
