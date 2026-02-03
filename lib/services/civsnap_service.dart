@@ -314,7 +314,7 @@ class CivSnapService {
       bytes,
       fileOptions: FileOptions(contentType: _contentTypeFor(extension), upsert: true),
     );
-    return storage.getPublicUrl(path);
+    return path;
   }
 
   static double _distanceMeters(
