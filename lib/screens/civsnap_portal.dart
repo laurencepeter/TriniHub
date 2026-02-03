@@ -3395,9 +3395,34 @@ String? _resolvePhotoUrl(String? rawUrl) {
   if (trimmed.startsWith('http')) {
     return trimmed;
   }
+  final normalized = _normalizeStoragePath(trimmed);
+  if (normalized.isEmpty) {
+    return null;
+  }
   try {
-    return Supabase.instance.client.storage.from('civsnap').getPublicUrl(trimmed);
+    return Supabase.instance.client.storage.from('civsnap').getPublicUrl(normalized);
   } catch (_) {
     return trimmed;
   }
+}
+
+String _normalizeStoragePath(String path) {
+  var normalized = path.trim();
+  const publicPrefix = 'object/public/civsnap/';
+  final publicIndex = normalized.indexOf(publicPrefix);
+  if (publicIndex != -1) {
+    return normalized.substring(publicIndex + publicPrefix.length);
+  }
+  while (normalized.startsWith('/')) {
+    normalized = normalized.substring(1);
+  }
+  const bucketPrefix = 'civsnap/';
+  if (normalized.startsWith(bucketPrefix)) {
+    normalized = normalized.substring(bucketPrefix.length);
+  }
+  const publicBucketPrefix = 'public/civsnap/';
+  if (normalized.startsWith(publicBucketPrefix)) {
+    normalized = normalized.substring(publicBucketPrefix.length);
+  }
+  return normalized;
 }
