@@ -303,6 +303,9 @@ class _ValentineExperienceState extends State<_ValentineExperience>
   late final AnimationController _promptController;
   late final AnimationController _catController;
   late final AnimationController _waffleController;
+  final Random _random = Random();
+  Offset _noButtonOffset = const Offset(0.25, 0.65);
+  int _dodges = 0;
   int _questionIndex = 0;
   bool _showSummary = false;
   bool _otherSelected = false;
@@ -486,11 +489,130 @@ class _ValentineExperienceState extends State<_ValentineExperience>
     );
   }
 
+  void _advanceQuestion() {
+    if (_questionIndex < _questions.length - 1) {
+      setState(() {
+        _questionIndex += 1;
+        _otherSelected = false;
+        _otherController.clear();
+      });
+    }
+  }
+
+  void _selectOption(String option) {
+    final question = _questions[_questionIndex];
+    if (question.isFinal) {
+      if (option == 'Yes') {
+        setState(() {
+          _answers[_questionIndex] = option;
+          _showSummary = true;
+        });
+        _showCongratsDialog();
+      } else {
+        _dodgeNoButton();
+      }
+      return;
+    }
+
+    if (question.allowsOther && option == 'Other') {
+      setState(() {
+        _otherSelected = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _answers[_questionIndex] = option;
+    });
+    _advanceQuestion();
+  }
+
+  void _submitOtherAnswer() {
+    final response = _otherController.text.trim();
+    if (response.isEmpty) {
+      return;
+    }
+    setState(() {
+      _answers[_questionIndex] = response;
+    });
+    _advanceQuestion();
+  }
+
+  Future<void> _showCongratsDialog() async {
+    if (!mounted) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFFFFF1C6),
+                  Color(0xFFFFE1F2),
+                  Color(0xFFE5FBFF),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 30,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🎉✨💖', style: TextStyle(fontSize: 32)),
+                const SizedBox(height: 12),
+                Text(
+                  'Congratulations, Waffles!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFB61C4F),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Congratulations on making the right choice!',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF8B3A62),
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE91E63),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                  ),
+                  child: const Text('Seal the yes 💞'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final questionIndex = _showSummary ? _questions.length - 1 : _questionIndex;
-    final isFinalQuestion = questionIndex == _questions.length - 1;
+    final isFinalQuestion = _questionIndex == _questions.length - 1;
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -545,9 +667,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           );
                         },
                         child: Text(
-                          _showSummary
-                              ? 'All your answers, Waffles!'
-                              : _questions[questionIndex].prompt,
+                          _showSummary ? 'All your answers, Waffles!' : _questions[_questionIndex].prompt,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -559,7 +679,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       Text(
                         _showSummary
                             ? 'A perfect recap of every sweet answer.'
-                            : 'Question ${questionIndex + 1} of ${_questions.length}.',
+                            : 'Question ${_questionIndex + 1} of ${_questions.length}.',
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: const Color(0xFF8B3A62),
                         ),
@@ -630,45 +750,46 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                 else if (isFinalQuestion) ...[
                   Positioned(
                     top: height * 0.56,
-                    left: width * 0.18,
-                    right: width * 0.18,
+                    left: width * 0.22,
                     child: AnimatedBuilder(
                       animation: _promptController,
                       builder: (context, child) {
                         final glow = 0.92 + (_promptController.value * 0.1);
                         return Transform.scale(scale: glow, child: child);
                       },
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton(
-                            onPressed: () => _selectOption('Yes'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE91E63),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
-                              textStyle:
-                                  const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(32),
-                              ),
-                              elevation: 12,
-                            ),
-                            child: const Text('Yes 💖'),
+                      child: ElevatedButton(
+                        onPressed: () => _selectOption('Yes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE91E63),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 44, vertical: 24),
+                          textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                          elevation: 12,
+                        ),
+                        child: const Text('Yes 💖'),
+                      ),
+                    ),
+                  ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 260),
+                    left: width * _noButtonOffset.dx,
+                    top: height * _noButtonOffset.dy,
+                    child: MouseRegion(
+                      onEnter: (_) => _dodgeNoButton(),
+                      child: GestureDetector(
+                        onTap: _dodgeNoButton,
+                        child: OutlinedButton(
+                          onPressed: _dodgeNoButton,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFB61C4F),
+                            side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                            shape:
+                                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                           ),
-                          const SizedBox(width: 16),
-                          OutlinedButton(
-                            onPressed: () => _selectOption('No'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFB61C4F),
-                              side: const BorderSide(color: Color(0xFFB61C4F), width: 2),
-                              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-                              shape:
-                                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            ),
-                            child: const Text('No'),
-                          ),
-                        ],
+                          child: const Text('No'),
+                        ),
                       ),
                     ),
                   ),
@@ -692,7 +813,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                       ),
                       child: Column(
                         children: [
-                          for (final option in _questions[questionIndex].options)
+                          for (final option in _questions[_questionIndex].options)
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               child: SizedBox(
@@ -717,7 +838,7 @@ class _ValentineExperienceState extends State<_ValentineExperience>
                           if (_otherSelected) ...[
                             const SizedBox(height: 10),
                             Text(
-                              _questions[questionIndex].otherPrompt ?? '',
+                              _questions[_questionIndex].otherPrompt ?? '',
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Color(0xFF8B3A62)),
                             ),
