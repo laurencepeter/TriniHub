@@ -294,32 +294,59 @@ class _PublicDashboard extends StatefulWidget {
 
 class _PublicDashboardState extends State<_PublicDashboard> {
   final CivSnapService _service = CivSnapService.instance;
-  late Future<List<CivSnapReport>> _reportsFuture;
+  late Future<_PublicDashboardData> _dashboardFuture;
   String _query = '';
   String _statusFilter = 'all';
 
   @override
   void initState() {
     super.initState();
-    _reportsFuture = _service.fetchReports(limit: 80);
+    _dashboardFuture = _loadDashboard();
+  }
+
+  Future<_PublicDashboardData> _loadDashboard() async {
+    final results = await Future.wait([
+      _service.fetchReports(limit: 120),
+      _service.fetchStatusCounts(),
+    ]);
+    return _PublicDashboardData(
+      reports: results[0] as List<CivSnapReport>,
+      statusCounts: results[1] as Map<String, int>,
+    );
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _reportsFuture = _service.fetchReports(limit: 80);
+      _dashboardFuture = _loadDashboard();
     });
   }
 
   Future<void> _vote(CivSnapReport report) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to vote on community issues.')),
+      );
+      return;
+    }
     await _service.voteForReport(report.id);
     await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isAuthenticated = Supabase.instance.client.auth.currentUser != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _PublicHeroCard(
+          isAuthenticated: isAuthenticated,
+          onReport: () => Navigator.of(context).push(IssueSnapScreen.route()),
+        ),
+        const SizedBox(height: 16),
         _SectionHeader(
           title: 'Community Issue Feed',
           subtitle: 'Vote to raise critical issues and help prioritize response.',
@@ -336,13 +363,15 @@ class _PublicDashboardState extends State<_PublicDashboard> {
           statusFilter: _statusFilter,
         ),
         const SizedBox(height: 12),
-        FutureBuilder<List<CivSnapReport>>(
-          future: _reportsFuture,
+        FutureBuilder<_PublicDashboardData>(
+          future: _dashboardFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            final reports = snapshot.data ?? [];
+            final data = snapshot.data;
+            final reports = data?.reports ?? [];
+            final statusCounts = data?.statusCounts ?? {};
             final filtered = reports.where((report) {
               final matchesQuery = _query.isEmpty ||
                   report.title.toLowerCase().contains(_query.toLowerCase()) ||
@@ -360,16 +389,50 @@ class _PublicDashboardState extends State<_PublicDashboard> {
               );
             }
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: filtered.map((report) {
                 return _ReportCard(
                   report: report,
                   trailing: FilledButton.icon(
-                    onPressed: () => _vote(report),
+                    onPressed: isAuthenticated ? () => _vote(report) : null,
                     icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                    label: Text('${report.voteCount} votes'),
+                    label: Text(
+                      isAuthenticated ? '${report.voteCount} votes' : 'Sign in to vote',
+                    ),
                   ),
                 );
               }).toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        FutureBuilder<_PublicDashboardData>(
+          future: _dashboardFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox.shrink();
+            }
+            final data = snapshot.data;
+            if (data == null) {
+              return const SizedBox.shrink();
+            }
+            final totalVotes = data.reports.fold<int>(0, (sum, report) => sum + report.voteCount);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionHeader(
+                  title: 'Community Pulse',
+                  subtitle: 'A visual snapshot of reported issues and resident engagement.',
+                ),
+                const SizedBox(height: 12),
+                _InsightGrid(
+                  totalReports: data.reports.length,
+                  totalVotes: totalVotes,
+                  statusCounts: data.statusCounts,
+                ),
+                const SizedBox(height: 12),
+                _StatusDistributionBar(counts: data.statusCounts),
+              ],
             );
           },
         ),
@@ -385,6 +448,357 @@ class _PublicDashboardState extends State<_PublicDashboard> {
       ],
     );
   }
+}
+
+class _PublicDashboardData {
+  final List<CivSnapReport> reports;
+  final Map<String, int> statusCounts;
+
+  const _PublicDashboardData({
+    required this.reports,
+    required this.statusCounts,
+  });
+}
+
+class _PublicHeroCard extends StatelessWidget {
+  final bool isAuthenticated;
+  final VoidCallback onReport;
+
+  const _PublicHeroCard({
+    required this.isAuthenticated,
+    required this.onReport,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final gradient = LinearGradient(
+      colors: [
+        theme.colorScheme.primary.withOpacity(0.9),
+        theme.colorScheme.secondary.withOpacity(0.85),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.public, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Community Command View',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'See every publicly logged issue, rally support, and vote to elevate what matters.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _HeroChip(
+                icon: Icons.how_to_vote_outlined,
+                label: isAuthenticated ? 'Voting enabled' : 'Sign in to vote',
+              ),
+              const _HeroChip(
+                icon: Icons.visibility_outlined,
+                label: 'Live public issue feed',
+              ),
+              const _HeroChip(
+                icon: Icons.bolt_outlined,
+                label: 'Updates in real time',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: theme.colorScheme.primary,
+            ),
+            onPressed: onReport,
+            icon: const Icon(Icons.add_a_photo_outlined),
+            label: const Text('Log a new issue'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeroChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightGrid extends StatelessWidget {
+  final int totalReports;
+  final int totalVotes;
+  final Map<String, int> statusCounts;
+
+  const _InsightGrid({
+    required this.totalReports,
+    required this.totalVotes,
+    required this.statusCounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = _normalizeStatusCounts(statusCounts);
+    final items = [
+      _InsightCardData(
+        label: 'Total reports',
+        value: totalReports.toString(),
+        icon: Icons.description_outlined,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      _InsightCardData(
+        label: 'Open + pending',
+        value: (normalized['pending']! + normalized['under_review']!).toString(),
+        icon: Icons.campaign_outlined,
+        color: Colors.orange,
+      ),
+      _InsightCardData(
+        label: 'In progress',
+        value: normalized['in_progress']!.toString(),
+        icon: Icons.build_circle_outlined,
+        color: Colors.purple,
+      ),
+      _InsightCardData(
+        label: 'Community votes',
+        value: totalVotes.toString(),
+        icon: Icons.thumb_up_alt_outlined,
+        color: Theme.of(context).colorScheme.secondary,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 840;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: items.map((item) {
+            return SizedBox(
+              width: isWide ? (constraints.maxWidth - 36) / 4 : constraints.maxWidth,
+              child: _InsightCard(item: item),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+}
+
+class _InsightCardData {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _InsightCardData({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+}
+
+class _InsightCard extends StatelessWidget {
+  final _InsightCardData item;
+
+  const _InsightCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: item.color.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: item.color.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: item.color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(item.icon, color: item.color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  item.value,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusDistributionBar extends StatelessWidget {
+  final Map<String, int> counts;
+
+  const _StatusDistributionBar({required this.counts});
+
+  @override
+  Widget build(BuildContext context) {
+    final normalized = _normalizeStatusCounts(counts);
+    final total = normalized.values.fold<int>(0, (sum, count) => sum + count);
+    final safeTotal = total == 0 ? 1 : total;
+    final segments = [
+      _StatusSegment(status: 'pending', count: normalized['pending']!),
+      _StatusSegment(status: 'under_review', count: normalized['under_review']!),
+      _StatusSegment(status: 'in_progress', count: normalized['in_progress']!),
+      _StatusSegment(status: 'completed', count: normalized['completed']!),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Status mix',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: Row(
+            children: segments.map((segment) {
+              final flex = (segment.count / safeTotal * 100).round().clamp(1, 100);
+              return Expanded(
+                flex: flex,
+                child: Container(
+                  height: 12,
+                  color: _statusColor(segment.status),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 6,
+          children: segments.map((segment) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: _statusColor(segment.status),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${_statusLabel(segment.status)} · ${segment.count}',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusSegment {
+  final String status;
+  final int count;
+
+  const _StatusSegment({required this.status, required this.count});
 }
 
 class _CorporationDashboard extends StatefulWidget {
@@ -1921,14 +2335,17 @@ class _SearchAndFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         Expanded(
           child: TextField(
             onChanged: onQueryChanged,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
               hintText: 'Search by title or description',
+              filled: true,
+              fillColor: theme.colorScheme.surface,
             ),
           ),
         ),
@@ -1937,7 +2354,11 @@ class _SearchAndFilter extends StatelessWidget {
           width: 150,
           child: DropdownButtonFormField<String>(
             value: statusFilter,
-            decoration: const InputDecoration(labelText: 'Status'),
+            decoration: InputDecoration(
+              labelText: 'Status',
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+            ),
             items: _statusOptions()
                 .map((option) => DropdownMenuItem(value: option, child: Text(_statusLabel(option))))
                 .toList(),
@@ -1980,6 +2401,24 @@ class _ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (report.photoUrl != null && report.photoUrl!.trim().isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  report.photoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: theme.colorScheme.surfaceVariant,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Expanded(
