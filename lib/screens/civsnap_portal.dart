@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
@@ -297,11 +298,15 @@ class _PublicDashboardState extends State<_PublicDashboard> {
   late Future<_PublicDashboardData> _dashboardFuture;
   String _query = '';
   String _statusFilter = 'all';
+  Position? _position;
+  bool _loadingLocation = false;
+  String? _locationError;
 
   @override
   void initState() {
     super.initState();
     _dashboardFuture = _loadDashboard();
+    _refreshLocation();
   }
 
   Future<_PublicDashboardData> _loadDashboard() async {
@@ -319,6 +324,43 @@ class _PublicDashboardState extends State<_PublicDashboard> {
     setState(() {
       _dashboardFuture = _loadDashboard();
     });
+  }
+
+  Future<void> _refreshLocation() async {
+    setState(() {
+      _loadingLocation = true;
+      _locationError = null;
+    });
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _locationError = 'Enable location services to sort by proximity.');
+        return;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        setState(() => _locationError = 'Location permission denied. Showing newest reports first.');
+        return;
+      }
+      final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _position = position);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _locationError = 'Unable to read your location.');
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loadingLocation = false);
+    }
   }
 
   Future<void> _vote(CivSnapReport report) async {
@@ -363,6 +405,13 @@ class _PublicDashboardState extends State<_PublicDashboard> {
           statusFilter: _statusFilter,
         ),
         const SizedBox(height: 12),
+        _LocationSortNotice(
+          isLoading: _loadingLocation,
+          locationError: _locationError,
+          hasLocation: _position != null,
+          onRefresh: _refreshLocation,
+        ),
+        const SizedBox(height: 12),
         FutureBuilder<_PublicDashboardData>(
           future: _dashboardFuture,
           builder: (context, snapshot) {
@@ -380,6 +429,7 @@ class _PublicDashboardState extends State<_PublicDashboard> {
               final matchesStatus = _statusFilter == 'all' || normalizedStatus == _statusFilter;
               return matchesQuery && matchesStatus;
             }).toList();
+            final sortedReports = _sortReportsByDistance(filtered, _position);
             if (filtered.isEmpty) {
               return _EmptyState(
                 title: 'No matching reports',
@@ -388,20 +438,28 @@ class _PublicDashboardState extends State<_PublicDashboard> {
                 onAction: () => Navigator.of(context).push(IssueSnapScreen.route()),
               );
             }
+            final regionCounts = _scopeCounts(sortedReports, _ScopeKind.region);
+            final corporationCounts = _scopeCounts(sortedReports, _ScopeKind.corporation);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: filtered.map((report) {
-                return _ReportCard(
-                  report: report,
-                  trailing: FilledButton.icon(
-                    onPressed: isAuthenticated ? () => _vote(report) : null,
-                    icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                    label: Text(
-                      isAuthenticated ? '${report.voteCount} votes' : 'Sign in to vote',
-                    ),
-                  ),
-                );
-              }).toList(),
+              children: [
+                _SectionHeader(
+                  title: 'Reports by region & corporation',
+                  subtitle: 'View every report grouped by operational scope.',
+                ),
+                const SizedBox(height: 8),
+                _ScopeSummary(
+                  regionCounts: regionCounts,
+                  corporationCounts: corporationCounts,
+                ),
+                const SizedBox(height: 16),
+                _ReportGrid(
+                  reports: sortedReports,
+                  isAuthenticated: isAuthenticated,
+                  position: _position,
+                  onVote: _vote,
+                ),
+              ],
             );
           },
         ),
@@ -2374,6 +2432,364 @@ class _SearchAndFilter extends StatelessWidget {
   }
 }
 
+class _LocationSortNotice extends StatelessWidget {
+  final bool isLoading;
+  final String? locationError;
+  final bool hasLocation;
+  final VoidCallback onRefresh;
+
+  const _LocationSortNotice({
+    required this.isLoading,
+    required this.locationError,
+    required this.hasLocation,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final message = locationError ??
+        (hasLocation
+            ? 'Sorted by proximity to your current location.'
+            : 'Enable location services to sort reports by distance.');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.15)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.near_me_outlined, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: isLoading ? null : onRefresh,
+            child: isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Refresh'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScopeSummary extends StatelessWidget {
+  final List<_ScopeCount> regionCounts;
+  final List<_ScopeCount> corporationCounts;
+
+  const _ScopeSummary({
+    required this.regionCounts,
+    required this.corporationCounts,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Region coverage',
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        _ScopeChipRow(counts: regionCounts, emptyLabel: 'No region data yet'),
+        const SizedBox(height: 12),
+        Text(
+          'Corporation coverage',
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        _ScopeChipRow(counts: corporationCounts, emptyLabel: 'No corporation data yet'),
+      ],
+    );
+  }
+}
+
+class _ScopeChipRow extends StatelessWidget {
+  final List<_ScopeCount> counts;
+  final String emptyLabel;
+
+  const _ScopeChipRow({
+    required this.counts,
+    required this.emptyLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (counts.isEmpty) {
+      return Text(
+        emptyLabel,
+        style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+      );
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: counts.map((entry) {
+        return Chip(
+          label: Text('${entry.label} · ${entry.count}'),
+          backgroundColor: theme.colorScheme.surfaceVariant,
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _ReportGrid extends StatelessWidget {
+  final List<CivSnapReport> reports;
+  final bool isAuthenticated;
+  final Position? position;
+  final Future<void> Function(CivSnapReport report) onVote;
+
+  const _ReportGrid({
+    required this.reports,
+    required this.isAuthenticated,
+    required this.position,
+    required this.onVote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (reports.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = _reportGridColumns(constraints.maxWidth);
+        final tileHeight = _reportGridTileHeight(columns);
+        final imageHeight = _reportGridImageHeight(columns);
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: tileHeight,
+          ),
+          itemCount: reports.length,
+          itemBuilder: (context, index) {
+            final report = reports[index];
+            final distanceLabel = _distanceLabel(position, report);
+            return _ReportTile(
+              report: report,
+              imageHeight: imageHeight,
+              distanceLabel: distanceLabel,
+              isAuthenticated: isAuthenticated,
+              onVote: isAuthenticated ? () => onVote(report) : null,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ReportTile extends StatelessWidget {
+  final CivSnapReport report;
+  final double imageHeight;
+  final String? distanceLabel;
+  final bool isAuthenticated;
+  final VoidCallback? onVote;
+
+  const _ReportTile({
+    required this.report,
+    required this.imageHeight,
+    required this.distanceLabel,
+    required this.isAuthenticated,
+    required this.onVote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final photoUrl = _resolvePhotoUrl(report.photoUrl);
+    final scope = _parseScope(report.locationLabel);
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 320),
+      tween: Tween<double>(begin: 0.96, end: 1),
+      curve: Curves.easeOutCubic,
+      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              child: SizedBox(
+                height: imageHeight,
+                width: double.infinity,
+                child: photoUrl == null
+                    ? Container(
+                        color: theme.colorScheme.surfaceVariant,
+                        alignment: Alignment.center,
+                        child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
+                      )
+                    : Image.network(
+                        photoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: theme.colorScheme.surfaceVariant,
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: theme.hintColor,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            report.title,
+                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        _StatusPill(status: _normalizeStatus(report.status)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (report.description != null && report.description!.isNotEmpty)
+                      Text(
+                        report.description!,
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _ScopeChip(label: scope.regionLabel, icon: Icons.map_outlined),
+                        _ScopeChip(label: scope.corporationLabel, icon: Icons.apartment_outlined),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            distanceLabel ?? (report.locationLabel ?? 'Location tagged'),
+                            style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(report.createdAt),
+                          style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: FilledButton.icon(
+                        onPressed: onVote,
+                        icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
+                        label: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 240),
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0, 0.2),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            isAuthenticated ? '${report.voteCount} votes' : 'Sign in to vote',
+                            key: ValueKey('${report.id}-${report.voteCount}-$isAuthenticated'),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScopeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _ScopeChip({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ReportCard extends StatelessWidget {
   final CivSnapReport report;
   final Widget trailing;
@@ -2383,6 +2799,7 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final photoUrl = _resolvePhotoUrl(report.photoUrl);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -2401,13 +2818,13 @@ class _ReportCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (report.photoUrl != null && report.photoUrl!.trim().isNotEmpty) ...[
+          if (photoUrl != null && photoUrl.trim().isNotEmpty) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Image.network(
-                  report.photoUrl!,
+                  photoUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
                     color: theme.colorScheme.surfaceVariant,
@@ -2843,4 +3260,144 @@ List<_MetricItem> _reportMetrics(BuildContext context, List<CivSnapReport> repor
       color: theme.colorScheme.secondary,
     ),
   ];
+}
+
+enum _ScopeKind { region, corporation }
+
+class _ScopeCount {
+  final String label;
+  final int count;
+
+  const _ScopeCount({required this.label, required this.count});
+}
+
+class _ReportScope {
+  final String regionLabel;
+  final String corporationLabel;
+
+  const _ReportScope({
+    required this.regionLabel,
+    required this.corporationLabel,
+  });
+}
+
+List<_ScopeCount> _scopeCounts(List<CivSnapReport> reports, _ScopeKind kind) {
+  final counts = <String, int>{};
+  for (final report in reports) {
+    final scope = _parseScope(report.locationLabel);
+    final label = kind == _ScopeKind.region ? scope.regionLabel : scope.corporationLabel;
+    counts[label] = (counts[label] ?? 0) + 1;
+  }
+  final entries = counts.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return entries.map((entry) => _ScopeCount(label: entry.key, count: entry.value)).toList();
+}
+
+_ReportScope _parseScope(String? locationLabel) {
+  final trimmed = locationLabel?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return const _ReportScope(regionLabel: 'Unassigned region', corporationLabel: 'Unassigned corporation');
+  }
+  final parts = trimmed.split(RegExp(r'\\s*[-•|/]\\s*'));
+  if (parts.length >= 2) {
+    return _ReportScope(regionLabel: parts.first, corporationLabel: parts[1]);
+  }
+  return _ReportScope(regionLabel: trimmed, corporationLabel: 'Unassigned corporation');
+}
+
+List<CivSnapReport> _sortReportsByDistance(List<CivSnapReport> reports, Position? position) {
+  final sorted = List<CivSnapReport>.from(reports);
+  if (position == null) {
+    return sorted;
+  }
+  sorted.sort((a, b) {
+    final distanceA = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      a.latitude,
+      a.longitude,
+    );
+    final distanceB = Geolocator.distanceBetween(
+      position.latitude,
+      position.longitude,
+      b.latitude,
+      b.longitude,
+    );
+    return distanceA.compareTo(distanceB);
+  });
+  return sorted;
+}
+
+String? _distanceLabel(Position? position, CivSnapReport report) {
+  if (position == null) {
+    return null;
+  }
+  final distanceMeters = Geolocator.distanceBetween(
+    position.latitude,
+    position.longitude,
+    report.latitude,
+    report.longitude,
+  );
+  if (distanceMeters < 1000) {
+    return '${distanceMeters.toStringAsFixed(0)} m away';
+  }
+  final distanceKm = distanceMeters / 1000;
+  return '${distanceKm.toStringAsFixed(1)} km away';
+}
+
+int _reportGridColumns(double width) {
+  if (width >= 1400) {
+    return 4;
+  }
+  if (width >= 1024) {
+    return 3;
+  }
+  if (width >= 720) {
+    return 2;
+  }
+  return 1;
+}
+
+double _reportGridTileHeight(int columns) {
+  switch (columns) {
+    case 4:
+      return 300;
+    case 3:
+      return 320;
+    case 2:
+      return 340;
+    default:
+      return 360;
+  }
+}
+
+double _reportGridImageHeight(int columns) {
+  switch (columns) {
+    case 4:
+      return 120;
+    case 3:
+      return 130;
+    case 2:
+      return 150;
+    default:
+      return 170;
+  }
+}
+
+String? _resolvePhotoUrl(String? rawUrl) {
+  if (rawUrl == null) {
+    return null;
+  }
+  final trimmed = rawUrl.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  if (trimmed.startsWith('http')) {
+    return trimmed;
+  }
+  try {
+    return Supabase.instance.client.storage.from('civsnap').getPublicUrl(trimmed);
+  } catch (_) {
+    return trimmed;
+  }
 }
