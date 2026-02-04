@@ -3408,17 +3408,25 @@ Future<String?> _resolvePhotoUrl(String? rawUrl) async {
   if (trimmed.isEmpty) {
     return null;
   }
+  if (trimmed.startsWith('http') && !trimmed.contains('/storage/v1/')) {
+    return trimmed;
+  }
+  final storage = Supabase.instance.client.storage.from('civsnap');
   try {
     final normalized = _normalizeStoragePath(_pathFromUrl(trimmed));
     if (normalized.isEmpty) {
       return trimmed.startsWith('http') ? trimmed : null;
     }
-    return await Supabase.instance.client.storage.from('civsnap').createSignedUrl(
-          normalized,
-          3600,
-        );
+    if (Supabase.instance.client.auth.currentUser == null) {
+      return storage.getPublicUrl(normalized);
+    }
+    return await storage.createSignedUrl(normalized, 3600);
   } catch (_) {
-    return trimmed;
+    final normalized = _normalizeStoragePath(_pathFromUrl(trimmed));
+    if (normalized.isEmpty) {
+      return trimmed;
+    }
+    return storage.getPublicUrl(normalized);
   }
 }
 
@@ -3439,6 +3447,11 @@ String _normalizeStoragePath(String path) {
   final publicIndex = normalized.indexOf(publicPrefix);
   if (publicIndex != -1) {
     return normalized.substring(publicIndex + publicPrefix.length);
+  }
+  const signedPrefix = 'object/sign/civsnap/';
+  final signedIndex = normalized.indexOf(signedPrefix);
+  if (signedIndex != -1) {
+    return normalized.substring(signedIndex + signedPrefix.length);
   }
   while (normalized.startsWith('/')) {
     normalized = normalized.substring(1);
