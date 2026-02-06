@@ -585,6 +585,29 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
     );
   }
 
+  Future<void> _updateDogStatus(DogSubmission submission, String status) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await _dogService.updateSubmissionStatus(dogId: submission.id, status: status);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Dog registration updated to ${_statusLabel(status)}.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      await _refresh();
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Unable to update status: ${error.toString()}'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
   Future<void> _editUser() async {
     final ownerProfile = await _supportService.fetchOwnerProfile(_user.userId);
     final displayNameController = TextEditingController(text: _user.displayName ?? '');
@@ -1031,7 +1054,14 @@ class _UserSupportDetailScreenState extends State<UserSupportDetailScreen> {
                 );
               }
               return Column(
-                children: dogs.map((dog) => _DogRegistrationCard(submission: dog)).toList(),
+                children: dogs
+                    .map(
+                      (dog) => _DogRegistrationCard(
+                        submission: dog,
+                        onStatusChanged: (status) => _updateDogStatus(dog, status),
+                      ),
+                    )
+                    .toList(),
               );
             },
           ),
@@ -1477,8 +1507,12 @@ class _ReportSummaryCard extends StatelessWidget {
 
 class _DogRegistrationCard extends StatelessWidget {
   final DogSubmission submission;
+  final ValueChanged<String> onStatusChanged;
 
-  const _DogRegistrationCard({required this.submission});
+  const _DogRegistrationCard({
+    required this.submission,
+    required this.onStatusChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1515,19 +1549,76 @@ class _DogRegistrationCard extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              _statusLabel(submission.status),
-              style: theme.textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  _statusLabel(submission.status),
+                  style: theme.textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextButton.icon(
+                onPressed: () async {
+                  final selected = await _selectDogStatus(context, submission.status);
+                  if (selected != null && selected != submission.status) {
+                    onStatusChanged(selected);
+                  }
+                },
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Update status'),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Future<String?> _selectDogStatus(BuildContext context, String currentStatus) {
+    var selectedStatus = currentStatus;
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Update dog status'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return DropdownButtonFormField<String>(
+                value: selectedStatus,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: _dogStatusOptions()
+                    .map((status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(_statusLabel(status)),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => selectedStatus = value);
+                  }
+                },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(selectedStatus),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1637,6 +1728,10 @@ String _statusLabel(String status) {
     default:
       return 'Open';
   }
+}
+
+List<String> _dogStatusOptions() {
+  return ['pending', 'approved', 'active', 'deleted'];
 }
 
 String _lifeStatusLabel(String status) {

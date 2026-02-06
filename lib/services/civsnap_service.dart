@@ -16,6 +16,7 @@ class CivSnapReport {
   final String? locationLabel;
   final DateTime createdAt;
   final String status;
+  final String? statusComment;
   final int voteCount;
 
   const CivSnapReport({
@@ -29,6 +30,7 @@ class CivSnapReport {
     required this.locationLabel,
     required this.createdAt,
     required this.status,
+    required this.statusComment,
     required this.voteCount,
   });
 
@@ -44,6 +46,7 @@ class CivSnapReport {
       locationLabel: json['location_label'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       status: (json['status'] ?? 'open').toString(),
+      statusComment: json['status_comment'] as String?,
       voteCount: _parseVoteCount(json['civsnap_votes']),
     );
   }
@@ -60,7 +63,7 @@ class CivSnapReport {
 }
 
 const String civSnapReportSelectColumns =
-    'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at';
+    'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,created_at';
 const String civSnapReportSelectColumnsWithVotes =
     '$civSnapReportSelectColumns,civsnap_votes(count)';
 
@@ -282,11 +285,14 @@ class CivSnapService {
   Future<void> updateReportStatus({
     required String reportId,
     required String status,
+    String? statusComment,
   }) async {
-    await _client
-        .from('civsnap_reports')
-        .update({'status': status})
-        .eq('id', reportId);
+    final payload = <String, dynamic>{'status': status};
+    if (statusComment != null) {
+      final trimmed = statusComment.trim();
+      payload['status_comment'] = trimmed.isEmpty ? null : trimmed;
+    }
+    await _client.from('civsnap_reports').update(payload).eq('id', reportId);
   }
 
   Future<void> voteForReport(String reportId) async {

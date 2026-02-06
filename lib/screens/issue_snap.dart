@@ -390,6 +390,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
           locationLabel: report.locationLabel,
           createdAt: report.createdAt,
           status: report.status,
+          statusComment: report.statusComment,
           voteCount: report.voteCount + 1,
         );
       });

@@ -1002,9 +1002,78 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
     return _normalizeStatusCounts(counts);
   }
 
-  Future<void> _updateStatus(CivSnapReport report, String status) async {
-    await _service.updateReportStatus(reportId: report.id, status: status);
+  Future<void> _updateStatus(
+    CivSnapReport report,
+    String status, {
+    String? comment,
+  }) async {
+    await _service.updateReportStatus(
+      reportId: report.id,
+      status: status,
+      statusComment: comment,
+    );
     await _refresh();
+  }
+
+  Future<void> _openStatusUpdateDialog(CivSnapReport report) async {
+    final controller = TextEditingController(text: report.statusComment ?? '');
+    var selectedStatus = _normalizeStatus(report.status);
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Update report status'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedStatus,
+                    decoration: const InputDecoration(labelText: 'Status'),
+                    items: _statusOptions()
+                        .where((option) => option != 'all')
+                        .map((option) => DropdownMenuItem(
+                              value: option,
+                              child: Text(_statusLabel(option)),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => selectedStatus = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Status comment',
+                      hintText: 'Add context for the status change',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    if (shouldSave == true) {
+      await _updateStatus(report, selectedStatus, comment: controller.text);
+    }
+    controller.dispose();
   }
 
   List<_MetricItem> _staticMetrics(BuildContext context) {
@@ -1130,9 +1199,10 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
               children: active.map((report) {
                 return _ReportCard(
                   report: report,
-                  trailing: _StatusDropdown(
-                    currentStatus: _normalizeStatus(report.status),
-                    onChanged: (value) => _updateStatus(report, value),
+                  trailing: OutlinedButton.icon(
+                    onPressed: () => _openStatusUpdateDialog(report),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Update status'),
                   ),
                 );
               }).toList(),
@@ -2870,6 +2940,13 @@ class _ReportCard extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
             ),
           ],
+          if (report.statusComment != null && report.statusComment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Status note: ${report.statusComment!.trim()}',
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+            ),
+          ],
           const SizedBox(height: 10),
           Row(
             children: [
@@ -2891,34 +2968,6 @@ class _ReportCard extends StatelessWidget {
           Align(alignment: Alignment.centerRight, child: trailing),
         ],
       ),
-    );
-  }
-}
-
-class _StatusDropdown extends StatelessWidget {
-  final String currentStatus;
-  final ValueChanged<String> onChanged;
-
-  const _StatusDropdown({required this.currentStatus, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<String>(
-      value: currentStatus,
-      items: _statusOptions()
-          .where((option) => option != 'all')
-          .map((option) {
-            return DropdownMenuItem(
-              value: option,
-              child: Text(_statusLabel(option)),
-            );
-          })
-          .toList(),
-      onChanged: (value) {
-        if (value != null && value != currentStatus) {
-          onChanged(value);
-        }
-      },
     );
   }
 }

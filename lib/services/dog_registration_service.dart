@@ -312,6 +312,13 @@ class DogRegistrationService {
     await _client.from('dogs').update({'status': 'deleted'}).eq('id', dogId);
   }
 
+  Future<void> updateSubmissionStatus({
+    required String dogId,
+    required String status,
+  }) async {
+    await _client.from('dogs').update({'status': status}).eq('id', dogId);
+  }
+
   Future<String> _upsertOwner(Map<String, dynamic> ownerPayload, String userId) async {
     final existingOwner = await _client
         .from('owners')
