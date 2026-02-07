@@ -9,9 +9,10 @@
 
 ## Corporation
 - Monitor live issue volume with status summary metrics.
-- Update report status as crews progress through review, work, and completion stages.
+- Update report status as crews progress through review, work, and completion stages, including optional status comments.
 - Review monthly completion summaries for resolved CivSnap reports.
 - Access the CivSnap command center for operational reporting details.
+- Review dog registration submissions and update pending registrations to approved or deleted.
 
 ## Public
 - Browse community issue feed and search by keywords or description.
