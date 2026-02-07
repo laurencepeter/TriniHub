@@ -75,6 +75,13 @@ bool isCivSnapVotesRelationshipMissing(Object error) {
   return false;
 }
 
+bool isCivSnapStatusCommentMissing(Object error) {
+  if (error is PostgrestException) {
+    return error.message.contains('status_comment') && error.message.contains('column');
+  }
+  return false;
+}
+
 class CivSnapService {
   CivSnapService._();
   static final CivSnapService instance = CivSnapService._();
@@ -93,6 +100,24 @@ class CivSnapService {
 
   SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
+  String _reportSelectColumns({required bool includeStatusComment}) {
+    if (!includeStatusComment) {
+      return 'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at';
+    }
+    return civSnapReportSelectColumns;
+  }
+
+  String _reportSelect({
+    required bool includeVotes,
+    required bool includeStatusComment,
+  }) {
+    final base = _reportSelectColumns(includeStatusComment: includeStatusComment);
+    if (!includeVotes) {
+      return base;
+    }
+    return '$base,civsnap_votes(count)';
+  }
+
   Future<CivSnapReport?> findNearbyReport({
     required double latitude,
     required double longitude,
@@ -101,32 +126,38 @@ class CivSnapService {
     final deltaLat = radiusMeters / 111111;
     final deltaLng = radiusMeters / (111111 * cos(_toRadians(latitude)));
     final readClient = _readClient();
+    var includeVotes = true;
+    var includeStatusComment = true;
     List<dynamic> response;
-    try {
-      response = await readClient
-          .from('civsnap_reports')
-          .select(civSnapReportSelectColumnsWithVotes)
-          .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
-          .gte('latitude', latitude - deltaLat)
-          .lte('latitude', latitude + deltaLat)
-          .gte('longitude', longitude - deltaLng)
-          .lte('longitude', longitude + deltaLng)
-          .order('created_at', ascending: false)
-          .limit(12);
-    } on PostgrestException catch (error) {
-      if (!isCivSnapVotesRelationshipMissing(error)) {
+    while (true) {
+      try {
+        response = await readClient
+            .from('civsnap_reports')
+            .select(
+              _reportSelect(
+                includeVotes: includeVotes,
+                includeStatusComment: includeStatusComment,
+              ),
+            )
+            .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
+            .gte('latitude', latitude - deltaLat)
+            .lte('latitude', latitude + deltaLat)
+            .gte('longitude', longitude - deltaLng)
+            .lte('longitude', longitude + deltaLng)
+            .order('created_at', ascending: false)
+            .limit(12);
+        break;
+      } on PostgrestException catch (error) {
+        if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
+          includeStatusComment = false;
+          continue;
+        }
+        if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
+          includeVotes = false;
+          continue;
+        }
         rethrow;
       }
-      response = await readClient
-          .from('civsnap_reports')
-          .select(civSnapReportSelectColumns)
-          .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
-          .gte('latitude', latitude - deltaLat)
-          .lte('latitude', latitude + deltaLat)
-          .gte('longitude', longitude - deltaLng)
-          .lte('longitude', longitude + deltaLng)
-          .order('created_at', ascending: false)
-          .limit(12);
     }
 
     if (response is! List) {
@@ -202,21 +233,32 @@ class CivSnapService {
   }) async {
     final readClient = _readClient();
     List<dynamic> response;
-    try {
-      final query = readClient.from('civsnap_reports').select(civSnapReportSelectColumnsWithVotes);
-      if (status != null) {
-        query.eq('status', status);
-      }
-      response = await query.order('created_at', ascending: false).limit(limit);
-    } on PostgrestException catch (error) {
-      if (!isCivSnapVotesRelationshipMissing(error)) {
+    var includeVotes = true;
+    var includeStatusComment = true;
+    while (true) {
+      try {
+        final query = readClient.from('civsnap_reports').select(
+              _reportSelect(
+                includeVotes: includeVotes,
+                includeStatusComment: includeStatusComment,
+              ),
+            );
+        if (status != null) {
+          query.eq('status', status);
+        }
+        response = await query.order('created_at', ascending: false).limit(limit);
+        break;
+      } on PostgrestException catch (error) {
+        if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
+          includeStatusComment = false;
+          continue;
+        }
+        if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
+          includeVotes = false;
+          continue;
+        }
         rethrow;
       }
-      final query = readClient.from('civsnap_reports').select(civSnapReportSelectColumns);
-      if (status != null) {
-        query.eq('status', status);
-      }
-      response = await query.order('created_at', ascending: false).limit(limit);
     }
     if (response is! List) {
       return [];
@@ -235,23 +277,31 @@ class CivSnapService {
     var offset = 0;
     final readClient = _readClient();
     var includeVotes = true;
+    var includeStatusComment = true;
     while (true) {
       List<dynamic> response;
       try {
-        final query = readClient
-            .from('civsnap_reports')
-            .select(includeVotes ? civSnapReportSelectColumnsWithVotes : civSnapReportSelectColumns);
+        final query = readClient.from('civsnap_reports').select(
+              _reportSelect(
+                includeVotes: includeVotes,
+                includeStatusComment: includeStatusComment,
+              ),
+            );
         if (status != null) {
           query.eq('status', status);
         }
         response =
             await query.order('created_at', ascending: false).range(offset, offset + pageSize - 1);
       } on PostgrestException catch (error) {
-        if (!includeVotes || !isCivSnapVotesRelationshipMissing(error)) {
-          rethrow;
+        if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
+          includeStatusComment = false;
+          continue;
         }
-        includeVotes = false;
-        continue;
+        if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
+          includeVotes = false;
+          continue;
+        }
+        rethrow;
       }
       if (response is! List) {
         break;
