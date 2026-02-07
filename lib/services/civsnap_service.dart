@@ -342,15 +342,7 @@ class CivSnapService {
       final trimmed = statusComment.trim();
       payload['status_comment'] = trimmed.isEmpty ? null : trimmed;
     }
-    try {
-      await _client.from('civsnap_reports').update(payload).eq('id', reportId);
-    } on PostgrestException catch (error) {
-      if (isCivSnapStatusCommentMissing(error)) {
-        await _client.from('civsnap_reports').update({'status': status}).eq('id', reportId);
-        return;
-      }
-      rethrow;
-    }
+    await _client.from('civsnap_reports').update(payload).eq('id', reportId);
   }
 
   Future<void> voteForReport(String reportId) async {
