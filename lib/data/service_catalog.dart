@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
+import 'package:local_app_tt/screens/forms/forms_hub.dart';
 import 'package:local_app_tt/screens/service_detail.dart';
 
 class ServiceOption {
@@ -184,10 +185,32 @@ void handleExternalServiceTap(BuildContext context, ServiceOption option) {
     Navigator.of(context).push(CivSnapPortalScreen.route());
     return;
   }
+  if (option.label == 'Forms') {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FormsHubScreen(
+          scope: 'public',
+          title: 'Public Forms',
+        ),
+      ),
+    );
+    return;
+  }
 
   Navigator.of(context).push(ServiceDetailScreen.route(option));
 }
 
 void handleInternalServiceTap(BuildContext context, ServiceOption option) {
+  if (option.label == 'Forms') {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const FormsHubScreen(
+          scope: 'internal',
+          title: 'Internal Forms',
+        ),
+      ),
+    );
+    return;
+  }
   Navigator.of(context).push(ServiceDetailScreen.route(option));
 }
