@@ -47,8 +47,16 @@ alter table public.civsnap_votes enable row level security;
 create policy "Authenticated read access" on public.civsnap_reports
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "Public read civsnap reports" on public.civsnap_reports;
+create policy "Public read civsnap reports" on public.civsnap_reports
+  for select using (auth.role() in ('anon', 'authenticated'));
+
 create policy "Authenticated read access" on public.civsnap_votes
   for select using (auth.role() = 'authenticated');
+
+drop policy if exists "Public read civsnap votes" on public.civsnap_votes;
+create policy "Public read civsnap votes" on public.civsnap_votes
+  for select using (auth.role() in ('anon', 'authenticated'));
 
 -- Policies: allow authenticated users to insert their own reports and votes
 create policy "Authenticated insert reports" on public.civsnap_reports
@@ -56,6 +64,21 @@ create policy "Authenticated insert reports" on public.civsnap_reports
 
 create policy "Authenticated insert votes" on public.civsnap_votes
   for insert with check (auth.role() = 'authenticated' and user_id = auth.uid());
+
+revoke select (user_id) on public.civsnap_reports from anon;
+grant select (
+  id,
+  title,
+  description,
+  photo_url,
+  latitude,
+  longitude,
+  accuracy_m,
+  location_label,
+  status,
+  created_at
+) on public.civsnap_reports to anon;
+grant select (user_id) on public.civsnap_reports to authenticated;
 
 -- Storage policies for civsnap bucket
 create policy "Authenticated civsnap read" on storage.objects
