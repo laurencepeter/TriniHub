@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -228,15 +229,14 @@ class FormsService {
         .from('form_templates')
         .select(
           'id,title,description,scope,status,pdf_output_bucket,region_id,created_at,updated_at,created_by,region:corporations(name)',
-        )
-        .order('created_at', ascending: false);
+        );
     if (scope != null) {
       query = query.eq('scope', scope);
     }
     if (!includeDrafts) {
       query = query.eq('status', 'published');
     }
-    final response = await query;
+    final response = await query.order('created_at', ascending: false);
     if (response is! List) {
       return [];
     }
@@ -331,12 +331,11 @@ class FormsService {
   Future<List<FormSubmissionSummary>> fetchSubmissions({String? scope}) async {
     var query = _client
         .from('form_submissions')
-        .select('id,form_id,status,summary,location_label,created_at,form:form_templates(title,scope),region:corporations(name)')
-        .order('created_at', ascending: false);
+        .select('id,form_id,status,summary,location_label,created_at,form:form_templates(title,scope),region:corporations(name)');
     if (scope != null) {
       query = query.eq('form.scope', scope);
     }
-    final response = await query;
+    final response = await query.order('created_at', ascending: false);
     if (response is! List) {
       return [];
     }
@@ -436,7 +435,8 @@ class FormsService {
 
   Future<String> uploadPhoto({required String folder, required String filename, required List<int> bytes}) async {
     final path = '$folder/$filename';
-    await _client.storage.from('form-uploads').uploadBinary(path, bytes);
+    final data = Uint8List.fromList(bytes);
+    await _client.storage.from('form-uploads').uploadBinary(path, data);
     final url = _client.storage.from('form-uploads').getPublicUrl(path);
     return url;
   }
