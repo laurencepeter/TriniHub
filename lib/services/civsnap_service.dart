@@ -17,6 +17,7 @@ class CivSnapReport {
   final DateTime createdAt;
   final String status;
   final String? statusComment;
+  final bool isAnonymous;
   final int voteCount;
 
   const CivSnapReport({
@@ -31,6 +32,7 @@ class CivSnapReport {
     required this.createdAt,
     required this.status,
     required this.statusComment,
+    required this.isAnonymous,
     required this.voteCount,
   });
 
@@ -47,6 +49,7 @@ class CivSnapReport {
       createdAt: DateTime.parse(json['created_at'] as String),
       status: (json['status'] ?? 'open').toString(),
       statusComment: json['status_comment'] as String?,
+      isAnonymous: _parseBool(json['is_anonymous']),
       voteCount: _parseVoteCount(json['civsnap_votes']),
     );
   }
@@ -60,12 +63,20 @@ class CivSnapReport {
     }
     return 0;
   }
-}
 
-const String civSnapReportSelectColumns =
-    'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,created_at';
-const String civSnapReportSelectColumnsWithVotes =
-    '$civSnapReportSelectColumns,civsnap_votes(count)';
+  static bool _parseBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    if (value is String) {
+      return value.toLowerCase() == 'true';
+    }
+    return false;
+  }
+}
 
 bool isCivSnapVotesRelationshipMissing(Object error) {
   if (error is PostgrestException) {
@@ -78,6 +89,13 @@ bool isCivSnapVotesRelationshipMissing(Object error) {
 bool isCivSnapStatusCommentMissing(Object error) {
   if (error is PostgrestException) {
     return error.message.contains('status_comment') && error.message.contains('column');
+  }
+  return false;
+}
+
+bool isCivSnapAnonymousMissing(Object error) {
+  if (error is PostgrestException) {
+    return error.message.contains('is_anonymous') && error.message.contains('column');
   }
   return false;
 }
@@ -100,18 +118,36 @@ class CivSnapService {
 
   SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
-  String _reportSelectColumns({required bool includeStatusComment}) {
-    if (!includeStatusComment) {
-      return 'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,created_at';
-    }
-    return civSnapReportSelectColumns;
+  String _reportSelectColumns({
+    required bool includeStatusComment,
+    required bool includeAnonymous,
+  }) {
+    final columns = <String>[
+      'id',
+      'title',
+      'description',
+      'photo_url',
+      'latitude',
+      'longitude',
+      'accuracy_m',
+      'location_label',
+      'status',
+      if (includeStatusComment) 'status_comment',
+      if (includeAnonymous) 'is_anonymous',
+      'created_at',
+    ];
+    return columns.join(',');
   }
 
   String _reportSelect({
     required bool includeVotes,
     required bool includeStatusComment,
+    required bool includeAnonymous,
   }) {
-    final base = _reportSelectColumns(includeStatusComment: includeStatusComment);
+    final base = _reportSelectColumns(
+      includeStatusComment: includeStatusComment,
+      includeAnonymous: includeAnonymous,
+    );
     if (!includeVotes) {
       return base;
     }
@@ -128,6 +164,7 @@ class CivSnapService {
     final readClient = _readClient();
     var includeVotes = true;
     var includeStatusComment = true;
+    var includeAnonymous = true;
     List<dynamic> response;
     while (true) {
       try {
@@ -137,6 +174,7 @@ class CivSnapService {
               _reportSelect(
                 includeVotes: includeVotes,
                 includeStatusComment: includeStatusComment,
+                includeAnonymous: includeAnonymous,
               ),
             )
             .inFilter('status', ['open', 'pending', 'under_review', 'in_progress'])
@@ -150,6 +188,10 @@ class CivSnapService {
       } on PostgrestException catch (error) {
         if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
           includeStatusComment = false;
+          continue;
+        }
+        if (includeAnonymous && isCivSnapAnonymousMissing(error)) {
+          includeAnonymous = false;
           continue;
         }
         if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
@@ -194,6 +236,7 @@ class CivSnapService {
     double? accuracyMeters,
     XFile? photo,
     String? userIdOverride,
+    bool isAnonymous = false,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -206,25 +249,45 @@ class CivSnapService {
     }
 
     final targetUserId = userIdOverride ?? userId;
-    final payload = <String, dynamic>{
-      'title': title,
-      'description': description,
-      'photo_url': photoUrl,
-      'latitude': latitude,
-      'longitude': longitude,
-      'accuracy_m': accuracyMeters,
-      'location_label': locationLabel,
-      'user_id': targetUserId,
-      'status': 'pending',
-    }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
-
-    final response = await _client
-        .from('civsnap_reports')
-        .insert(payload)
-        .select(civSnapReportSelectColumns)
-        .single();
-
-    return CivSnapReport.fromJson(response);
+    var includeStatusComment = true;
+    var includeAnonymous = true;
+    while (true) {
+      final payload = <String, dynamic>{
+        'title': title,
+        'description': description,
+        'photo_url': photoUrl,
+        'latitude': latitude,
+        'longitude': longitude,
+        'accuracy_m': accuracyMeters,
+        'location_label': locationLabel,
+        'user_id': targetUserId,
+        'status': 'pending',
+        if (includeAnonymous) 'is_anonymous': isAnonymous,
+      }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
+      try {
+        final response = await _client
+            .from('civsnap_reports')
+            .insert(payload)
+            .select(
+              _reportSelectColumns(
+                includeStatusComment: includeStatusComment,
+                includeAnonymous: includeAnonymous,
+              ),
+            )
+            .single();
+        return CivSnapReport.fromJson(response);
+      } on PostgrestException catch (error) {
+        if (includeAnonymous && isCivSnapAnonymousMissing(error)) {
+          includeAnonymous = false;
+          continue;
+        }
+        if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
+          includeStatusComment = false;
+          continue;
+        }
+        rethrow;
+      }
+    }
   }
 
   Future<List<CivSnapReport>> fetchReports({
@@ -235,12 +298,14 @@ class CivSnapService {
     List<dynamic> response;
     var includeVotes = true;
     var includeStatusComment = true;
+    var includeAnonymous = true;
     while (true) {
       try {
         final query = readClient.from('civsnap_reports').select(
               _reportSelect(
                 includeVotes: includeVotes,
                 includeStatusComment: includeStatusComment,
+                includeAnonymous: includeAnonymous,
               ),
             );
         if (status != null) {
@@ -251,6 +316,10 @@ class CivSnapService {
       } on PostgrestException catch (error) {
         if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
           includeStatusComment = false;
+          continue;
+        }
+        if (includeAnonymous && isCivSnapAnonymousMissing(error)) {
+          includeAnonymous = false;
           continue;
         }
         if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
@@ -278,6 +347,7 @@ class CivSnapService {
     final readClient = _readClient();
     var includeVotes = true;
     var includeStatusComment = true;
+    var includeAnonymous = true;
     while (true) {
       List<dynamic> response;
       try {
@@ -285,6 +355,7 @@ class CivSnapService {
               _reportSelect(
                 includeVotes: includeVotes,
                 includeStatusComment: includeStatusComment,
+                includeAnonymous: includeAnonymous,
               ),
             );
         if (status != null) {
@@ -295,6 +366,10 @@ class CivSnapService {
       } on PostgrestException catch (error) {
         if (includeStatusComment && isCivSnapStatusCommentMissing(error)) {
           includeStatusComment = false;
+          continue;
+        }
+        if (includeAnonymous && isCivSnapAnonymousMissing(error)) {
+          includeAnonymous = false;
           continue;
         }
         if (includeVotes && isCivSnapVotesRelationshipMissing(error)) {
