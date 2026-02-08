@@ -65,6 +65,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
   bool _submitting = false;
   bool _photoMismatch = false;
   bool _voted = false;
+  bool _submitAnonymously = false;
 
   bool get _isAssisting {
     final id = widget.onBehalfUserId?.trim();
@@ -149,6 +150,15 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
                         titleController: _titleController,
                         descriptionController: _descriptionController,
                         locationController: _locationController,
+                      ),
+                      const SizedBox(height: 16),
+                      _AnonymityCard(
+                        isAnonymous: _submitAnonymously,
+                        onChanged: (value) {
+                          setState(() {
+                            _submitAnonymously = value;
+                          });
+                        },
                       ),
                       const SizedBox(height: 16),
                       _GeoTagCard(
@@ -341,6 +351,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
         accuracyMeters: position.accuracy,
         photo: _photo,
         userIdOverride: _isAssisting ? widget.onBehalfUserId : null,
+        isAnonymous: _submitAnonymously,
       );
       if (!mounted) {
         return;
@@ -354,6 +365,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
         _photoMismatch = false;
         _nearbyReport = null;
         _nearbyDistance = null;
+        _submitAnonymously = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Issue submitted. We will keep you posted.')),
@@ -391,6 +403,7 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
           createdAt: report.createdAt,
           status: report.status,
           statusComment: report.statusComment,
+          isAnonymous: report.isAnonymous,
           voteCount: report.voteCount + 1,
         );
       });
@@ -757,6 +770,38 @@ class _GeoTagCard extends StatelessWidget {
             label: Text(loading ? 'Refreshing…' : 'Refresh location'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AnonymityCard extends StatelessWidget {
+  final bool isAnonymous;
+  final ValueChanged<bool> onChanged;
+
+  const _AnonymityCard({
+    required this.isAnonymous,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
+      ),
+      child: SwitchListTile(
+        value: isAnonymous,
+        onChanged: onChanged,
+        title: const Text('Submit anonymously'),
+        subtitle: Text(
+          'Your account is still verified, but your name will not appear in the public issue feed.',
+          style: theme.textTheme.bodySmall,
+        ),
       ),
     );
   }

@@ -1204,6 +1204,7 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Update status'),
                   ),
+                  onTap: () => _showReportDetails(context, report),
                 );
               }).toList(),
             );
@@ -2662,6 +2663,13 @@ class _ReportGrid extends StatelessWidget {
               distanceLabel: distanceLabel,
               isAuthenticated: isAuthenticated,
               onVote: isAuthenticated ? () => onVote(report) : null,
+              onTap: () => _showReportDetails(
+                context,
+                report,
+                distanceLabel: distanceLabel,
+                onVote: isAuthenticated ? () => onVote(report) : null,
+                isAuthenticated: isAuthenticated,
+              ),
             );
           },
         );
@@ -2676,6 +2684,7 @@ class _ReportTile extends StatelessWidget {
   final String? distanceLabel;
   final bool isAuthenticated;
   final VoidCallback? onVote;
+  final VoidCallback? onTap;
 
   const _ReportTile({
     required this.report,
@@ -2683,6 +2692,7 @@ class _ReportTile extends StatelessWidget {
     required this.distanceLabel,
     required this.isAuthenticated,
     required this.onVote,
+    required this.onTap,
   });
 
   @override
@@ -2694,142 +2704,149 @@ class _ReportTile extends StatelessWidget {
       tween: Tween<double>(begin: 0.96, end: 1),
       curve: Curves.easeOutCubic,
       builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: SizedBox(
-                height: imageHeight,
-                width: double.infinity,
-                child: FutureBuilder<String?>(
-                  future: _resolvePhotoUrl(report.photoUrl),
-                  builder: (context, snapshot) {
-                    final photoUrl = snapshot.data;
-                    if (photoUrl == null || photoUrl.trim().isEmpty) {
-                      return Container(
-                        color: theme.colorScheme.surfaceVariant,
-                        alignment: Alignment.center,
-                        child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
-                      );
-                    }
-                    return Image.network(
-                      photoUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: theme.colorScheme.surfaceVariant,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          color: theme.hintColor,
-                          size: 32,
-                        ),
-                      ),
-                    );
-                  },
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.black.withOpacity(0.05)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
                 ),
-              ),
+              ],
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  child: SizedBox(
+                    height: imageHeight,
+                    width: double.infinity,
+                    child: FutureBuilder<String?>(
+                      future: _resolvePhotoUrl(report.photoUrl),
+                      builder: (context, snapshot) {
+                        final photoUrl = snapshot.data;
+                        if (photoUrl == null || photoUrl.trim().isEmpty) {
+                          return Container(
+                            color: theme.colorScheme.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
+                          );
+                        }
+                        return Image.network(
+                          photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: theme.colorScheme.surfaceVariant,
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              color: theme.hintColor,
+                              size: 32,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            report.title,
-                            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                report.title,
+                                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            _StatusPill(status: _normalizeStatus(report.status)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        if (report.description != null && report.description!.isNotEmpty)
+                          Text(
+                            report.description!,
+                            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _ScopeChip(label: scope.regionLabel, icon: Icons.map_outlined),
+                            _ScopeChip(label: scope.corporationLabel, icon: Icons.apartment_outlined),
+                          ],
                         ),
-                        _StatusPill(status: _normalizeStatus(report.status)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (report.description != null && report.description!.isNotEmpty)
-                      Text(
-                        report.description!,
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _ScopeChip(label: scope.regionLabel, icon: Icons.map_outlined),
-                        _ScopeChip(label: scope.corporationLabel, icon: Icons.apartment_outlined),
-                      ],
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            distanceLabel ?? (report.locationLabel ?? 'Location tagged'),
-                            style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          _formatDate(report.createdAt),
-                          style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
-                        onPressed: onVote,
-                        icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
-                        label: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 240),
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.2),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
+                        const Spacer(),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                distanceLabel ?? (report.locationLabel ?? 'Location tagged'),
+                                style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            );
-                          },
-                          child: Text(
-                            isAuthenticated ? '${report.voteCount} votes' : 'Sign in to vote',
-                            key: ValueKey('${report.id}-${report.voteCount}-$isAuthenticated'),
+                            ),
+                            Text(
+                              _formatDate(report.createdAt),
+                              style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton.icon(
+                            onPressed: onVote,
+                            icon: const Icon(Icons.thumb_up_alt_outlined, size: 18),
+                            label: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 240),
+                              transitionBuilder: (child, animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, 0.2),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                isAuthenticated ? '${report.voteCount} votes' : 'Sign in to vote',
+                                key: ValueKey('${report.id}-${report.voteCount}-$isAuthenticated'),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -2869,41 +2886,192 @@ class _ScopeChip extends StatelessWidget {
 class _ReportCard extends StatelessWidget {
   final CivSnapReport report;
   final Widget trailing;
+  final VoidCallback? onTap;
 
-  const _ReportCard({required this.report, required this.trailing});
+  const _ReportCard({
+    required this.report,
+    required this.trailing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.05)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FutureBuilder<String?>(
-            future: _resolvePhotoUrl(report.photoUrl),
-            builder: (context, snapshot) {
-              final photoUrl = snapshot.data;
-              if (photoUrl == null || photoUrl.trim().isEmpty) {
-                return const SizedBox.shrink();
-              }
-              return Column(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FutureBuilder<String?>(
+                future: _resolvePhotoUrl(report.photoUrl),
+                builder: (context, snapshot) {
+                  final photoUrl = snapshot.data;
+                  if (photoUrl == null || photoUrl.trim().isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            photoUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: theme.colorScheme.surfaceVariant,
+                              alignment: Alignment.center,
+                              child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                },
+              ),
+              Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                  Expanded(
+                    child: Text(
+                      report.title,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  _StatusPill(status: _normalizeStatus(report.status)),
+                ],
+              ),
+              if (report.description != null && report.description!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  report.description!,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+              ],
+              if (report.statusComment != null && report.statusComment!.trim().isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Status note: ${report.statusComment!.trim()}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                ),
+              ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      report.locationLabel ?? 'Location tagged',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                    ),
+                  ),
+                  Text(
+                    _formatDate(report.createdAt),
+                    style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerRight, child: trailing),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportDetailSheet extends StatelessWidget {
+  final CivSnapReport report;
+  final String? distanceLabel;
+  final VoidCallback? onVote;
+  final bool isAuthenticated;
+
+  const _ReportDetailSheet({
+    required this.report,
+    required this.distanceLabel,
+    required this.onVote,
+    required this.isAuthenticated,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final description = report.description?.trim();
+    final statusComment = report.statusComment?.trim();
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Issue details',
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _StatusPill(status: _normalizeStatus(report.status)),
+                  _InfoPill(
+                    label: report.isAnonymous ? 'Anonymous reporter' : 'Reporter verified',
+                    icon: report.isAnonymous ? Icons.visibility_off_outlined : Icons.verified_outlined,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              FutureBuilder<String?>(
+                future: _resolvePhotoUrl(report.photoUrl),
+                builder: (context, snapshot) {
+                  final photoUrl = snapshot.data;
+                  if (photoUrl == null || photoUrl.trim().isEmpty) {
+                    return Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        color: theme.colorScheme.surfaceVariant,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(Icons.image_outlined, color: theme.hintColor, size: 36),
+                    );
+                  }
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: Image.network(
@@ -2912,60 +3080,140 @@ class _ReportCard extends StatelessWidget {
                         errorBuilder: (_, __, ___) => Container(
                           color: theme.colorScheme.surfaceVariant,
                           alignment: Alignment.center,
-                          child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor),
+                          child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor, size: 36),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              );
-            },
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  report.title,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                  );
+                },
               ),
-              _StatusPill(status: _normalizeStatus(report.status)),
+              const SizedBox(height: 16),
+              Text(
+                report.title,
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description == null || description.isEmpty
+                    ? 'No additional description provided.'
+                    : description,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+              ),
+              if (statusComment != null && statusComment.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Status note',
+                  style: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  statusComment,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+              const SizedBox(height: 16),
+              _ReportDetailRow(
+                icon: Icons.place_outlined,
+                label: 'Location',
+                value: distanceLabel ?? (report.locationLabel ?? 'Location tagged'),
+              ),
+              const SizedBox(height: 8),
+              _ReportDetailRow(
+                icon: Icons.event_outlined,
+                label: 'Reported',
+                value: _formatDate(report.createdAt),
+              ),
+              const SizedBox(height: 8),
+              _ReportDetailRow(
+                icon: Icons.thumb_up_alt_outlined,
+                label: 'Community votes',
+                value: report.voteCount.toString(),
+              ),
+              if (onVote != null) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onVote,
+                    icon: const Icon(Icons.thumb_up_alt_outlined),
+                    label: Text(isAuthenticated ? 'Vote for this issue' : 'Sign in to vote'),
+                  ),
+                ),
+              ],
             ],
           ),
-          if (report.description != null && report.description!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              report.description!,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-            ),
-          ],
-          if (report.statusComment != null && report.statusComment!.trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Status note: ${report.statusComment!.trim()}',
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Row(
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportDetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ReportDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: theme.hintColor),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.location_on_outlined, size: 16, color: theme.hintColor),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  report.locationLabel ?? 'Location tagged',
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
-                ),
-              ),
               Text(
-                _formatDate(report.createdAt),
+                label,
                 style: theme.textTheme.labelSmall?.copyWith(color: theme.hintColor),
               ),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium,
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Align(alignment: Alignment.centerRight, child: trailing),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+
+  const _InfoPill({required this.label, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: theme.colorScheme.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -3233,6 +3481,30 @@ String _normalizeStatus(String status) {
     return 'in_progress';
   }
   return lower;
+}
+
+void _showReportDetails(
+  BuildContext context,
+  CivSnapReport report, {
+  String? distanceLabel,
+  VoidCallback? onVote,
+  bool isAuthenticated = false,
+}) {
+  final theme = Theme.of(context);
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: theme.colorScheme.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (_) => _ReportDetailSheet(
+      report: report,
+      distanceLabel: distanceLabel,
+      onVote: onVote,
+      isAuthenticated: isAuthenticated,
+    ),
+  );
 }
 
 Map<String, int> _normalizeStatusCounts(Map<String, int> raw) {
