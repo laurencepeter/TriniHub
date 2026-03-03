@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
@@ -214,18 +215,27 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
-    var requestedSource = source;
-    if (source == ImageSource.camera) {
-      final supportsCamera = await _imagePicker.supportsImageSource(ImageSource.camera);
-      if (!supportsCamera) {
-        requestedSource = ImageSource.gallery;
+    XFile? file;
+    var usedFallback = false;
+
+    try {
+      file = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+    } on PlatformException {
+      if (source == ImageSource.camera) {
+        usedFallback = true;
+        file = await _imagePicker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+      } else {
+        rethrow;
       }
     }
-    final file = await _imagePicker.pickImage(
-      source: requestedSource,
-      imageQuality: 85,
-      preferredCameraDevice: CameraDevice.rear,
-    );
+
     if (file == null) {
       return;
     }
@@ -234,9 +244,9 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
       _photo = file;
       _photoBytes = bytes;
     });
-    if (source == ImageSource.camera && requestedSource != ImageSource.camera && mounted) {
+    if (usedFallback && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera unavailable on this device. Choose a photo instead.')),
+        const SnackBar(content: Text('Camera unavailable. Choose a photo from your gallery instead.')),
       );
     }
   }
