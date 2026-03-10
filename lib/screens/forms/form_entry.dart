@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_app_tt/services/forms_service.dart';
+import 'package:local_app_tt/utils/web_camera.dart';
 
 class FormEntryScreen extends StatefulWidget {
   final FormTemplate form;
@@ -104,7 +106,9 @@ class _FormEntryScreenState extends State<FormEntryScreen> {
   }
 
   Future<void> _capturePhoto(FormFieldTemplate field) async {
-    final file = await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    final file = kIsWeb
+        ? await captureFromWebCamera()
+        : await _imagePicker.pickImage(source: ImageSource.camera, imageQuality: 85);
     if (file == null) return;
     setState(() {
       _photoFiles[field.id] = file;
