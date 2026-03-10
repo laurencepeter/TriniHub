@@ -1,12 +1,14 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
+import 'package:local_app_tt/utils/web_camera.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class IssueSnapScreen extends StatefulWidget {
@@ -216,23 +218,34 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
 
   Future<void> _pickPhoto(ImageSource source) async {
     XFile? file;
-    var usedFallback = false;
 
-    try {
-      file = await _imagePicker.pickImage(
-        source: source,
-        imageQuality: 85,
-        preferredCameraDevice: CameraDevice.rear,
-      );
-    } on PlatformException {
-      if (source == ImageSource.camera) {
-        usedFallback = true;
+    // On web, image_picker does not support ImageSource.camera — it falls back
+    // to a plain file-browser.  Instead we create an <input capture="environment">
+    // element directly so the browser opens the camera (on mobile) or prompts
+    // for webcam access (on desktop).
+    if (kIsWeb && source == ImageSource.camera) {
+      file = await captureFromWebCamera();
+    } else {
+      try {
         file = await _imagePicker.pickImage(
-          source: ImageSource.gallery,
+          source: source,
           imageQuality: 85,
+          preferredCameraDevice: CameraDevice.rear,
         );
-      } else {
-        rethrow;
+      } on PlatformException {
+        if (source == ImageSource.camera) {
+          file = await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Camera unavailable. Choose a photo from your gallery instead.')),
+            );
+          }
+        } else {
+          rethrow;
+        }
       }
     }
 
@@ -244,11 +257,6 @@ class _IssueSnapScreenState extends State<IssueSnapScreen> {
       _photo = file;
       _photoBytes = bytes;
     });
-    if (usedFallback && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Camera unavailable. Choose a photo from your gallery instead.')),
-      );
-    }
   }
 
   Future<void> _refreshLocation() async {
