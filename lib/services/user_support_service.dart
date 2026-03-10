@@ -486,7 +486,7 @@ class UserSupportService {
     try {
       response = await readClient
           .from('civsnap_reports')
-          .select(civSnapReportSelectColumnsWithVotes)
+          .select('id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,is_anonymous,created_at,civsnap_votes(count)')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
     } on PostgrestException catch (error) {
@@ -495,7 +495,7 @@ class UserSupportService {
       }
       response = await readClient
           .from('civsnap_reports')
-          .select(civSnapReportSelectColumns)
+          .select('id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,is_anonymous,created_at')
           .eq('user_id', userId)
           .order('created_at', ascending: false);
     }
