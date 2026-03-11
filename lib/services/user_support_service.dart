@@ -107,6 +107,12 @@ class UserSupportService {
 
   SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
+  static const String civSnapReportSelectColumns =
+      'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,is_anonymous,created_at';
+
+  static const String civSnapReportSelectColumnsWithVotes =
+      'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,is_anonymous,created_at,civsnap_votes(count)';
+
   DateTime? _parseSupabaseTimestamp(String? timestamp) {
     if (timestamp == null || timestamp.trim().isEmpty) {
       return null;
