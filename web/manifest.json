@@ -1,11 +1,11 @@
 {
     "name": "TriniHub",
-    "short_name": "Trini Hub",
+    "short_name": "TriniHub",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#EDE8D8",
+    "theme_color": "#1D2B3A",
+    "description": "TriniHub — your Trinidad & Tobago community platform.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
