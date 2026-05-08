@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Warm cream background with rounded corners -->
+  <rect width="512" height="512" rx="115" fill="#EDE8D8"/>
+
+  <!-- Left red plume — sweeps up and to the left -->
+  <path d="M208,270 C197,242 180,207 160,170 C143,136 122,108 98,84"
+        stroke="#C41E2C" stroke-width="16" fill="none" stroke-linecap="round"/>
+
+  <!-- Middle red plume — goes up and slightly left -->
+  <path d="M222,263 C216,233 208,198 200,162 C192,128 185,100 178,76"
+        stroke="#C41E2C" stroke-width="16" fill="none" stroke-linecap="round"/>
+
+  <!-- Right dark navy plume — rises nearly straight up -->
+  <path d="M237,258 C235,226 233,191 230,156 C228,121 225,92 221,68"
+        stroke="#1D2B3A" stroke-width="14" fill="none" stroke-linecap="round"/>
+
+  <!-- Red tail fan at the back of the body -->
+  <path d="M98,338 C82,352 70,368 76,384 C82,398 98,390 106,374
+           C114,386 120,396 132,390 C144,382 134,364 122,352 Z"
+        fill="#C41E2C"/>
+
+  <!-- Bird body — dark navy elongated oval, head tilted up slightly -->
+  <ellipse cx="218" cy="318" rx="132" ry="56" fill="#1D2B3A"
+           transform="rotate(-9 218 318)"/>
+
+  <!-- Golden beak — long tapered triangle pointing right -->
+  <path d="M340,300 L414,284 L340,310 Z" fill="#F0C020"/>
+
+  <!-- White eye dot -->
+  <circle cx="330" cy="294" r="9" fill="#FFFFFF"/>
+</svg>
