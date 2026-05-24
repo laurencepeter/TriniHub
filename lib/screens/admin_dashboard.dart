@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/screens/audit_logs.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
+import 'package:local_app_tt/screens/notifications_inbox.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -259,6 +261,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     icon: Icons.pets_outlined,
                     color: theme.colorScheme.secondary,
                     onTap: () => Navigator.of(context).push(DogRegistrationScreen.route()),
+                  ),
+                  _ServiceActionCard(
+                    title: 'Audit Logs',
+                    subtitle: 'Every admin and corporation change, captured.',
+                    icon: Icons.fact_check_outlined,
+                    color: theme.colorScheme.tertiary,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuditLogsScreen()),
+                    ),
+                  ),
+                  _ServiceActionCard(
+                    title: 'Notifications inbox',
+                    subtitle: 'Reports assigned to municipalities and status alerts.',
+                    icon: Icons.notifications_outlined,
+                    color: theme.colorScheme.primary,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const NotificationsInboxScreen()),
+                    ),
                   ),
                 ],
               ),

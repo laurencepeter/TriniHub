@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:local_app_tt/services/audit_log_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegionOption {
@@ -321,11 +322,128 @@ class FormsService {
           .toList();
       await _client.from('form_fields').insert(fieldPayloads);
     }
+    AuditLogService.instance.record(
+      action: 'form.created',
+      entityType: 'form_template',
+      entityId: form.id,
+      summary: '${form.title} (${form.scope}/${form.status})',
+      metadata: {'field_count': fields.length},
+    );
+    return form;
+  }
+
+  Future<FormTemplate?> fetchFormById(String formId) async {
+    final response = await _client
+        .from('form_templates')
+        .select(
+          'id,title,description,scope,status,pdf_output_bucket,region_id,created_at,updated_at,created_by,region:corporations(name)',
+        )
+        .eq('id', formId)
+        .maybeSingle();
+    if (response is! Map<String, dynamic>) return null;
+    return FormTemplate.fromJson(response);
+  }
+
+  Future<FormTemplate> updateForm({
+    required String formId,
+    required String title,
+    required String description,
+    required String scope,
+    required String status,
+    String? regionId,
+    String? pdfBucket,
+    required List<FormFieldDraft> fields,
+  }) async {
+    final before = await fetchFormById(formId);
+    final payload = <String, dynamic>{
+      'title': title,
+      'description': description,
+      'scope': scope,
+      'status': status,
+      'pdf_output_bucket': pdfBucket,
+      'region_id': regionId,
+    };
+    final updated = await _client
+        .from('form_templates')
+        .update(payload)
+        .eq('id', formId)
+        .select(
+          'id,title,description,scope,status,pdf_output_bucket,region_id,created_at,updated_at,created_by,region:corporations(name)',
+        )
+        .single();
+    if (updated is! Map<String, dynamic>) {
+      throw const PostgrestException(message: 'Unable to update form.');
+    }
+
+    await _client.from('form_fields').delete().eq('form_id', formId);
+    if (fields.isNotEmpty) {
+      final fieldPayloads = fields
+          .map((field) => {
+                'form_id': formId,
+                'label': field.label,
+                'field_type': field.fieldType,
+                'is_required': field.isRequired,
+                'options': field.options,
+                'position': field.position,
+              })
+          .toList();
+      await _client.from('form_fields').insert(fieldPayloads);
+    }
+
+    final form = FormTemplate.fromJson(updated);
+    AuditLogService.instance.record(
+      action: 'form.updated',
+      entityType: 'form_template',
+      entityId: formId,
+      summary: '${form.title} (${form.scope}/${form.status})',
+      beforeData: before == null
+          ? null
+          : {
+              'title': before.title,
+              'description': before.description,
+              'scope': before.scope,
+              'status': before.status,
+            },
+      afterData: {
+        'title': title,
+        'description': description,
+        'scope': scope,
+        'status': status,
+        'field_count': fields.length,
+      },
+    );
     return form;
   }
 
   Future<void> updateFormStatus({required String formId, required String status}) async {
+    String? previousStatus;
+    String? title;
+    try {
+      final existing = await _client
+          .from('form_templates')
+          .select('status,title')
+          .eq('id', formId)
+          .maybeSingle();
+      if (existing is Map<String, dynamic>) {
+        previousStatus = existing['status'] as String?;
+        title = existing['title'] as String?;
+      }
+    } catch (_) {}
     await _client.from('form_templates').update({'status': status}).eq('id', formId);
+
+    final action = status == 'published'
+        ? 'form.published'
+        : status == 'archived'
+            ? 'form.archived'
+            : 'form.unpublished';
+    AuditLogService.instance.record(
+      action: action,
+      entityType: 'form_template',
+      entityId: formId,
+      summary: title ?? formId,
+      beforeData: {'status': previousStatus},
+      afterData: {'status': status},
+    );
   }
 
   Future<List<FormSubmissionSummary>> fetchSubmissions({String? scope}) async {

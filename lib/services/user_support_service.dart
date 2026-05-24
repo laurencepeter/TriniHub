@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:functions_client/functions_client.dart';
+import 'package:local_app_tt/services/audit_log_service.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
@@ -438,6 +439,14 @@ class UserSupportService {
       organization: corporationName,
     );
 
+    AuditLogService.instance.record(
+      action: 'user.created',
+      entityType: 'user_profile',
+      entityId: userId,
+      summary: '${email.trim()} · ${role.label}',
+      metadata: {'organization': corporationName, 'display_name': displayName},
+    );
+
     return SupportUser(
       userId: userId,
       role: role,
@@ -549,10 +558,28 @@ class UserSupportService {
       );
       await adminClient.auth.admin.updateUserById(userId, attributes: attributes);
     }
+
+    AuditLogService.instance.record(
+      action: 'user.updated',
+      entityType: 'user_profile',
+      entityId: userId,
+      summary: '${role.label}${corporationName != null ? ' · $corporationName' : ''}',
+      afterData: {
+        'role': role.value,
+        'organization': corporationName,
+        'corporation_id': corporationId,
+        'display_name': displayName,
+      },
+    );
   }
 
   Future<void> deleteUserRole(String userId) async {
     await _client.from('user_profiles').delete().eq('user_id', userId);
+    AuditLogService.instance.record(
+      action: 'user.role_deleted',
+      entityType: 'user_profile',
+      entityId: userId,
+    );
   }
 
   Future<void> updateOwnerProfile({

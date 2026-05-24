@@ -438,14 +438,17 @@ class _AdminPanelState extends State<_AdminPanel> {
     });
   }
 
-  Future<void> _openBuilder() async {
-    final created = await Navigator.push<bool>(
+  Future<void> _openBuilder({String? editFormId}) async {
+    final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => FormBuilderScreen(initialScope: widget.scope),
+        builder: (_) => FormBuilderScreen(
+          initialScope: widget.scope,
+          editFormId: editFormId,
+        ),
       ),
     );
-    if (created == true) {
+    if (changed == true) {
       _refresh();
     }
   }
@@ -454,6 +457,15 @@ class _AdminPanelState extends State<_AdminPanel> {
     final newStatus = template.status == 'published' ? 'draft' : 'published';
     await widget.formsService.updateFormStatus(formId: template.id, status: newStatus);
     _refresh();
+  }
+
+  void _showPublishedEditWarning(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Unpublish this form before editing it.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -554,9 +566,26 @@ class _AdminPanelState extends State<_AdminPanel> {
                           ],
                         ),
                       ),
-                      TextButton(
-                        onPressed: () => _togglePublish(template),
-                        child: Text(template.status == 'published' ? 'Unpublish' : 'Publish'),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton.icon(
+                            onPressed: template.status == 'published'
+                                ? () => _showPublishedEditWarning(context)
+                                : () => _openBuilder(editFormId: template.id),
+                            icon: const Icon(Icons.edit_outlined, size: 16),
+                            label: const Text('Edit'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: template.status == 'published'
+                                  ? theme.disabledColor
+                                  : theme.colorScheme.primary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => _togglePublish(template),
+                            child: Text(template.status == 'published' ? 'Unpublish' : 'Publish'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:local_app_tt/services/audit_log_service.dart';
+import 'package:local_app_tt/services/boundary_service.dart';
+import 'package:local_app_tt/services/notification_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CivSnapReport {
@@ -248,9 +251,14 @@ class CivSnapService {
       photoUrl = await _uploadPhoto(photo, userId);
     }
 
+    final municipality = await _safeFindMunicipality(latitude, longitude);
+
     final targetUserId = userIdOverride ?? userId;
     var includeStatusComment = true;
     var includeAnonymous = true;
+    var includeCorporation = municipality?.corporationId != null;
+    CivSnapReport? created;
+    String? createdId;
     while (true) {
       final payload = <String, dynamic>{
         'title': title,
@@ -263,6 +271,8 @@ class CivSnapService {
         'user_id': targetUserId,
         'status': 'pending',
         if (includeAnonymous) 'is_anonymous': isAnonymous,
+        if (includeCorporation) 'corporation_id': municipality!.corporationId,
+        if (includeCorporation) 'assigned_at': DateTime.now().toIso8601String(),
       }..removeWhere((key, value) => value == null || (value is String && value.isEmpty));
       try {
         final response = await _client
@@ -275,7 +285,9 @@ class CivSnapService {
               ),
             )
             .single();
-        return CivSnapReport.fromJson(response);
+        created = CivSnapReport.fromJson(response);
+        createdId = response is Map<String, dynamic> ? response['id'] as String? : null;
+        break;
       } on PostgrestException catch (error) {
         if (includeAnonymous && isCivSnapAnonymousMissing(error)) {
           includeAnonymous = false;
@@ -285,9 +297,63 @@ class CivSnapService {
           includeStatusComment = false;
           continue;
         }
+        if (includeCorporation && _isCorporationColumnMissing(error)) {
+          includeCorporation = false;
+          continue;
+        }
         rethrow;
       }
     }
+
+    final reportId = createdId ?? created!.id;
+    final summaryLabel = municipality != null
+        ? 'Assigned to ${municipality.name}'
+        : 'No municipality boundary matched';
+
+    AuditLogService.instance.record(
+      action: 'civsnap.report.created',
+      entityType: 'civsnap_report',
+      entityId: reportId,
+      summary: '$title · $summaryLabel',
+      metadata: {
+        'corporation_id': municipality?.corporationId,
+        'corporation_name': municipality?.name,
+        'is_anonymous': isAnonymous,
+        'submitted_by': targetUserId,
+      },
+    );
+
+    if (municipality?.corporationId != null) {
+      NotificationService.instance.notifyCorporation(
+        corporationId: municipality!.corporationId!,
+        title: 'New CivSnap report: $title',
+        body: locationLabel ?? municipality.name,
+        category: 'civsnap',
+        entityType: 'civsnap_report',
+        entityId: reportId,
+        metadata: {
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+      );
+    }
+    return created!;
+  }
+
+  Future<MunicipalityMatch?> _safeFindMunicipality(double lat, double lng) async {
+    try {
+      return await BoundaryService.instance.findMunicipality(
+        latitude: lat,
+        longitude: lng,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  bool _isCorporationColumnMissing(PostgrestException error) {
+    final msg = error.message.toLowerCase();
+    return (msg.contains('corporation_id') || msg.contains('assigned_at')) && msg.contains('column');
   }
 
   Future<List<CivSnapReport>> fetchReports({
@@ -412,12 +478,48 @@ class CivSnapService {
     required String status,
     String? statusComment,
   }) async {
+    String? previousStatus;
+    String? reporterId;
+    String? title;
+    try {
+      final existing = await _client
+          .from('civsnap_reports')
+          .select('status,user_id,title')
+          .eq('id', reportId)
+          .maybeSingle();
+      if (existing is Map<String, dynamic>) {
+        previousStatus = existing['status'] as String?;
+        reporterId = existing['user_id'] as String?;
+        title = existing['title'] as String?;
+      }
+    } catch (_) {}
+
     final payload = <String, dynamic>{'status': status};
     if (statusComment != null) {
       final trimmed = statusComment.trim();
       payload['status_comment'] = trimmed.isEmpty ? null : trimmed;
     }
     await _client.from('civsnap_reports').update(payload).eq('id', reportId);
+
+    AuditLogService.instance.record(
+      action: 'civsnap.report.status_updated',
+      entityType: 'civsnap_report',
+      entityId: reportId,
+      summary: 'Status: ${previousStatus ?? 'unknown'} → $status',
+      beforeData: {'status': previousStatus},
+      afterData: {'status': status, 'status_comment': statusComment},
+    );
+
+    if (reporterId != null) {
+      NotificationService.instance.notifyUser(
+        userId: reporterId,
+        title: 'Update on your report${title != null ? ': $title' : ''}',
+        body: 'New status: $status${statusComment != null && statusComment.trim().isNotEmpty ? ' · $statusComment' : ''}',
+        category: 'civsnap',
+        entityType: 'civsnap_report',
+        entityId: reportId,
+      );
+    }
   }
 
   Future<void> voteForReport(String reportId) async {
