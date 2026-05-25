@@ -48,11 +48,15 @@ Color _fieldTypeColor(String type, ColorScheme colors) {
 
 class FormBuilderScreen extends StatefulWidget {
   final String initialScope;
+  final String? editFormId;
 
   const FormBuilderScreen({
     super.key,
     required this.initialScope,
+    this.editFormId,
   });
+
+  bool get isEditMode => editFormId != null;
 
   @override
   State<FormBuilderScreen> createState() => _FormBuilderScreenState();
@@ -72,6 +76,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
   bool _loadingRegions = false;
   bool _submitting = false;
   bool _success = false;
+  bool _loadingExisting = false;
   final List<_FieldDraftState> _fields = [];
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
@@ -91,7 +96,49 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
     super.initState();
     _scope = widget.initialScope;
     _loadRegions();
+    if (widget.isEditMode) {
+      _loadExisting();
+    }
     _setupEntranceAnimations();
+  }
+
+  Future<void> _loadExisting() async {
+    setState(() => _loadingExisting = true);
+    try {
+      final form = await _formsService.fetchFormById(widget.editFormId!);
+      final fields = await _formsService.fetchFields(widget.editFormId!);
+      if (!mounted) return;
+      setState(() {
+        if (form != null) {
+          _titleController.text = form.title;
+          _descriptionController.text = form.description;
+          _scope = form.scope;
+          _status = form.status;
+          _regionId = form.regionId;
+          _pdfBucketController.text = form.pdfBucket ?? '';
+        }
+        _fields.clear();
+        for (final field in fields) {
+          _fields.add(_FieldDraftState()
+            ..label = field.label
+            ..type = field.fieldType
+            ..required = field.isRequired
+            ..options = List<String>.from(field.options));
+        }
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (var i = 0; i < _fields.length; i++) {
+          _listKey.currentState?.insertItem(i, duration: Duration.zero);
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load form: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingExisting = false);
+    }
   }
 
   void _setupEntranceAnimations() {
@@ -244,17 +291,32 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
     }
 
     try {
-      await _formsService.createForm(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        scope: _scope,
-        status: _status,
-        regionId: _scope == 'internal' ? _regionId : null,
-        pdfBucket: _pdfBucketController.text.trim().isEmpty
-            ? null
-            : _pdfBucketController.text.trim(),
-        fields: drafts,
-      );
+      if (widget.isEditMode) {
+        await _formsService.updateForm(
+          formId: widget.editFormId!,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          scope: _scope,
+          status: _status,
+          regionId: _scope == 'internal' ? _regionId : null,
+          pdfBucket: _pdfBucketController.text.trim().isEmpty
+              ? null
+              : _pdfBucketController.text.trim(),
+          fields: drafts,
+        );
+      } else {
+        await _formsService.createForm(
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          scope: _scope,
+          status: _status,
+          regionId: _scope == 'internal' ? _regionId : null,
+          pdfBucket: _pdfBucketController.text.trim().isEmpty
+              ? null
+              : _pdfBucketController.text.trim(),
+          fields: drafts,
+        );
+      }
       if (mounted) {
         setState(() {
           _success = true;
@@ -329,7 +391,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Create Form',
+                  widget.isEditMode ? 'Edit Form' : 'Create Form',
                   style: theme.textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
@@ -574,6 +636,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
                   key: const ValueKey('save'),
                   submitting: _submitting,
                   onPressed: _submit,
+                  label: widget.isEditMode ? 'Update Form' : 'Save Form',
                 ),
         ),
       ),
@@ -847,9 +910,14 @@ class _AddFieldButtonState extends State<_AddFieldButton>
 class _SaveButton extends StatelessWidget {
   final bool submitting;
   final VoidCallback onPressed;
+  final String label;
 
-  const _SaveButton(
-      {super.key, required this.submitting, required this.onPressed});
+  const _SaveButton({
+    super.key,
+    required this.submitting,
+    required this.onPressed,
+    this.label = 'Save Form',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -882,7 +950,7 @@ class _SaveButton extends StatelessWidget {
                     const Icon(Icons.save_alt_rounded, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Save Form',
+                      label,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: theme.colorScheme.onPrimary,
                         fontWeight: FontWeight.w700,
@@ -954,7 +1022,7 @@ class _SuccessButtonState extends State<_SuccessButton>
                     color: Colors.white, size: 22),
                 const SizedBox(width: 8),
                 Text(
-                  'Form Saved!',
+                  'Saved!',
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

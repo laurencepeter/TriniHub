@@ -1,0 +1,126 @@
+{
+  "type": "FeatureCollection",
+  "_comment": "Placeholder boundary file for the 14 Trinidad and Tobago municipal/regional corporations. Replace polygon coordinates with your actual boundary data. Each feature must include properties.name matching the corporations.name in Supabase so the boundary service can match. Optionally set properties.corporation_id to bind to a specific UUID.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "City of Port of Spain", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.55, 10.62], [-61.48, 10.62], [-61.48, 10.70], [-61.55, 10.70], [-61.55, 10.62]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "City of San Fernando", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.49, 10.25], [-61.43, 10.25], [-61.43, 10.31], [-61.49, 10.31], [-61.49, 10.25]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "City of Chaguanas", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.48, 10.50], [-61.40, 10.50], [-61.40, 10.55], [-61.48, 10.55], [-61.48, 10.50]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Borough of Arima", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.30, 10.62], [-61.25, 10.62], [-61.25, 10.66], [-61.30, 10.66], [-61.30, 10.62]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Borough of Point Fortin", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.70, 10.15], [-61.65, 10.15], [-61.65, 10.20], [-61.70, 10.20], [-61.70, 10.15]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Diego Martin Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.65, 10.65], [-61.55, 10.65], [-61.55, 10.80], [-61.65, 10.80], [-61.65, 10.65]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "San Juan-Laventille Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.48, 10.62], [-61.42, 10.62], [-61.42, 10.72], [-61.48, 10.72], [-61.48, 10.62]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Tunapuna-Piarco Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.42, 10.55], [-61.30, 10.55], [-61.30, 10.75], [-61.42, 10.75], [-61.42, 10.55]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Sangre Grande Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.25, 10.45], [-61.00, 10.45], [-61.00, 10.80], [-61.25, 10.80], [-61.25, 10.45]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Couva-Tabaquite-Talparo Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.50, 10.35], [-61.25, 10.35], [-61.25, 10.50], [-61.50, 10.50], [-61.50, 10.35]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Princes Town Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.40, 10.18], [-61.20, 10.18], [-61.20, 10.30], [-61.40, 10.30], [-61.40, 10.18]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Mayaro-Rio Claro Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.20, 10.10], [-60.95, 10.10], [-60.95, 10.45], [-61.20, 10.45], [-61.20, 10.10]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Penal-Debe Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.55, 10.10], [-61.40, 10.10], [-61.40, 10.25], [-61.55, 10.25], [-61.55, 10.10]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Siparia Regional Corporation", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-61.70, 10.05], [-61.50, 10.05], [-61.50, 10.20], [-61.70, 10.20], [-61.70, 10.05]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Tobago House of Assembly", "corporation_id": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-60.85, 11.10], [-60.50, 11.10], [-60.50, 11.40], [-60.85, 11.40], [-60.85, 11.10]]]
+      }
+    }
+  ]
+}

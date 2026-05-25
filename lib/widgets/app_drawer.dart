@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/about.dart';
 import 'package:local_app_tt/screens/admin_dashboard.dart';
+import 'package:local_app_tt/screens/audit_logs.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/notifications_inbox.dart';
 import 'package:local_app_tt/screens/profile.dart';
 import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/settings.dart';
@@ -98,6 +100,7 @@ class _AppDrawerState extends State<AppDrawer> {
             initialData: _cachedRole,
             builder: (context, snapshot) {
               final role = snapshot.data ?? AppRole.public;
+              final showNotifications = role != AppRole.public;
               final adminSection = role == AppRole.admin
                   ? Column(
                       key: const ValueKey('admin-section'),
@@ -128,27 +131,74 @@ class _AppDrawerState extends State<AppDrawer> {
                             );
                           },
                         ),
+                        ListTile(
+                          title: const Text('Audit Logs'),
+                          leading: const Icon(Icons.fact_check_outlined),
+                          onTap: () {
+                            navigateTo(
+                              AdminGate(
+                                child: ResponsiveScaffold(
+                                  childBuilder: (device) => const AuditLogsScreen(),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         const Divider(),
                       ],
                     )
                   : const SizedBox(
                       key: ValueKey('no-admin-section'),
                     );
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) {
-                  return SizeTransition(
-                    sizeFactor: animation,
-                    axisAlignment: -1,
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
-                  );
-                },
-                child: adminSection,
+              final notificationsTile = showNotifications
+                  ? ListTile(
+                      key: const ValueKey('notifications-tile'),
+                      title: const Text('Notifications'),
+                      leading: const Icon(Icons.notifications_outlined),
+                      onTap: () {
+                        navigateTo(
+                          ResponsiveScaffold(
+                            childBuilder: (device) => const NotificationsInboxScreen(),
+                          ),
+                        );
+                      },
+                    )
+                  : const SizedBox(key: ValueKey('no-notifications-tile'));
+              return Column(
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) {
+                      return SizeTransition(
+                        sizeFactor: animation,
+                        axisAlignment: -1,
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: adminSection,
+                  ),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) {
+                      return SizeTransition(
+                        sizeFactor: animation,
+                        axisAlignment: -1,
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: notificationsTile,
+                  ),
+                ],
               );
             },
           ),
