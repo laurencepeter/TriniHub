@@ -95,7 +95,13 @@ do update set role = 'admin';
    - `SUPABASE_URL=your-project-url`
    - `SUPABASE_ANON_KEY=your-anon-key`
    - `SUPABASE_RESET_REDIRECT=trinihub://recovery` (optional)
-   - `SUPABASE_SERVICE_ROLE_KEY=your-service-role-key` (optional, debug only)
+
+   Never put `SUPABASE_SERVICE_ROLE_KEY` in the app environment — the client
+   no longer reads it. Privileged operations run in the Supabase Edge
+   Functions under `supabase/functions/` (`admin-create-user`,
+   `admin-update-user`), which verify the caller is an admin and keep the
+   service-role key server-side. Deploy them with
+   `supabase functions deploy <name>`.
 2. Install dependencies:
    - `flutter pub get`
 3. Run the app:
@@ -111,7 +117,8 @@ do update set role = 'admin';
 ### Password reset / manual-user activation
 1. From the Login page, select **Forgot password / Set password**.
 2. Enter an email to trigger the password reset email.
-3. In debug mode, enable **Dev mode** to log the recovery link if `SUPABASE_SERVICE_ROLE_KEY` is set.
-4. Follow the link to open the in-app **Set New Password** screen and complete the reset.
+3. Follow the link to open the in-app **Set New Password** screen and complete the reset.
+   (To inspect recovery links during development, use the Supabase dashboard's
+   Auth logs instead of embedding admin keys in the app.)
           
           

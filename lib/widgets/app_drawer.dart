@@ -3,7 +3,6 @@ import 'package:local_app_tt/screens/about.dart';
 import 'package:local_app_tt/screens/admin_dashboard.dart';
 import 'package:local_app_tt/screens/audit_logs.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/home.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/notifications_inbox.dart';
 import 'package:local_app_tt/screens/profile.dart';
@@ -11,7 +10,9 @@ import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
@@ -49,12 +50,11 @@ class _AppDrawerState extends State<AppDrawer> {
       }
     }
 
+    // Sections replace each other on top of the signed-in root, so the
+    // back button always returns home instead of dead-ending.
     void navigateTo(Widget page) {
       closeDrawer();
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => page),
-      );
+      AppNavigation.goToSectionPage(context, page);
     }
 
     return Drawer(
@@ -88,11 +88,8 @@ class _AppDrawerState extends State<AppDrawer> {
             title: const Text('Home'),
             leading: const Icon(Icons.home_rounded),
             onTap: () {
-              navigateTo(
-                ResponsiveScaffold(
-                  childBuilder: (device) => HomePage(device: device),
-                ),
-              );
+              closeDrawer();
+              AppNavigation.goHome(context);
             },
           ),
           FutureBuilder<AppRole>(
@@ -256,14 +253,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 onTap: () {
                   closeDrawer();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ResponsiveScaffold(
-                        childBuilder: (device) => InternalServices(),
-                      ),
-                    ),
-                  );
+                  AppNavigation.goToSection(context, (device) => InternalServices());
                 },
               ),
               for (final option in internalServiceOptions)
@@ -286,14 +276,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 onTap: () {
                   closeDrawer();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ResponsiveScaffold(
-                        childBuilder: (device) => ExternalServices(),
-                      ),
-                    ),
-                  );
+                  AppNavigation.goToSection(context, (device) => ExternalServices());
                 },
               ),
               for (final option in externalServiceOptions)
@@ -307,7 +290,6 @@ class _AppDrawerState extends State<AppDrawer> {
                 ),
             ],
           ),
-          const Divider(),
           const Divider(),
           ListTile(
             title: const Text('Log Out'),
@@ -341,9 +323,11 @@ class _AppDrawerState extends State<AppDrawer> {
                   );
                 }
               } catch (e) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(mapSupabaseError(e))),
+                  );
+                }
               }
             },
           ),

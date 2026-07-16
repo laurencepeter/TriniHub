@@ -1,4 +1,3 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuditLogEntry {
@@ -61,13 +60,6 @@ class AuditLogService {
 
   SupabaseClient get _client => Supabase.instance.client;
 
-  SupabaseClient? _buildServiceRoleClient() {
-    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
-    final key = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
-        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-    if (url.trim().isEmpty || key.trim().isEmpty) return null;
-    return SupabaseClient(url, key);
-  }
 
   Future<void> record({
     required String action,
@@ -107,7 +99,7 @@ class AuditLogService {
     String? actorId,
     DateTime? since,
   }) async {
-    final readClient = _buildServiceRoleClient() ?? _client;
+    final readClient = _client;
     var query = readClient.from('audit_logs').select();
     if (action != null && action.isNotEmpty) {
       query = query.eq('action', action);
@@ -130,7 +122,7 @@ class AuditLogService {
   }
 
   Future<List<String>> fetchActions({int limit = 500}) async {
-    final readClient = _buildServiceRoleClient() ?? _client;
+    final readClient = _client;
     final response = await readClient
         .from('audit_logs')
         .select('action')

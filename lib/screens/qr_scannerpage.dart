@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/file_scan_service.dart';
 
@@ -59,7 +60,7 @@ class _QRScannerPageState extends State<QRScannerPage> {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Failed to record scan: $e')));
+          ).showSnackBar(SnackBar(content: Text('Failed to record scan: ${mapSupabaseError(e)}')));
         }
       }
       print('Scanned QR Code: $code');

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:functions_client/functions_client.dart';
 import 'package:local_app_tt/services/audit_log_service.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
@@ -92,21 +91,8 @@ class UserSupportService {
 
   final SupabaseClient _client;
   final DogRegistrationService _dogService = DogRegistrationService.instance;
-  static const int _adminPageSize = 200;
   static final RegExp _uuidPattern =
       RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false);
-
-  SupabaseClient? _buildServiceRoleClient() {
-    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
-    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
-        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-    if (url == null || url.trim().isEmpty || serviceKey == null || serviceKey.trim().isEmpty) {
-      return null;
-    }
-    return SupabaseClient(url, serviceKey);
-  }
-
-  SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
   static const String civSnapReportSelectColumns =
       'id,title,description,photo_url,latitude,longitude,accuracy_m,location_label,status,status_comment,is_anonymous,created_at';
@@ -121,29 +107,11 @@ class UserSupportService {
     return DateTime.tryParse(timestamp);
   }
 
-  Future<List<User>> _listAdminUsers(SupabaseClient adminClient) async {
-    final users = <User>[];
-    var page = 1;
-    while (true) {
-      final batch = await adminClient.auth.admin.listUsers(
-        page: page,
-        perPage: _adminPageSize,
-      );
-      if (batch.isEmpty) {
-        break;
-      }
-      users.addAll(batch);
-      if (batch.length < _adminPageSize) {
-        break;
-      }
-      page += 1;
-    }
-    return users;
-  }
-
   Future<List<SupportUser>> fetchUsers() async {
-    final adminClient = _buildServiceRoleClient();
-    final readClient = adminClient ?? _readClient();
+    // Admin visibility comes from RLS policies (see supabase_admin_policies.sql)
+    // plus the admin_list_users RPC / admin_users_view for auth.users data —
+    // never from a client-side service-role key.
+    final readClient = _client;
     List<SupportUser> roleAssignments = [];
     List<dynamic> ownerResponse = [];
     try {
@@ -251,111 +219,61 @@ class UserSupportService {
     }
 
     try {
-      if (adminClient != null) {
-        final adminUsers = await _listAdminUsers(adminClient);
-        for (final user in adminUsers) {
-          final userId = user.id;
-          if (userId.isEmpty) {
-            continue;
-          }
-          final email = user.email;
-          final createdAt = _parseSupabaseTimestamp(user.createdAt);
-          final roleValue =
-              user.appMetadata['role'] ?? user.appMetadata['app_role'] ?? user.userMetadata?['role'];
-          final authRole = AppRoleX.fromValue(roleValue?.toString());
-          final existing = byUserId[userId];
-          if (existing == null) {
+      List<Map<String, dynamic>> adminRows = [];
+      final adminResponse = await readClient.rpc('admin_list_users');
+      if (adminResponse is List) {
+        adminRows = adminResponse.whereType<Map<String, dynamic>>().toList();
+      }
+      if (adminRows.isEmpty) {
+        final viewResponse = await readClient
+            .from('admin_users_view')
+            .select('user_id,email,created_at,role,corporation_id');
+        if (viewResponse is List) {
+          adminRows = viewResponse.whereType<Map<String, dynamic>>().toList();
+        }
+      }
+      for (final row in adminRows) {
+        final userId = row['user_id']?.toString();
+        if (userId == null || userId.isEmpty) {
+          continue;
+        }
+        final email = row['email'] as String?;
+        final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
+        final roleValue = row['role'] as String?;
+        final rpcRole = AppRoleX.fromValue(roleValue);
+        final existing = byUserId[userId];
+        if (existing == null) {
+          byUserId[userId] = SupportUser(
+            userId: userId,
+            role: rpcRole,
+            email: email,
+            updatedAt: createdAt,
+          );
+        } else {
+          final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
+          final mergedEmail = existing.email ?? email;
+          final mergedUpdatedAt = existing.updatedAt ?? createdAt;
+          if (mergedRole != existing.role ||
+              mergedEmail != existing.email ||
+              mergedUpdatedAt != existing.updatedAt) {
             byUserId[userId] = SupportUser(
-              userId: userId,
-              role: authRole,
-              email: email,
-              updatedAt: createdAt,
+              userId: existing.userId,
+              role: mergedRole,
+              displayName: existing.displayName,
+              email: mergedEmail,
+              organization: existing.organization,
+              corporationId: existing.corporationId,
+              updatedAt: mergedUpdatedAt,
+              ownerId: existing.ownerId,
+              firstName: existing.firstName,
+              lastName: existing.lastName,
+              phone: existing.phone,
+              nationalId: existing.nationalId,
+              addressLine1: existing.addressLine1,
+              addressLine2: existing.addressLine2,
+              regionId: existing.regionId,
+              regionName: existing.regionName,
             );
-          } else {
-            final mergedRole = existing.role == AppRole.public ? authRole : existing.role;
-            final mergedEmail = existing.email ?? email;
-            final mergedUpdatedAt = existing.updatedAt ?? createdAt;
-            if (mergedRole != existing.role ||
-                mergedEmail != existing.email ||
-                mergedUpdatedAt != existing.updatedAt) {
-              byUserId[userId] = SupportUser(
-                userId: existing.userId,
-                role: mergedRole,
-                displayName: existing.displayName,
-                email: mergedEmail,
-                organization: existing.organization,
-                corporationId: existing.corporationId,
-                updatedAt: mergedUpdatedAt,
-                ownerId: existing.ownerId,
-                firstName: existing.firstName,
-                lastName: existing.lastName,
-                phone: existing.phone,
-                nationalId: existing.nationalId,
-                addressLine1: existing.addressLine1,
-                addressLine2: existing.addressLine2,
-                regionId: existing.regionId,
-                regionName: existing.regionName,
-              );
-            }
-          }
-        }
-      } else {
-        List<Map<String, dynamic>> adminRows = [];
-        final adminResponse = await readClient.rpc('admin_list_users');
-        if (adminResponse is List) {
-          adminRows = adminResponse.whereType<Map<String, dynamic>>().toList();
-        }
-        if (adminRows.isEmpty) {
-          final viewResponse = await readClient
-              .from('admin_users_view')
-              .select('user_id,email,created_at,role,corporation_id');
-          if (viewResponse is List) {
-            adminRows = viewResponse.whereType<Map<String, dynamic>>().toList();
-          }
-        }
-        for (final row in adminRows) {
-          final userId = row['user_id']?.toString();
-          if (userId == null || userId.isEmpty) {
-            continue;
-          }
-          final email = row['email'] as String?;
-          final createdAt = _parseSupabaseTimestamp(row['created_at']?.toString());
-          final roleValue = row['role'] as String?;
-          final rpcRole = AppRoleX.fromValue(roleValue);
-          final existing = byUserId[userId];
-          if (existing == null) {
-            byUserId[userId] = SupportUser(
-              userId: userId,
-              role: rpcRole,
-              email: email,
-              updatedAt: createdAt,
-            );
-          } else {
-            final mergedRole = existing.role == AppRole.public ? rpcRole : existing.role;
-            final mergedEmail = existing.email ?? email;
-            final mergedUpdatedAt = existing.updatedAt ?? createdAt;
-            if (mergedRole != existing.role ||
-                mergedEmail != existing.email ||
-                mergedUpdatedAt != existing.updatedAt) {
-              byUserId[userId] = SupportUser(
-                userId: existing.userId,
-                role: mergedRole,
-                displayName: existing.displayName,
-                email: mergedEmail,
-                organization: existing.organization,
-                corporationId: existing.corporationId,
-                updatedAt: mergedUpdatedAt,
-                ownerId: existing.ownerId,
-                firstName: existing.firstName,
-                lastName: existing.lastName,
-                phone: existing.phone,
-                nationalId: existing.nationalId,
-                addressLine1: existing.addressLine1,
-                addressLine2: existing.addressLine2,
-                regionId: existing.regionId,
-                regionName: existing.regionName,
-              );
-            }
           }
         }
       }
@@ -459,7 +377,7 @@ class UserSupportService {
   }
 
   Future<OwnerProfile?> fetchOwnerProfile(String userId) async {
-    final readClient = _buildServiceRoleClient() ?? _client;
+    final readClient = _client;
     final owner = await readClient
         .from('owners')
         .select(
@@ -496,7 +414,7 @@ class UserSupportService {
   }
 
   Future<List<CivSnapReport>> fetchReportsForUser(String userId) async {
-    final readClient = _buildServiceRoleClient() ?? _client;
+    final readClient = _client;
     List<dynamic> response;
     try {
       response = await readClient
@@ -541,22 +459,38 @@ class UserSupportService {
       'corporation_id': corporationId,
     }..removeWhere((key, value) => value == null || (value is String && value.trim().isEmpty));
 
-    final adminClient = _buildServiceRoleClient();
-    final dataClient = adminClient ?? _client;
-    await dataClient.from('user_profiles').upsert(payload, onConflict: 'user_id');
+    await _client.from('user_profiles').upsert(payload, onConflict: 'user_id');
 
-    if (adminClient != null) {
+    // Auth metadata (JWT role claim) and email changes require the service
+    // role, so they run server-side in the admin-update-user Edge Function,
+    // which re-verifies that the caller is an admin.
+    final session = _client.auth.currentSession;
+    if (session != null) {
       final trimmedEmail = email?.trim();
-      final metadata = <String, dynamic>{
-        'app_role': role.value,
-        'role': role.value,
-        'corporation_id': (trimmedOrg == null || trimmedOrg.isEmpty) ? null : trimmedOrg,
-      };
-      final attributes = AdminUserAttributes(
-        appMetadata: metadata,
-        email: trimmedEmail != null && trimmedEmail.isNotEmpty ? trimmedEmail : null,
-      );
-      await adminClient.auth.admin.updateUserById(userId, attributes: attributes);
+      try {
+        await _client.functions.invoke(
+          'admin-update-user',
+          headers: {
+            'Authorization': 'Bearer ${session.accessToken}',
+          },
+          body: {
+            'user_id': userId,
+            'role': role.value,
+            'display_name': displayName,
+            'corporation_id': corporationId,
+            'organization': corporationName,
+            if (trimmedEmail != null && trimmedEmail.isNotEmpty) 'email': trimmedEmail,
+          },
+        );
+      } on FunctionException catch (error) {
+        final details = error.details;
+        final message = details is Map && details['message'] != null
+            ? details['message'].toString()
+            : details is String && details.isNotEmpty
+                ? details
+                : error.reasonPhrase ?? 'role sync failed';
+        throw StateError('Profile saved, but the sign-in role update failed: $message');
+      }
     }
 
     AuditLogService.instance.record(
@@ -610,9 +544,7 @@ class UserSupportService {
       'region_id': normalize(regionId),
     };
 
-    final adminClient = _buildServiceRoleClient();
-    final dataClient = adminClient ?? _client;
-    await dataClient.from('owners').upsert(payload, onConflict: 'auth_user_id');
+    await _client.from('owners').upsert(payload, onConflict: 'auth_user_id');
   }
 
   Future<String?> _resolveCorporationId(String? organization) async {

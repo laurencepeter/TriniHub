@@ -7,13 +7,16 @@ class ThemeSettings {
   ThemeSettings._();
 
   static const _themePreferenceKey = 'theme_mode_is_dark';
+  static const _reduceMotionKey = 'reduce_motion_enabled';
   static final ThemeSettings instance = ThemeSettings._();
 
   final ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.light);
+  final ValueNotifier<bool> reduceMotion = ValueNotifier(false);
   bool _storageListenerInitialized = false;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
+    reduceMotion.value = prefs.getBool(_reduceMotionKey) ?? false;
     final isDark = prefs.getBool(_themePreferenceKey);
     if (isDark == null) {
       _ensureStorageListener();
@@ -27,6 +30,13 @@ class ThemeSettings {
     themeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
     SharedPreferences.getInstance().then(
       (prefs) => prefs.setBool(_themePreferenceKey, isDark),
+    );
+  }
+
+  void setReduceMotion(bool enabled) {
+    reduceMotion.value = enabled;
+    SharedPreferences.getInstance().then(
+      (prefs) => prefs.setBool(_reduceMotionKey, enabled),
     );
   }
 

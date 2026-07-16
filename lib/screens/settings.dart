@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/home.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
-import 'package:local_app_tt/screens/services.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
+import 'package:local_app_tt/screens/profile.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
-import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class SettingsPage extends StatefulWidget {
   final String device;
@@ -31,7 +28,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _biometrics = true;
   bool _autoLock = true;
   bool _shareUsageData = false;
-  bool _reduceMotion = false;
   late Future<UserRoleAssignment?> _assignmentFuture;
 
   @override
@@ -40,44 +36,9 @@ class _SettingsPageState extends State<SettingsPage> {
     _assignmentFuture = _roleService.fetchCurrentAssignment();
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    if (index == 4) {
-      return;
-    }
-    Widget destination;
-    switch (index) {
-      case 0:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-        break;
-      case 1:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ServicesPage(device: device),
-        );
-        break;
-      case 2:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => InternalServices(),
-        );
-        break;
-      case 3:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ExternalServices(),
-        );
-        break;
-      default:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-    }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature is coming soon.')),
     );
   }
 
@@ -107,16 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 items: [
                   BreadcrumbItem(
                     'Home',
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ResponsiveScaffold(
-                            childBuilder: (device) => HomePage(device: device),
-                          ),
-                        ),
-                      );
-                    },
+                    onTap: () => AppNavigation.goHome(context),
                   ),
                   const BreadcrumbItem('Settings'),
                 ],
@@ -156,12 +108,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       subtitle: const Text('Show more data tiles on dashboards.'),
                     ),
                     const Divider(height: 24),
-                    SwitchListTile(
-                      value: _reduceMotion,
-                      onChanged: (value) => setState(() => _reduceMotion = value),
-                      secondary: const Icon(Icons.motion_photos_off_outlined),
-                      title: const Text('Reduce motion'),
-                      subtitle: const Text('Tone down animation and transitions.'),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: ThemeSettings.instance.reduceMotion,
+                      builder: (context, reduceMotion, _) => SwitchListTile(
+                        value: reduceMotion,
+                        onChanged: (value) => ThemeSettings.instance.setReduceMotion(value),
+                        secondary: const Icon(Icons.motion_photos_off_outlined),
+                        title: const Text('Reduce motion'),
+                        subtitle: const Text('Tone down animation and transitions.'),
+                      ),
                     ),
                   ],
                 ),
@@ -194,7 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: const Text('Language'),
                       subtitle: const Text('English (Trinidad & Tobago)'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('Language settings opened.'),
+                      onTap: () => _showComingSoon('Language selection'),
                     ),
                   ],
                 ),
@@ -211,7 +166,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: const Text('Profile details'),
                       subtitle: const Text('Name, role, and contact details.'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('Profile details opened.'),
+                      onTap: () => AppNavigation.goToSection(
+                        context,
+                        (device) => ProfilePage(device: device),
+                      ),
                     ),
                     const Divider(height: 24),
                     ListTile(
@@ -219,7 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: const Text('Password & sign-in'),
                       subtitle: const Text('Change password and recovery options.'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('Password settings opened.'),
+                      onTap: () => _showComingSoon('Password & sign-in management'),
                     ),
                   ],
                 ),
@@ -332,10 +290,10 @@ class _SettingsPageState extends State<SettingsPage> {
                     const Divider(height: 24),
                     ListTile(
                       leading: const Icon(Icons.cloud_done_outlined),
-                      title: const Text('Last sync'),
-                      subtitle: const Text('4 minutes ago · 32 items uploaded'),
+                      title: const Text('Sync activity'),
+                      subtitle: const Text('Review recent uploads and sync history.'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('Sync activity opened.'),
+                      onTap: () => _showComingSoon('Sync activity'),
                     ),
                   ],
                 ),
@@ -385,15 +343,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       title: const Text('Integrations'),
                       subtitle: const Text('Connect GIS, payroll, and asset systems.'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('Integrations opened.'),
+                      onTap: () => _showComingSoon('Integrations'),
                     ),
                     const Divider(height: 24),
                     ListTile(
                       leading: const Icon(Icons.info_outline),
                       title: const Text('System status'),
-                      subtitle: const Text('All systems operational · Next maintenance Fri 9 PM.'),
+                      subtitle: const Text('Check live availability of Trini Hub services.'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSnack('System status opened.'),
+                      onTap: () => _showComingSoon('System status'),
                     ),
                   ],
                 ),
@@ -405,7 +363,7 @@ class _SettingsPageState extends State<SettingsPage> {
       bottomNavigationBar: showBottomNav
           ? BottomNavBar(
               currentIndex: 4,
-              onTap: (index) => _handleBottomNavTap(context, index),
+              onTap: (index) => AppNavigation.handleBottomNavTap(context, index, 4),
             )
           : null,
     );

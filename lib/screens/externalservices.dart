@@ -1,65 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
-import 'package:local_app_tt/screens/home.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/services.dart';
-import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/service_tile.dart';
-import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class ExternalServices extends StatelessWidget {
   ExternalServices({super.key});
-
-  String _deviceType(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width >= 1200) {
-      return 'Desktop';
-    }
-    if (width >= 600) {
-      return 'Tablet';
-    }
-    return 'Mobile';
-  }
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    if (index == 3) {
-      return;
-    }
-    final device = _deviceType(context);
-    Widget destination;
-    switch (index) {
-      case 0:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-        break;
-      case 1:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ServicesPage(device: device),
-        );
-        break;
-      case 2:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => InternalServices(),
-        );
-        break;
-      case 4:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => SettingsPage(device: device),
-        );
-        break;
-      default:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-    }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,29 +38,14 @@ class ExternalServices extends StatelessWidget {
                       items: [
                         BreadcrumbItem(
                           'Home',
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponsiveScaffold(
-                                  childBuilder: (device) => HomePage(device: _deviceType(context)),
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => AppNavigation.goHome(context),
                         ),
                         BreadcrumbItem(
                           'Services',
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ResponsiveScaffold(
-                                  childBuilder: (device) => ServicesPage(device: _deviceType(context)),
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () => AppNavigation.goToSection(
+                            context,
+                            (device) => ServicesPage(device: device),
+                          ),
                         ),
                         const BreadcrumbItem('External Services'),
                       ],
@@ -122,7 +55,8 @@ class ExternalServices extends StatelessWidget {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                          onPressed: () => Navigator.pop(context),
+                          tooltip: 'Back',
+                          onPressed: () => AppNavigation.backOrHome(context),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -142,7 +76,8 @@ class ExternalServices extends StatelessWidget {
                         ),
                         IconButton(
                           icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+                          tooltip: 'Back to home',
+                          onPressed: () => AppNavigation.goHome(context),
                         ),
                       ],
                     ),
@@ -204,7 +139,7 @@ class ExternalServices extends StatelessWidget {
       bottomNavigationBar: showBottomNav
           ? BottomNavBar(
               currentIndex: 3,
-              onTap: (index) => _handleBottomNavTap(context, index),
+              onTap: (index) => AppNavigation.handleBottomNavTap(context, index, 3),
             )
           : null,
     );
