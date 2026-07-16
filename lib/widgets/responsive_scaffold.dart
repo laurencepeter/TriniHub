@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_drawer.dart';
@@ -113,13 +115,9 @@ class _DesktopAccountMenu extends StatelessWidget {
             onSelected: (action) async {
               switch (action) {
                 case _DesktopMenuAction.accountSettings:
-                  Navigator.pushReplacement(
+                  AppNavigation.goToSection(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => ResponsiveScaffold(
-                        childBuilder: (device) => SettingsPage(device: device),
-                      ),
-                    ),
+                    (device) => SettingsPage(device: device),
                   );
                   return;
                 case _DesktopMenuAction.logout:
@@ -152,9 +150,11 @@ class _DesktopAccountMenu extends StatelessWidget {
                       );
                     }
                   } catch (error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Logout failed: $error')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(mapSupabaseError(error))),
+                      );
+                    }
                   }
                   return;
               }

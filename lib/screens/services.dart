@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
-import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/home.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
-import 'package:local_app_tt/screens/settings.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
-import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class ServicesPage extends StatefulWidget {
   final String device;
@@ -23,43 +19,6 @@ class ServicesPage extends StatefulWidget {
 class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMixin {
   bool _showInternal = false;
   bool _showExternal = false;
-
-  void _handleBottomNavTap(BuildContext context, int index) {
-    if (index == 1) {
-      return;
-    }
-    Widget destination;
-    switch (index) {
-      case 0:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-        break;
-      case 2:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => InternalServices(),
-        );
-        break;
-      case 3:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ExternalServices(),
-        );
-        break;
-      case 4:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => SettingsPage(device: device),
-        );
-        break;
-      default:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-    }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
-  }
 
   void _toggleInternal() {
     setState(() {
@@ -98,16 +57,7 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
                 items: [
                   BreadcrumbItem(
                     'Home',
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ResponsiveScaffold(
-                            childBuilder: (device) => HomePage(device: device),
-                          ),
-                        ),
-                      );
-                    },
+                    onTap: () => AppNavigation.goHome(context),
                   ),
                   const BreadcrumbItem('Services'),
                 ],
@@ -180,7 +130,7 @@ class _ServicesPageState extends State<ServicesPage> with TickerProviderStateMix
       bottomNavigationBar: showBottomNav
           ? BottomNavBar(
               currentIndex: 1,
-              onTap: (index) => _handleBottomNavTap(context, index),
+              onTap: (index) => AppNavigation.handleBottomNavTap(context, index, 1),
             )
           : null,
     );

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:local_app_tt/screens/home.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/owner_service.dart';
 import 'package:local_app_tt/utils/validators.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
-import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -162,16 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 items: [
                   BreadcrumbItem(
                     'Home',
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ResponsiveScaffold(
-                            childBuilder: (device) => HomePage(device: widget.device),
-                          ),
-                        ),
-                      );
-                    },
+                    onTap: () => AppNavigation.goHome(context),
                   ),
                   const BreadcrumbItem('Profile'),
                 ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/services/forms_service.dart';
 
 // ── Field type configuration with icons and colors ──────────────────────────
@@ -134,7 +135,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load form: $error')),
+        SnackBar(content: Text('Failed to load form: ${mapSupabaseError(error)}')),
       );
     } finally {
       if (mounted) setState(() => _loadingExisting = false);
@@ -330,7 +331,7 @@ class _FormBuilderScreenState extends State<FormBuilderScreen>
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to create form: $error'),
+          content: Text('Failed to create form: ${mapSupabaseError(error)}'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           backgroundColor: Theme.of(context).colorScheme.error,

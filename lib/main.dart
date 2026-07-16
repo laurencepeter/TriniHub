@@ -5,7 +5,7 @@ import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/widgets/auth_shell.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/base_version_footer.dart';
-import 'package:local_app_tt/widgets/no_page_transitions.dart';
+import 'package:local_app_tt/widgets/smooth_page_transitions.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:local_app_tt/widgets/responsive_wrapper.dart';
 import 'package:local_app_tt/widgets/role_gate.dart';
@@ -79,12 +79,20 @@ class _MyAppState extends State<MyApp> {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: NoPageTransitionsBuilder(),
-          TargetPlatform.iOS: NoPageTransitionsBuilder(),
-          TargetPlatform.linux: NoPageTransitionsBuilder(),
-          TargetPlatform.macOS: NoPageTransitionsBuilder(),
-          TargetPlatform.windows: NoPageTransitionsBuilder(),
+          TargetPlatform.android: SmoothPageTransitionsBuilder(),
+          TargetPlatform.iOS: SmoothPageTransitionsBuilder(),
+          TargetPlatform.linux: SmoothPageTransitionsBuilder(),
+          TargetPlatform.macOS: SmoothPageTransitionsBuilder(),
+          TargetPlatform.windows: SmoothPageTransitionsBuilder(),
         },
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

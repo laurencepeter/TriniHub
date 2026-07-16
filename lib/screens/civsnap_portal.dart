@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/home.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
-import 'package:local_app_tt/screens/services.dart';
-import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -13,7 +9,6 @@ import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
-import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CivSnapPortalScreen extends StatefulWidget {
@@ -60,40 +55,7 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
   }
 
   void _handleBottomNavTap(BuildContext context, int index) {
-    if (index == 3) {
-      return;
-    }
-    Widget destination;
-    switch (index) {
-      case 0:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => HomePage(device: device),
-        );
-        break;
-      case 1:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ServicesPage(device: device),
-        );
-        break;
-      case 2:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => InternalServices(),
-        );
-        break;
-      case 4:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => SettingsPage(device: device),
-        );
-        break;
-      default:
-        destination = ResponsiveScaffold(
-          childBuilder: (device) => ExternalServices(),
-        );
-    }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
+    AppNavigation.handleBottomNavTap(context, index, 3);
   }
 
   @override

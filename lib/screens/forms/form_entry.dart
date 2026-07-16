@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_app_tt/services/forms_service.dart';
@@ -205,7 +206,7 @@ class _FormEntryScreenState extends State<FormEntryScreen> {
       );
     } catch (error) {
       if (!mounted) return;
-      _showSnack('Failed to submit: $error');
+      _showSnack('Failed to submit: ${mapSupabaseError(error)}');
     } finally {
       if (mounted) {
         setState(() {
