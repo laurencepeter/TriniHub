@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
+import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/image_lightbox.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,7 +18,13 @@ class CivSnapPortalScreen extends StatefulWidget {
   const CivSnapPortalScreen({super.key});
 
   static Route<void> route() {
-    return MaterialPageRoute(builder: (_) => const CivSnapPortalScreen());
+    // Wrapped in the responsive shell so the persistent side navigation and
+    // breadcrumbs stay consistent with every other section of the app.
+    return MaterialPageRoute(
+      builder: (_) => ResponsiveScaffold(
+        childBuilder: (device) => const CivSnapPortalScreen(),
+      ),
+    );
   }
 
   @override
@@ -36,14 +45,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
     setState(() {
       _roleFuture = _roleService.fetchCurrentRole();
     });
-  }
-
-  void _openAdminUsers() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AdminGate(child: AdminUserManagementScreen()),
-      ),
-    );
   }
 
   void _openUserSupport() {
@@ -72,23 +73,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
         }
         final role = snapshot.data ?? AppRole.public;
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('CivSnap Command Centre'),
-            actions: [
-              IconButton(
-                tooltip: 'Refresh access',
-                onPressed: _refreshRole,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-          drawer: role == AppRole.admin
-              ? _AdminNavigationDrawer(
-                  onDashboard: () => Navigator.of(context).pop(),
-                  onManageUsers: _openAdminUsers,
-                  onUserSupport: _openUserSupport,
-                )
-              : null,
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -104,7 +88,50 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 children: [
-                  const Breadcrumbs(items: [BreadcrumbItem('Services'), BreadcrumbItem('CivSnap')]),
+                  Breadcrumbs(
+                    items: [
+                      BreadcrumbItem('Home', onTap: () => AppNavigation.goHome(context)),
+                      BreadcrumbItem(
+                        'Services',
+                        onTap: () => AppNavigation.goToSection(
+                          context,
+                          (device) => ServicesPage(device: device),
+                        ),
+                      ),
+                      const BreadcrumbItem('CivSnap'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                        tooltip: 'Back',
+                        onPressed: () => AppNavigation.backOrHome(context),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CivSnap Command Centre',
+                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              'Community issue operations',
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Refresh access',
+                        onPressed: _refreshRole,
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   _RoleHeader(role: role),
                   const SizedBox(height: 20),
@@ -124,59 +151,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               : null,
         );
       },
-    );
-  }
-}
-
-class _AdminNavigationDrawer extends StatelessWidget {
-  final VoidCallback onDashboard;
-  final VoidCallback onManageUsers;
-  final VoidCallback onUserSupport;
-
-  const _AdminNavigationDrawer({
-    required this.onDashboard,
-    required this.onManageUsers,
-    required this.onUserSupport,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(),
-            child: Text(
-              'Admin Navigation',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard_outlined),
-            title: const Text('Dashboard'),
-            onTap: onDashboard,
-          ),
-          ListTile(
-            leading: const Icon(Icons.manage_accounts_outlined),
-            title: const Text('Users'),
-            subtitle: const Text('Manage access controls'),
-            onTap: () {
-              Navigator.of(context).pop();
-              onManageUsers();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.support_agent_outlined),
-            title: const Text('User Support'),
-            subtitle: const Text('View users and act on their behalf'),
-            onTap: () {
-              Navigator.of(context).pop();
-              onUserSupport();
-            },
-          ),
-        ],
-      ),
     );
   }
 }
@@ -2703,16 +2677,24 @@ class _ReportTile extends StatelessWidget {
                             child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
                           );
                         }
-                        return Image.network(
-                          photoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: theme.colorScheme.surfaceVariant,
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              color: theme.hintColor,
-                              size: 32,
+                        return GestureDetector(
+                          onTap: () => showImageLightbox(
+                            context,
+                            imageUrl: photoUrl,
+                            caption: report.title,
+                          ),
+                          child: Image.network(
+                            photoUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: theme.colorScheme.surfaceVariant,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                color: theme.hintColor,
+                                size: 32,
+                              ),
                             ),
                           ),
                         );
@@ -3032,17 +3014,51 @@ class _ReportDetailSheet extends StatelessWidget {
                       child: Icon(Icons.image_outlined, color: theme.hintColor, size: 36),
                     );
                   }
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        photoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: theme.colorScheme.surfaceVariant,
-                          alignment: Alignment.center,
-                          child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor, size: 36),
+                  return GestureDetector(
+                    onTap: () => showImageLightbox(
+                      context,
+                      imageUrl: photoUrl,
+                      caption: report.title,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              photoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: theme.colorScheme.surfaceVariant,
+                                alignment: Alignment.center,
+                                child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor, size: 36),
+                              ),
+                            ),
+                            Positioned(
+                              right: 10,
+                              bottom: 10,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.55),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.zoom_out_map, color: Colors.white, size: 14),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Tap to focus',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
