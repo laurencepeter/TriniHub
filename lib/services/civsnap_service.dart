@@ -1,7 +1,5 @@
 import 'dart:math';
-import 'dart:typed_data';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_app_tt/services/audit_log_service.dart';
 import 'package:local_app_tt/services/boundary_service.dart';
@@ -109,17 +107,6 @@ class CivSnapService {
 
   final SupabaseClient _client = Supabase.instance.client;
 
-  SupabaseClient? _buildServiceRoleClient() {
-    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
-    final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
-        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-    if (url.trim().isEmpty || serviceKey.trim().isEmpty) {
-      return null;
-    }
-    return SupabaseClient(url, serviceKey);
-  }
-
-  SupabaseClient _readClient() => _buildServiceRoleClient() ?? _client;
 
   String _reportSelectColumns({
     required bool includeStatusComment,
@@ -164,7 +151,7 @@ class CivSnapService {
   }) async {
     final deltaLat = radiusMeters / 111111;
     final deltaLng = radiusMeters / (111111 * cos(_toRadians(latitude)));
-    final readClient = _readClient();
+    final readClient = _client;
     var includeVotes = true;
     var includeStatusComment = true;
     var includeAnonymous = true;
@@ -360,7 +347,7 @@ class CivSnapService {
     String? status,
     int limit = 50,
   }) async {
-    final readClient = _readClient();
+    final readClient = _client;
     List<dynamic> response;
     var includeVotes = true;
     var includeStatusComment = true;
@@ -410,7 +397,7 @@ class CivSnapService {
   }) async {
     final reports = <CivSnapReport>[];
     var offset = 0;
-    final readClient = _readClient();
+    final readClient = _client;
     var includeVotes = true;
     var includeStatusComment = true;
     var includeAnonymous = true;
@@ -458,7 +445,7 @@ class CivSnapService {
   }
 
   Future<Map<String, int>> fetchStatusCounts() async {
-    final response = await _readClient().from('civsnap_reports').select('status');
+    final response = await _client.from('civsnap_reports').select('status');
     if (response is! List) {
       return {};
     }

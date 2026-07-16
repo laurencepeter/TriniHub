@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
@@ -16,7 +15,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isSubmitting = false;
-  bool _devMode = false;
   String? _message;
 
   @override
@@ -40,22 +38,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         email,
         redirectTo: dotenv.env['SUPABASE_RESET_REDIRECT'] ?? 'trinihub://recovery',
       );
-
-      if (_devMode) {
-        final url = dotenv.env['SUPABASE_URL'];
-        final serviceKey = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'];
-        if (url != null && serviceKey != null) {
-          final adminClient = SupabaseClient(url, serviceKey);
-          final response = await adminClient.auth.admin.generateLink(
-            type: GenerateLinkType.recovery,
-            email: email,
-            redirectTo: dotenv.env['SUPABASE_RESET_REDIRECT'] ?? 'trinihub://recovery',
-          );
-          debugPrint('Recovery link (dev mode): ${response.properties.actionLink}');
-        } else {
-          debugPrint('Dev mode enabled: set SUPABASE_SERVICE_ROLE_KEY to log recovery links.');
-        }
-      }
 
       if (mounted) {
         setState(() => _message = 'Check your email to set your password.');
@@ -109,15 +91,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ),
                       validator: Validators.email,
                     ),
-                    if (kDebugMode) ...[
-                      const SizedBox(height: 12),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _devMode,
-                        title: const Text('Dev mode: log recovery link to console'),
-                        onChanged: (value) => setState(() => _devMode = value),
-                      ),
-                    ],
                     if (_message != null) ...[
                       const SizedBox(height: 12),
                       Text(

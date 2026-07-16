@@ -1,4 +1,3 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppNotification {
@@ -58,13 +57,6 @@ class NotificationService {
 
   SupabaseClient get _client => Supabase.instance.client;
 
-  SupabaseClient? _buildServiceRoleClient() {
-    final url = dotenv.env['SUPABASE_URL'] ?? const String.fromEnvironment('SUPABASE_URL');
-    final key = dotenv.env['SUPABASE_SERVICE_ROLE_KEY'] ??
-        const String.fromEnvironment('SUPABASE_SERVICE_ROLE_KEY');
-    if (url.trim().isEmpty || key.trim().isEmpty) return null;
-    return SupabaseClient(url, key);
-  }
 
   Future<void> notifyCorporation({
     required String corporationId,
@@ -119,7 +111,7 @@ class NotificationService {
   Future<List<AppNotification>> fetchInbox({int limit = 100, bool unreadOnly = false}) async {
     final user = _client.auth.currentUser;
     if (user == null) return [];
-    final readClient = _buildServiceRoleClient() ?? _client;
+    final readClient = _client;
 
     String? corporationId;
     try {
