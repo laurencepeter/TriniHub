@@ -28,9 +28,11 @@ class DogRegistrationScreen extends StatefulWidget {
     String? ownerDisplayName,
     String? ownerEmail,
   }) {
-    return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
+    // Plain MaterialPageRoute so this inherits the app-wide fade-through
+    // transition (see SmoothPageTransitionsBuilder) instead of a bespoke
+    // slide that made the shell feel like it was stacking on top.
+    return MaterialPageRoute(
+      builder: (_) => ResponsiveScaffold(
         childBuilder: (device) => DogRegistrationScreen(
           initialDogId: dogId,
           ownerUserId: ownerUserId,
@@ -38,16 +40,6 @@ class DogRegistrationScreen extends StatefulWidget {
           ownerEmail: ownerEmail,
         ),
       ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(parent: animation, curve: Curves.easeInOut);
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero).animate(curved),
-            child: child,
-          ),
-        );
-      },
     );
   }
 

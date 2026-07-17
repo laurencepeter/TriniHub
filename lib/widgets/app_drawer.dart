@@ -4,6 +4,7 @@ import 'package:local_app_tt/screens/admin_dashboard.dart';
 import 'package:local_app_tt/screens/audit_logs.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
+import 'package:local_app_tt/screens/help_assistant.dart';
 import 'package:local_app_tt/screens/notifications_inbox.dart';
 import 'package:local_app_tt/screens/profile.dart';
 import 'package:local_app_tt/screens/services.dart';
@@ -17,6 +18,9 @@ import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Top-level tear-off so the shell can be built as a `const` widget.
+Widget _helpAssistantBuilder(String device) => const HelpAssistantScreen();
 
 class AppDrawer extends StatefulWidget {
   final bool isPersistent;
@@ -217,6 +221,18 @@ class _AppDrawerState extends State<AppDrawer> {
               navigateTo(
                 ResponsiveScaffold(
                   childBuilder: (device) => SettingsPage(device: device),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Help Assistant'),
+            leading: const Icon(Icons.support_agent_rounded),
+            subtitle: const Text('Ask questions, get quick answers'),
+            onTap: () {
+              navigateTo(
+                const ResponsiveScaffold(
+                  childBuilder: _helpAssistantBuilder,
                 ),
               );
             },

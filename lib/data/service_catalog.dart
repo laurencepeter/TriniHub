@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
 import 'package:local_app_tt/screens/forms/forms_hub.dart';
+import 'package:local_app_tt/screens/scan/file_custody_hub.dart';
 import 'package:local_app_tt/screens/service_detail.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 
 class ServiceOption {
   final String label;
@@ -196,6 +198,16 @@ void handleExternalServiceTap(BuildContext context, ServiceOption option) {
     );
     return;
   }
+  if (option.label == 'Scan File') {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ResponsiveScaffold(
+          childBuilder: _fileCustodyHubBuilder,
+        ),
+      ),
+    );
+    return;
+  }
 
   Navigator.of(context).push(ServiceDetailScreen.route(option));
 }
@@ -212,5 +224,18 @@ void handleInternalServiceTap(BuildContext context, ServiceOption option) {
     );
     return;
   }
+  if (option.label == 'Scan File') {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ResponsiveScaffold(
+          childBuilder: _fileCustodyHubBuilder,
+        ),
+      ),
+    );
+    return;
+  }
   Navigator.of(context).push(ServiceDetailScreen.route(option));
 }
+
+// Top-level tear-off so the shell can be built as a `const` widget.
+Widget _fileCustodyHubBuilder(String device) => const FileCustodyHub();

@@ -6,6 +6,7 @@ import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/live_services_indicator.dart';
 import 'package:local_app_tt/widgets/pressable.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -176,6 +177,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: LiveServicesIndicator(),
                 ),
                 const SizedBox(height: 20),
                 Text(

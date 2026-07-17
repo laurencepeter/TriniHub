@@ -41,6 +41,7 @@ dependencies:
   shared_preferences: ^2.2.3
   image_picker: ^1.1.2
   geolocator: ^12.0.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +71,7 @@ flutter:
 
     - lib/assets/images/TriniHub.png
     - lib/assets/data/tt_municipalities.geojson
+    - assets/knowledge_base.json
   #   - images/a_dot_ham.jpeg
 
 flutter_icons:

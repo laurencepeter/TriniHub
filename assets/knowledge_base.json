@@ -1,0 +1,90 @@
+{
+  "greeting": "Hi! I'm the Trini Hub assistant. Ask me about dog registration, reporting community issues with CivSnap, forms, scanning files, or your account. I can also point you to the right screen.",
+  "disclaimer": "I answer from a curated help guide. I can't access your personal data and won't give legal advice — for account-specific help, contact support.",
+  "fallback": "I'm not sure about that one yet. Here are some things I can help with — tap a topic or rephrase your question.",
+  "faqs": [
+    {
+      "id": "dog-register",
+      "question": "How do I register a dog?",
+      "keywords": ["dog", "register", "registration", "pet", "puppy", "licence", "license", "animal"],
+      "answer": "To register a dog, open External Services → Dog Registration. Fill in the owner details, the dog's name, breed and wellness information, then submit. You'll get a confirmation and can track approval status from Home under \"Pending submissions\".",
+      "action": { "label": "Open Dog Registration", "route": "dog_registration" },
+      "related": ["Where do I see my submission status?", "Can staff register a dog for me?"]
+    },
+    {
+      "id": "dog-status",
+      "question": "Where do I see my submission status?",
+      "keywords": ["status", "submission", "pending", "approved", "track", "progress", "dog"],
+      "answer": "Your dog registration submissions appear on the Home screen under \"Pending submissions\", and in full under Dog Registration → View submissions. A badge shows whether each one is pending or approved.",
+      "action": { "label": "Go Home", "route": "home" },
+      "related": ["How do I register a dog?"]
+    },
+    {
+      "id": "civsnap-report",
+      "question": "How do I report a community issue?",
+      "keywords": ["report", "issue", "civsnap", "pothole", "problem", "photo", "snap", "community", "complaint"],
+      "answer": "Use CivSnap: open External Services → CivSnap, then \"Log a new issue\". Take or attach a photo — it's auto-geotagged — add a short title and description, and submit. Nearby residents can then vote to raise its priority.",
+      "action": { "label": "Open CivSnap", "route": "civsnap" },
+      "related": ["How does voting on issues work?", "Why does it check for nearby issues?"]
+    },
+    {
+      "id": "civsnap-vote",
+      "question": "How does voting on issues work?",
+      "keywords": ["vote", "voting", "upvote", "priority", "confirm", "support"],
+      "answer": "In the CivSnap community feed, signed-in residents can vote on an existing report instead of creating a duplicate. More votes signal higher priority to the responsible corporation. You need to be signed in to vote.",
+      "action": { "label": "Open CivSnap", "route": "civsnap" },
+      "related": ["How do I report a community issue?"]
+    },
+    {
+      "id": "forms",
+      "question": "How do I find and submit a form?",
+      "keywords": ["form", "forms", "submit", "application", "document", "apply"],
+      "answer": "Open Forms from either Internal or External Services. Browse the available forms, fill one in, and submit. You can resume drafts and track each submission's status from the same hub.",
+      "action": { "label": "Open Forms", "route": "forms" },
+      "related": ["How do I scan a file?"]
+    },
+    {
+      "id": "scan-file",
+      "question": "How do I scan a file?",
+      "keywords": ["scan", "scanner", "qr", "file", "barcode", "camera", "custody", "handover"],
+      "answer": "Scan File uses your device camera to read a file's QR code and log its movement (checked out or received) against your account. Staff can also show a personal, rotating badge QR so a file handover can be logged to the right person. Open it from Internal or External Services → Scan File.",
+      "related": ["How do I report a community issue?"]
+    },
+    {
+      "id": "find-file",
+      "question": "How do I find a file or record?",
+      "keywords": ["find", "search", "file", "record", "locate", "lookup", "archive"],
+      "answer": "Use Find File under Internal or External Services. Enter a record ID or name and the reason for access, then submit the request. You can track it from request through to delivery.",
+      "related": ["How do I scan a file?"]
+    },
+    {
+      "id": "account-login",
+      "question": "I'm having trouble signing in.",
+      "keywords": ["login", "log in", "sign in", "signin", "password", "reset", "account", "access", "forgot"],
+      "answer": "From the login screen you can reset your password with \"Forgot password\" — you'll get an email link. Make sure you're using the email you registered with. If you still can't get in, contact support and they can check your account access.",
+      "related": ["How do I change my details?"]
+    },
+    {
+      "id": "profile",
+      "question": "How do I change my details?",
+      "keywords": ["profile", "details", "name", "email", "update", "edit", "settings", "account"],
+      "answer": "Open the menu and go to Profile to review your information, or Settings to change preferences like theme and reduced motion. Some fields are managed by an administrator.",
+      "action": { "label": "Open Settings", "route": "settings" },
+      "related": ["I'm having trouble signing in."]
+    },
+    {
+      "id": "notifications",
+      "question": "Where are my notifications?",
+      "keywords": ["notification", "notifications", "alerts", "updates", "inbox"],
+      "answer": "If your role has notifications enabled, open the menu and choose Notifications to see updates about your reports and submissions.",
+      "related": ["Where do I see my submission status?"]
+    },
+    {
+      "id": "contact-support",
+      "question": "How do I contact support?",
+      "keywords": ["support", "help", "contact", "human", "agent", "assist", "stuck"],
+      "answer": "For anything account-specific or urgent, reach the support team through the User Support Hub (staff can act on your behalf) or your organization's published support channel. I can help with how-to questions any time.",
+      "related": ["I'm having trouble signing in."]
+    }
+  ]
+}

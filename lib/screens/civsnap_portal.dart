@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
+import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
+import 'package:local_app_tt/widgets/image_lightbox.dart';
+import 'package:local_app_tt/widgets/responsive_scaffold.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,7 +19,13 @@ class CivSnapPortalScreen extends StatefulWidget {
   const CivSnapPortalScreen({super.key});
 
   static Route<void> route() {
-    return MaterialPageRoute(builder: (_) => const CivSnapPortalScreen());
+    // Wrapped in the responsive shell so the persistent side navigation and
+    // breadcrumbs stay consistent with every other section of the app.
+    return MaterialPageRoute(
+      builder: (_) => ResponsiveScaffold(
+        childBuilder: (device) => const CivSnapPortalScreen(),
+      ),
+    );
   }
 
   @override
@@ -36,14 +46,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
     setState(() {
       _roleFuture = _roleService.fetchCurrentRole();
     });
-  }
-
-  void _openAdminUsers() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AdminGate(child: AdminUserManagementScreen()),
-      ),
-    );
   }
 
   void _openUserSupport() {
@@ -72,23 +74,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
         }
         final role = snapshot.data ?? AppRole.public;
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('CivSnap Command Centre'),
-            actions: [
-              IconButton(
-                tooltip: 'Refresh access',
-                onPressed: _refreshRole,
-                icon: const Icon(Icons.refresh),
-              ),
-            ],
-          ),
-          drawer: role == AppRole.admin
-              ? _AdminNavigationDrawer(
-                  onDashboard: () => Navigator.of(context).pop(),
-                  onManageUsers: _openAdminUsers,
-                  onUserSupport: _openUserSupport,
-                )
-              : null,
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -104,7 +89,50 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 children: [
-                  const Breadcrumbs(items: [BreadcrumbItem('Services'), BreadcrumbItem('CivSnap')]),
+                  Breadcrumbs(
+                    items: [
+                      BreadcrumbItem('Home', onTap: () => AppNavigation.goHome(context)),
+                      BreadcrumbItem(
+                        'Services',
+                        onTap: () => AppNavigation.goToSection(
+                          context,
+                          (device) => ServicesPage(device: device),
+                        ),
+                      ),
+                      const BreadcrumbItem('CivSnap'),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                        tooltip: 'Back',
+                        onPressed: () => AppNavigation.backOrHome(context),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CivSnap Command Centre',
+                              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            Text(
+                              'Community issue operations',
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Refresh access',
+                        onPressed: _refreshRole,
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   _RoleHeader(role: role),
                   const SizedBox(height: 20),
@@ -124,59 +152,6 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
               : null,
         );
       },
-    );
-  }
-}
-
-class _AdminNavigationDrawer extends StatelessWidget {
-  final VoidCallback onDashboard;
-  final VoidCallback onManageUsers;
-  final VoidCallback onUserSupport;
-
-  const _AdminNavigationDrawer({
-    required this.onDashboard,
-    required this.onManageUsers,
-    required this.onUserSupport,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(),
-            child: Text(
-              'Admin Navigation',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard_outlined),
-            title: const Text('Dashboard'),
-            onTap: onDashboard,
-          ),
-          ListTile(
-            leading: const Icon(Icons.manage_accounts_outlined),
-            title: const Text('Users'),
-            subtitle: const Text('Manage access controls'),
-            onTap: () {
-              Navigator.of(context).pop();
-              onManageUsers();
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.support_agent_outlined),
-            title: const Text('User Support'),
-            subtitle: const Text('View users and act on their behalf'),
-            onTap: () {
-              Navigator.of(context).pop();
-              onUserSupport();
-            },
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1038,6 +1013,13 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
     controller.dispose();
   }
 
+  Future<void> _openReassignDialog(CivSnapReport report) async {
+    final changed = await _showReassignDialog(context, report);
+    if (changed && mounted) {
+      await _refresh();
+    }
+  }
+
   List<_MetricItem> _staticMetrics(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return [
@@ -1161,10 +1143,21 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
               children: active.map((report) {
                 return _ReportCard(
                   report: report,
-                  trailing: OutlinedButton.icon(
-                    onPressed: () => _openStatusUpdateDialog(report),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Update status'),
+                  trailing: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _openStatusUpdateDialog(report),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Update status'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _openReassignDialog(report),
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Reassign'),
+                      ),
+                    ],
                   ),
                   onTap: () => _showReportDetails(context, report),
                 );
@@ -1416,6 +1409,60 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
         const SizedBox(height: 20),
         _SectionHeader(
+          title: 'Issue Assignment',
+          subtitle: 'Manually route any report to the correct municipal corporation.',
+          action: OutlinedButton.icon(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<CivSnapReport>>(
+          future: _reportsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final reports = snapshot.data ?? [];
+            if (reports.isEmpty) {
+              return const _EmptyState(
+                title: 'No reports to assign',
+                subtitle: 'Reports appear here as residents submit them.',
+              );
+            }
+            final visible = reports.take(25).toList();
+            return Column(
+              children: [
+                for (final report in visible)
+                  _ReportCard(
+                    report: report,
+                    trailing: OutlinedButton.icon(
+                      onPressed: () => _openReassign(report),
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Reassign'),
+                    ),
+                    onTap: () => _showReportDetails(context, report),
+                  ),
+                if (reports.length > visible.length)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Showing ${visible.length} of ${reports.length} reports.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
           title: 'Monthly Completion Summary',
           subtitle: 'Completion trends from reported work orders.',
         ),
@@ -1437,6 +1484,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
       ],
     );
+  }
+
+  Future<void> _openReassign(CivSnapReport report) async {
+    final changed = await _showReassignDialog(context, report);
+    if (changed && mounted) {
+      await _refresh();
+    }
   }
 }
 
@@ -2703,16 +2757,24 @@ class _ReportTile extends StatelessWidget {
                             child: Icon(Icons.image_outlined, color: theme.hintColor, size: 32),
                           );
                         }
-                        return Image.network(
-                          photoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: theme.colorScheme.surfaceVariant,
-                            alignment: Alignment.center,
-                            child: Icon(
-                              Icons.image_not_supported_outlined,
-                              color: theme.hintColor,
-                              size: 32,
+                        return GestureDetector(
+                          onTap: () => showImageLightbox(
+                            context,
+                            imageUrl: photoUrl,
+                            caption: report.title,
+                          ),
+                          child: Image.network(
+                            photoUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: theme.colorScheme.surfaceVariant,
+                              alignment: Alignment.center,
+                              child: Icon(
+                                Icons.image_not_supported_outlined,
+                                color: theme.hintColor,
+                                size: 32,
+                              ),
                             ),
                           ),
                         );
@@ -3032,17 +3094,51 @@ class _ReportDetailSheet extends StatelessWidget {
                       child: Icon(Icons.image_outlined, color: theme.hintColor, size: 36),
                     );
                   }
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        photoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: theme.colorScheme.surfaceVariant,
-                          alignment: Alignment.center,
-                          child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor, size: 36),
+                  return GestureDetector(
+                    onTap: () => showImageLightbox(
+                      context,
+                      imageUrl: photoUrl,
+                      caption: report.title,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              photoUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: theme.colorScheme.surfaceVariant,
+                                alignment: Alignment.center,
+                                child: Icon(Icons.image_not_supported_outlined, color: theme.hintColor, size: 36),
+                              ),
+                            ),
+                            Positioned(
+                              right: 10,
+                              bottom: 10,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.55),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.zoom_out_map, color: Colors.white, size: 14),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Tap to focus',
+                                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -3443,6 +3539,99 @@ String _normalizeStatus(String status) {
     return 'in_progress';
   }
   return lower;
+}
+
+/// Shared reassignment dialog used by both the corporation and admin
+/// dashboards. Returns true if the report was moved to a new corporation.
+Future<bool> _showReassignDialog(BuildContext context, CivSnapReport report) async {
+  final service = CivSnapService.instance;
+  final messenger = ScaffoldMessenger.of(context);
+  final corporations = await service.fetchCorporations();
+  if (!context.mounted) {
+    return false;
+  }
+  if (corporations.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('No corporations available to reassign to.')),
+    );
+    return false;
+  }
+  final noteController = TextEditingController();
+  Corporation? selected = corporations.first;
+  final result = await showDialog<Corporation>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Reassign to corporation'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Send "${report.title}" to the correct municipality if it was auto-assigned incorrectly.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<Corporation>(
+                  value: selected,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Corporation'),
+                  items: corporations
+                      .map((corporation) => DropdownMenuItem(
+                            value: corporation,
+                            child: Text(corporation.name),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => selected = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason / note (optional)',
+                    hintText: 'e.g., Confirmed to be in a neighbouring corporation',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(selected),
+            child: const Text('Reassign'),
+          ),
+        ],
+      );
+    },
+  );
+  var success = false;
+  if (result != null) {
+    try {
+      await service.reassignReport(
+        reportId: report.id,
+        corporationId: result.id,
+        corporationName: result.name,
+        note: noteController.text,
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text('Report reassigned to ${result.name}.')),
+      );
+      success = true;
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(mapSupabaseError(error))),
+      );
+    }
+  }
+  noteController.dispose();
+  return success;
 }
 
 void _showReportDetails(

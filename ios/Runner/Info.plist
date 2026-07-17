@@ -47,5 +47,15 @@
 		<true/>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>Trini Hub uses the camera so you can photograph a community issue when logging a CivSnap report and scan file QR codes.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Trini Hub lets you choose an existing photo to attach to a report.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Trini Hub can save captured photos to your library.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Trini Hub tags your CivSnap report with your current location so it can be routed to the correct municipal corporation.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Trini Hub may access the microphone while the camera is open.</string>
 	</dict>
 </plist>
