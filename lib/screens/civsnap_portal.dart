@@ -7,6 +7,7 @@ import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/services/user_role_service.dart';
+import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/image_lightbox.dart';
@@ -1012,6 +1013,99 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
     controller.dispose();
   }
 
+  Future<void> _openReassignDialog(CivSnapReport report) async {
+    final corporations = await _service.fetchCorporations();
+    if (!mounted) {
+      return;
+    }
+    if (corporations.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No corporations available to reassign to.'),
+        ),
+      );
+      return;
+    }
+    final noteController = TextEditingController();
+    Corporation? selected = corporations.first;
+    final result = await showDialog<Corporation>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Reassign to corporation'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Send "${report.title}" to the correct municipality if it was auto-assigned incorrectly.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<Corporation>(
+                    value: selected,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Corporation'),
+                    items: corporations
+                        .map((corporation) => DropdownMenuItem(
+                              value: corporation,
+                              child: Text(corporation.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) => setState(() => selected = value),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Reason / note (optional)',
+                      hintText: 'e.g., Confirmed to be in a neighbouring corporation',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(selected),
+              child: const Text('Reassign'),
+            ),
+          ],
+        );
+      },
+    );
+    if (result != null) {
+      try {
+        await _service.reassignReport(
+          reportId: report.id,
+          corporationId: result.id,
+          corporationName: result.name,
+          note: noteController.text,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Report reassigned to ${result.name}.')),
+          );
+        }
+        await _refresh();
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(mapSupabaseError(error))),
+          );
+        }
+      }
+    }
+    noteController.dispose();
+  }
+
   List<_MetricItem> _staticMetrics(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return [
@@ -1135,10 +1229,21 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
               children: active.map((report) {
                 return _ReportCard(
                   report: report,
-                  trailing: OutlinedButton.icon(
-                    onPressed: () => _openStatusUpdateDialog(report),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Update status'),
+                  trailing: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _openStatusUpdateDialog(report),
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Update status'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _openReassignDialog(report),
+                        icon: const Icon(Icons.swap_horiz),
+                        label: const Text('Reassign'),
+                      ),
+                    ],
                   ),
                   onTap: () => _showReportDetails(context, report),
                 );

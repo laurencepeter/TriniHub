@@ -79,6 +79,13 @@ class CivSnapReport {
   }
 }
 
+class Corporation {
+  final String id;
+  final String name;
+
+  const Corporation({required this.id, required this.name});
+}
+
 bool isCivSnapVotesRelationshipMissing(Object error) {
   if (error is PostgrestException) {
     return error.message.contains("Could not find a relationship between 'civsnap_reports'") &&
@@ -341,6 +348,84 @@ class CivSnapService {
   bool _isCorporationColumnMissing(PostgrestException error) {
     final msg = error.message.toLowerCase();
     return (msg.contains('corporation_id') || msg.contains('assigned_at')) && msg.contains('column');
+  }
+
+  /// The corporations available to receive a report (for manual reassignment).
+  Future<List<Corporation>> fetchCorporations() async {
+    try {
+      final response = await _client.from('corporations').select('id,name').order('name');
+      if (response is! List) {
+        return [];
+      }
+      return response
+          .whereType<Map<String, dynamic>>()
+          .map((row) => Corporation(
+                id: (row['id'] ?? '').toString(),
+                name: (row['name'] ?? 'Unnamed corporation').toString(),
+              ))
+          .where((corporation) => corporation.id.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Manually move a report to a different corporation — used when a
+  /// corporation flags that an auto-assigned issue is outside its municipality.
+  Future<void> reassignReport({
+    required String reportId,
+    required String corporationId,
+    required String corporationName,
+    String? note,
+  }) async {
+    var includeAssignmentMeta = true;
+    while (true) {
+      final payload = <String, dynamic>{
+        'corporation_id': corporationId,
+        if (includeAssignmentMeta) 'assigned_at': DateTime.now().toIso8601String(),
+        if (includeAssignmentMeta && note != null && note.trim().isNotEmpty)
+          'assignment_note': note.trim(),
+      };
+      try {
+        await _client.from('civsnap_reports').update(payload).eq('id', reportId);
+        break;
+      } on PostgrestException catch (error) {
+        if (includeAssignmentMeta && _isAssignmentMetaMissing(error)) {
+          includeAssignmentMeta = false;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    AuditLogService.instance.record(
+      action: 'civsnap.report.reassigned',
+      entityType: 'civsnap_report',
+      entityId: reportId,
+      summary: 'Manually reassigned to $corporationName',
+      metadata: {
+        'corporation_id': corporationId,
+        'corporation_name': corporationName,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+
+    NotificationService.instance.notifyCorporation(
+      corporationId: corporationId,
+      title: 'Report reassigned to your corporation',
+      body: note != null && note.trim().isNotEmpty
+          ? note.trim()
+          : 'A CivSnap report was manually reassigned to $corporationName.',
+      category: 'civsnap',
+      entityType: 'civsnap_report',
+      entityId: reportId,
+    );
+  }
+
+  bool _isAssignmentMetaMissing(PostgrestException error) {
+    final msg = error.message.toLowerCase();
+    return (msg.contains('assigned_at') || msg.contains('assignment_note')) &&
+        msg.contains('column');
   }
 
   Future<List<CivSnapReport>> fetchReports({
