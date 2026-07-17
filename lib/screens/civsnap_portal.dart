@@ -1014,96 +1014,10 @@ class _CorporationDashboardState extends State<_CorporationDashboard> {
   }
 
   Future<void> _openReassignDialog(CivSnapReport report) async {
-    final corporations = await _service.fetchCorporations();
-    if (!mounted) {
-      return;
+    final changed = await _showReassignDialog(context, report);
+    if (changed && mounted) {
+      await _refresh();
     }
-    if (corporations.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No corporations available to reassign to.'),
-        ),
-      );
-      return;
-    }
-    final noteController = TextEditingController();
-    Corporation? selected = corporations.first;
-    final result = await showDialog<Corporation>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Reassign to corporation'),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Send "${report.title}" to the correct municipality if it was auto-assigned incorrectly.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<Corporation>(
-                    value: selected,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Corporation'),
-                    items: corporations
-                        .map((corporation) => DropdownMenuItem(
-                              value: corporation,
-                              child: Text(corporation.name),
-                            ))
-                        .toList(),
-                    onChanged: (value) => setState(() => selected = value),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: noteController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Reason / note (optional)',
-                      hintText: 'e.g., Confirmed to be in a neighbouring corporation',
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(selected),
-              child: const Text('Reassign'),
-            ),
-          ],
-        );
-      },
-    );
-    if (result != null) {
-      try {
-        await _service.reassignReport(
-          reportId: report.id,
-          corporationId: result.id,
-          corporationName: result.name,
-          note: noteController.text,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Report reassigned to ${result.name}.')),
-          );
-        }
-        await _refresh();
-      } catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(mapSupabaseError(error))),
-          );
-        }
-      }
-    }
-    noteController.dispose();
   }
 
   List<_MetricItem> _staticMetrics(BuildContext context) {
@@ -1495,6 +1409,60 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
         const SizedBox(height: 20),
         _SectionHeader(
+          title: 'Issue Assignment',
+          subtitle: 'Manually route any report to the correct municipal corporation.',
+          action: OutlinedButton.icon(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<CivSnapReport>>(
+          future: _reportsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final reports = snapshot.data ?? [];
+            if (reports.isEmpty) {
+              return const _EmptyState(
+                title: 'No reports to assign',
+                subtitle: 'Reports appear here as residents submit them.',
+              );
+            }
+            final visible = reports.take(25).toList();
+            return Column(
+              children: [
+                for (final report in visible)
+                  _ReportCard(
+                    report: report,
+                    trailing: OutlinedButton.icon(
+                      onPressed: () => _openReassign(report),
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('Reassign'),
+                    ),
+                    onTap: () => _showReportDetails(context, report),
+                  ),
+                if (reports.length > visible.length)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Showing ${visible.length} of ${reports.length} reports.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
           title: 'Monthly Completion Summary',
           subtitle: 'Completion trends from reported work orders.',
         ),
@@ -1516,6 +1484,13 @@ class _AdminDashboardState extends State<_AdminDashboard> {
         ),
       ],
     );
+  }
+
+  Future<void> _openReassign(CivSnapReport report) async {
+    final changed = await _showReassignDialog(context, report);
+    if (changed && mounted) {
+      await _refresh();
+    }
   }
 }
 
@@ -3564,6 +3539,99 @@ String _normalizeStatus(String status) {
     return 'in_progress';
   }
   return lower;
+}
+
+/// Shared reassignment dialog used by both the corporation and admin
+/// dashboards. Returns true if the report was moved to a new corporation.
+Future<bool> _showReassignDialog(BuildContext context, CivSnapReport report) async {
+  final service = CivSnapService.instance;
+  final messenger = ScaffoldMessenger.of(context);
+  final corporations = await service.fetchCorporations();
+  if (!context.mounted) {
+    return false;
+  }
+  if (corporations.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('No corporations available to reassign to.')),
+    );
+    return false;
+  }
+  final noteController = TextEditingController();
+  Corporation? selected = corporations.first;
+  final result = await showDialog<Corporation>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Reassign to corporation'),
+        content: StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Send "${report.title}" to the correct municipality if it was auto-assigned incorrectly.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<Corporation>(
+                  value: selected,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Corporation'),
+                  items: corporations
+                      .map((corporation) => DropdownMenuItem(
+                            value: corporation,
+                            child: Text(corporation.name),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => selected = value),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason / note (optional)',
+                    hintText: 'e.g., Confirmed to be in a neighbouring corporation',
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(selected),
+            child: const Text('Reassign'),
+          ),
+        ],
+      );
+    },
+  );
+  var success = false;
+  if (result != null) {
+    try {
+      await service.reassignReport(
+        reportId: report.id,
+        corporationId: result.id,
+        corporationName: result.name,
+        note: noteController.text,
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text('Report reassigned to ${result.name}.')),
+      );
+      success = true;
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(mapSupabaseError(error))),
+      );
+    }
+  }
+  noteController.dispose();
+  return success;
 }
 
 void _showReportDetails(
