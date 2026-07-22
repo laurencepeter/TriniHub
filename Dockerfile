@@ -1,7 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
 # Build stage
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+#
+# Pin the Flutter version instead of tracking the floating `:stable` tag.
+# The project targets Dart `^3.7.2` (pubspec.yaml), which corresponds to
+# Flutter 3.29.3. Newer `stable` releases (3.32+) run an additional
+# "Wasm dry run" compilation on every `flutter build web`, which roughly
+# doubles the peak memory of the release compile (~1 GB -> ~2 GB) and was
+# OOM-killing the deploy build container during "Compiling lib/main.dart
+# for the Web...". Pinning keeps builds reproducible and within memory.
+FROM ghcr.io/cirruslabs/flutter:3.29.3 AS build
 WORKDIR /app
 COPY . .
 
