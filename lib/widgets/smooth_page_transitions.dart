@@ -7,10 +7,16 @@ import 'package:local_app_tt/services/theme_settings.dart';
 /// External Services) and detail pages cross-dissolve into place: the
 /// outgoing screen simply fades out — it never shrinks, dims into a card,
 /// or looks like a "minimized" page with a fresh page dropped on top — while
-/// the incoming screen fades in and settles from a barely-perceptible 92%
-/// scale up to full size. The two phases are staggered so there is no muddy
-/// double-exposure in the middle: the old page is gone before the new one
-/// arrives, which is what makes the change feel silky rather than layered.
+/// the incoming screen fades in at full size. The two phases are staggered so
+/// there is no muddy double-exposure in the middle: the old page is gone
+/// before the new one arrives, which is what makes the change feel silky
+/// rather than layered.
+///
+/// Crucially the incoming page is never scaled below full-screen size. A
+/// scaled-down page pulls its edges in from the screen border and exposes the
+/// route beneath it, which reads as a rectangular "border" — as if a smaller
+/// page had been dropped on top of another. Keeping the page at full size
+/// throughout means the change is a clean dissolve with no visible seam.
 ///
 /// Honors both the OS-level "disable animations" accessibility setting and
 /// the in-app "Reduce motion" preference by falling back to a plain fade.
@@ -57,7 +63,8 @@ class _FadeThroughTransition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Incoming: hold transparent for the first ~35% (while the previous page
-    // finishes fading out) then ease in and scale up to full size.
+    // finishes fading out) then ease in at full size. No scaling — the page
+    // always fills the screen, so its edges never pull in to reveal a border.
     final CurvedAnimation enter = CurvedAnimation(
       parent: animation,
       curve: const Interval(0.35, 1, curve: Curves.easeOut),
@@ -76,10 +83,7 @@ class _FadeThroughTransition extends StatelessWidget {
       opacity: exit,
       child: FadeTransition(
         opacity: enter,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.92, end: 1).animate(enter),
-          child: child,
-        ),
+        child: child,
       ),
     );
   }
