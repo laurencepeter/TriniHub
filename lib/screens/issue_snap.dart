@@ -25,24 +25,17 @@ class IssueSnapScreen extends StatefulWidget {
     String? onBehalfUserId,
     String? onBehalfName,
   }) {
-    return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 450),
-      pageBuilder: (context, animation, secondaryAnimation) => ResponsiveScaffold(
+    // Plain MaterialPageRoute so this inherits the app-wide fade-through
+    // transition (see SmoothPageTransitionsBuilder) instead of a bespoke
+    // slide. The upward slide displaced the incoming page, exposing a seam
+    // at the top edge that made it read as a page stacking on top.
+    return MaterialPageRoute(
+      builder: (_) => ResponsiveScaffold(
         childBuilder: (device) => IssueSnapScreen(
           onBehalfUserId: onBehalfUserId,
           onBehalfName: onBehalfName,
         ),
       ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-        return FadeTransition(
-          opacity: curved,
-          child: SlideTransition(
-            position: Tween<Offset>(begin: const Offset(0, 0.06), end: Offset.zero).animate(curved),
-            child: child,
-          ),
-        );
-      },
     );
   }
 
