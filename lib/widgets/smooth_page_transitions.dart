@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
 
-/// A Material "fade through" page transition.
+/// A gentle cross-fade page transition with no white flash.
 ///
-/// Peer screens (the top-level sections such as Internal Services and
-/// External Services) and detail pages cross-dissolve into place: the
-/// outgoing screen simply fades out — it never shrinks, dims into a card,
-/// or looks like a "minimized" page with a fresh page dropped on top — while
-/// the incoming screen fades in at full size. The two phases are staggered so
-/// there is no muddy double-exposure in the middle: the old page is gone
-/// before the new one arrives, which is what makes the change feel silky
-/// rather than layered.
+/// The incoming screen simply fades in at full size over the whole duration
+/// while the outgoing screen stays fully opaque beneath it. Because the two
+/// phases overlap — the old page never disappears before the new one has
+/// arrived — the app's canvas colour is never exposed between them. That gap
+/// is what used to read as a bright "camera flash" blink, which is especially
+/// jarring on a dark theme.
 ///
-/// Crucially the incoming page is never scaled below full-screen size. A
-/// scaled-down page pulls its edges in from the screen border and exposes the
-/// route beneath it, which reads as a rectangular "border" — as if a smaller
-/// page had been dropped on top of another. Keeping the page at full size
-/// throughout means the change is a clean dissolve with no visible seam.
+/// As extra insurance the fade is painted over the theme's surface colour, so
+/// even a single frame can never reveal white: any sliver of background shows
+/// the same dark (or light) surface the screens themselves use.
+///
+/// The incoming page is never scaled below full-screen size, so its edges
+/// never pull in to reveal a rectangular border. The whole effect is a quiet
+/// dissolve the user is unlikely to consciously notice.
 ///
 /// Honors both the OS-level "disable animations" accessibility setting and
 /// the in-app "Reduce motion" preference by falling back to a plain fade.
@@ -36,53 +36,42 @@ class SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
       return FadeTransition(opacity: animation, child: child);
     }
 
-    return _FadeThroughTransition(
+    return _CrossFadeTransition(
       animation: animation,
-      secondaryAnimation: secondaryAnimation,
       child: child,
     );
   }
 }
 
-/// Implements the two-phase fade-through described above.
+/// Implements the overlapping cross-fade described above.
 ///
-/// * `animation` drives the page while it is entering (0 -> 1).
-/// * `secondaryAnimation` drives the same page while a newer route is being
-///   pushed on top of it (0 -> 1), so it must fade this page back out.
-class _FadeThroughTransition extends StatelessWidget {
-  const _FadeThroughTransition({
+/// `animation` drives the page as it enters (0 -> 1) and, in reverse, as it is
+/// popped (1 -> 0). Fading only the entering page — and leaving the page below
+/// fully opaque — means there is never a moment where both are transparent, so
+/// the background is never exposed and there is no flash.
+class _CrossFadeTransition extends StatelessWidget {
+  const _CrossFadeTransition({
     required this.animation,
-    required this.secondaryAnimation,
     required this.child,
   });
 
   final Animation<double> animation;
-  final Animation<double> secondaryAnimation;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    // Incoming: hold transparent for the first ~35% (while the previous page
-    // finishes fading out) then ease in at full size. No scaling — the page
-    // always fills the screen, so its edges never pull in to reveal a border.
-    final CurvedAnimation enter = CurvedAnimation(
-      parent: animation,
-      curve: const Interval(0.35, 1, curve: Curves.easeOut),
-    );
+    // Paint the fade over the theme surface colour rather than the default
+    // (white) canvas, so any partially-transparent frame dissolves through the
+    // app's own dark/light surface instead of flashing white.
+    final Color surface = Theme.of(context).colorScheme.surface;
 
-    // Outgoing (covered by a newer route): fade out over the first ~35% and
-    // stay hidden, with no scaling so it never reads as a shrinking card.
-    final Animation<double> exit = Tween<double>(begin: 1, end: 0).animate(
-      CurvedAnimation(
-        parent: secondaryAnimation,
-        curve: const Interval(0, 0.35, curve: Curves.easeIn),
-      ),
-    );
-
-    return FadeTransition(
-      opacity: exit,
+    return ColoredBox(
+      color: surface,
       child: FadeTransition(
-        opacity: enter,
+        opacity: CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOut,
+        ),
         child: child,
       ),
     );
