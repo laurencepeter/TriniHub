@@ -3,20 +3,30 @@ import 'package:local_app_tt/services/theme_settings.dart';
 
 /// A gentle cross-fade page transition with no white flash.
 ///
-/// The incoming screen simply fades in at full size over the whole duration
-/// while the outgoing screen stays fully opaque beneath it. Because the two
-/// phases overlap — the old page never disappears before the new one has
-/// arrived — the app's canvas colour is never exposed between them. That gap
-/// is what used to read as a bright "camera flash" blink, which is especially
-/// jarring on a dark theme.
+/// The incoming screen dissolves in over the whole duration while the outgoing
+/// screen stays painted directly beneath it. Because the two overlap — the old
+/// page is still on screen while the new one materialises on top — you actually
+/// see one page melt into the next instead of the content snapping over from a
+/// blank canvas. That blank-canvas swap is what used to make navigation feel
+/// like a browser "refresh" rather than a smooth in-app transition.
 ///
-/// As extra insurance the fade is painted over the theme's surface colour, so
-/// even a single frame can never reveal white: any sliver of background shows
-/// the same dark (or light) surface the screens themselves use.
+/// The theme surface colour is painted *inside* the fade (as the incoming
+/// page's own backdrop) rather than behind it. Keeping it inside the fade is
+/// what makes the cross-fade real: an opaque backdrop drawn *behind* the fade
+/// would hide the outgoing page entirely, collapsing the dissolve back into an
+/// instant swap. Because the backdrop fades in together with the page, the
+/// outgoing screen shows through the whole time, yet the incoming page is still
+/// always backed by the app's own dark (or light) surface, so no single frame
+/// can ever reveal white.
 ///
 /// The incoming page is never scaled below full-screen size, so its edges
 /// never pull in to reveal a rectangular border. The whole effect is a quiet
 /// dissolve the user is unlikely to consciously notice.
+///
+/// For this to read as a cross-fade the outgoing page must still be on the
+/// stack while the incoming one animates in — see [AppNavigation.goToSectionPage],
+/// which swaps sections with `pushReplacement` (keeping the outgoing page alive
+/// for the transition) instead of tearing it down up front.
 ///
 /// Honors both the OS-level "disable animations" accessibility setting and
 /// the in-app "Reduce motion" preference by falling back to a plain fade.
@@ -46,9 +56,10 @@ class SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
 /// Implements the overlapping cross-fade described above.
 ///
 /// `animation` drives the page as it enters (0 -> 1) and, in reverse, as it is
-/// popped (1 -> 0). Fading only the entering page — and leaving the page below
-/// fully opaque — means there is never a moment where both are transparent, so
-/// the background is never exposed and there is no flash.
+/// popped (1 -> 0). The entering page (surface backdrop included) fades in over
+/// the page still painted beneath it, so the two genuinely overlap: at the
+/// mid-point you see roughly half of each, which is what makes the change read
+/// as a smooth dissolve rather than an instant swap.
 class _CrossFadeTransition extends StatelessWidget {
   const _CrossFadeTransition({
     required this.animation,
@@ -60,18 +71,20 @@ class _CrossFadeTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Paint the fade over the theme surface colour rather than the default
-    // (white) canvas, so any partially-transparent frame dissolves through the
-    // app's own dark/light surface instead of flashing white.
+    // Paint the page over the theme surface colour rather than the default
+    // (white) canvas. The backdrop lives *inside* the FadeTransition so it
+    // fades in with the page instead of masking the outgoing screen: the old
+    // page stays visible through the dissolve, yet the incoming page is never
+    // backed by white on any single frame.
     final Color surface = Theme.of(context).colorScheme.surface;
 
-    return ColoredBox(
-      color: surface,
-      child: FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOut,
-        ),
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOut,
+      ),
+      child: ColoredBox(
+        color: surface,
         child: child,
       ),
     );
