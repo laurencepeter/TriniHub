@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
-import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/services/theme_settings.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:local_app_tt/widgets/loginpage.dart';
@@ -115,10 +114,7 @@ class _DesktopAccountMenu extends StatelessWidget {
             onSelected: (action) async {
               switch (action) {
                 case _DesktopMenuAction.accountSettings:
-                  AppNavigation.goToSection(
-                    context,
-                    (device) => SettingsPage(device: device),
-                  );
+                  AppNavigation.goToTab(context, AppNavigation.tabSettings);
                   return;
                 case _DesktopMenuAction.logout:
                   try {

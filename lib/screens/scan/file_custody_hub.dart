@@ -3,7 +3,6 @@ import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/scan/file_history_page.dart';
 import 'package:local_app_tt/screens/scan/scan_file_page.dart';
 import 'package:local_app_tt/screens/scan/staff_badge_page.dart';
-import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 
 /// Landing screen for the file custody / "Scan File" workflow.
@@ -56,9 +55,9 @@ class _FileCustodyHubState extends State<FileCustodyHub> {
                 BreadcrumbItem('Home', onTap: () => AppNavigation.goHome(context)),
                 BreadcrumbItem(
                   'Services',
-                  onTap: () => AppNavigation.goToSection(
+                  onTap: () => AppNavigation.goToTab(
                     context,
-                    (device) => ServicesPage(device: device),
+                    AppNavigation.tabServices,
                   ),
                 ),
                 const BreadcrumbItem('Scan File'),

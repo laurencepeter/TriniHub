@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:local_app_tt/navigation/main_shell_controller.dart';
 import 'package:local_app_tt/screens/externalservices.dart';
 import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/services.dart';
@@ -69,9 +70,51 @@ class SectionRouteObserver extends NavigatorObserver {
 class AppNavigation {
   AppNavigation._();
 
-  /// Pop everything back to the signed-in root.
+  // Tab indices for the five top-level sections. These line up with the
+  // bottom navigation bar items and each section's hard-coded `currentIndex`.
+  static const int tabHome = 0;
+  static const int tabServices = 1;
+  static const int tabInternal = 2;
+  static const int tabExternal = 3;
+  static const int tabSettings = 4;
+
+  /// Go to the Home tab.
+  ///
+  /// Inside the public shell this simply selects the Home tab (popping any
+  /// detail pages stacked above it first), so no section is rebuilt. Outside
+  /// the shell — the admin and corporate portals — it falls back to popping
+  /// the navigator back to the signed-in root.
   static void goHome(BuildContext context) {
+    if (MainShellController.instance.openTab(context, tabHome)) {
+      return;
+    }
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  /// Reveal one of the five top-level sections by its tab index
+  /// (Home = 0 ... Settings = 4).
+  ///
+  /// When the persistent shell is on screen the section is shown in place —
+  /// its state is kept alive and the change cross-fades — instead of pushing a
+  /// new route. When it isn't (admin / corporate portals) we fall back to the
+  /// route-based section navigation so those flows keep working unchanged.
+  static void goToTab(BuildContext context, int tabIndex) {
+    if (MainShellController.instance.openTab(context, tabIndex)) {
+      return;
+    }
+    switch (tabIndex) {
+      case tabServices:
+        goToSection(context, (device) => ServicesPage(device: device));
+      case tabInternal:
+        goToSection(context, (device) => InternalServices());
+      case tabExternal:
+        goToSection(context, (device) => ExternalServices());
+      case tabSettings:
+        goToSection(context, (device) => SettingsPage(device: device));
+      case tabHome:
+      default:
+        Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 
   /// Open a top-level section wrapped in the responsive shell. Any section
@@ -84,42 +127,46 @@ class AppNavigation {
     goToSectionPage(context, ResponsiveScaffold(childBuilder: childBuilder));
   }
 
-  /// Same as [goToSection] for pages that bring their own shell
-  /// (for example gated admin pages).
+  /// Push a page that brings its own shell (gated admin pages, Profile,
+  /// Notifications, About, …) so the stack stays shallow — `[root, page]` — and
+  /// the change reads as a smooth cross-fade rather than a "refresh".
   ///
-  /// The stack always ends up as `[root, section]`, but *how* we get there is
-  /// what makes the switch feel smooth. Rather than `pushAndRemoveUntil`, which
-  /// tears the outgoing section down before the new one animates in (leaving
-  /// the incoming page to dissolve in from the bare root — the "refresh" look),
-  /// we keep the outgoing page painted for the whole transition:
+  /// Rather than `pushAndRemoveUntil` (which tears the outgoing page down before
+  /// the new one animates in, so it dissolves in from the bare root), we keep
+  /// the outgoing page painted for the whole transition:
   ///
-  /// * From the root itself, we `push` so the root stays underneath.
-  /// * From a section (possibly with detail pages stacked on top), we silently
-  ///   drop the hidden detail pages, then `pushReplacement` the still-visible
-  ///   section. `pushReplacement` keeps that outgoing page alive until the new
-  ///   one has finished animating in, so the two genuinely cross-fade.
+  /// * On the root, or on the persistent public shell, we `push` so it stays
+  ///   mounted underneath. The shell is never replaced — it holds every tab's
+  ///   live state — so back returns straight to it.
+  /// * On a detail page, we silently drop any pages between the root and the
+  ///   current top (never the shell), then `pushReplacement` the still-visible
+  ///   top so the two genuinely cross-fade.
   static void goToSectionPage(BuildContext context, Widget page) {
     final navigator = Navigator.of(context);
     final route = MaterialPageRoute<void>(builder: (_) => page);
+    final shell = MainShellController.instance;
 
-    if (!navigator.canPop()) {
-      // Only the root is on screen — push so it stays beneath the new section
-      // and the back button still returns home.
+    final aboveRoot = SectionRouteObserver.instance.routesAboveRoot;
+    final PageRoute<dynamic>? top = aboveRoot.isEmpty ? null : aboveRoot.last;
+    final bool topIsShell = top != null && shell.ownsRoute(top);
+
+    if (top == null || topIsShell) {
+      // Nothing to replace, or the page underneath is the persistent shell —
+      // push so the root / shell stays mounted beneath (the shell must never
+      // be replaced; it holds every tab's live state). Back returns to it.
       navigator.push(route);
       return;
     }
 
-    // Collapse any detail pages sitting between the root and the current top,
-    // keeping the top (the visible outgoing page) so it can cross-fade. These
-    // intermediate routes are hidden beneath the opaque top, so removing them
-    // now is invisible.
-    final aboveRoot = SectionRouteObserver.instance.routesAboveRoot;
-    if (aboveRoot.length > 1) {
-      for (final hidden in aboveRoot.sublist(0, aboveRoot.length - 1)) {
-        if (hidden.isActive) navigator.removeRoute(hidden);
+    // Collapse any pages sitting between the root and the current top — but
+    // never the shell — keeping the top (the visible outgoing page) so it can
+    // cross-fade. These hidden intermediates are removed invisibly, then the
+    // top is replaced, leaving a shallow `[root, page]` stack.
+    for (final hidden in aboveRoot.sublist(0, aboveRoot.length - 1)) {
+      if (hidden.isActive && !shell.ownsRoute(hidden)) {
+        navigator.removeRoute(hidden);
       }
     }
-
     navigator.pushReplacement(route);
   }
 
@@ -130,9 +177,16 @@ class AppNavigation {
     );
   }
 
-  /// Pop when possible, otherwise fall back to the root so a back arrow
-  /// never turns into a dead tap.
+  /// Pop when possible, otherwise fall back to the Home tab / root so a back
+  /// arrow never turns into a dead tap.
   static void backOrHome(BuildContext context) {
+    // When a top-level tab is in the foreground it is not a pushed route, so
+    // "back" must return to the Home tab rather than popping the shell (which
+    // would drop the user back to the login screen).
+    if (MainShellController.instance.isForeground) {
+      goHome(context);
+      return;
+    }
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
       navigator.pop();
@@ -141,9 +195,9 @@ class AppNavigation {
     }
   }
 
-  /// Shared handler for the bottom tab bar. Tabs never stack on each
-  /// other: Home pops to the root and every other tab swaps the current
-  /// section, keeping the root underneath for back navigation.
+  /// Shared handler for the bottom tab bar. Inside the shell each tap simply
+  /// selects that tab in place (keeping every section's state alive); outside
+  /// it, [goToTab] falls back to route navigation.
   static void handleBottomNavTap(
     BuildContext context,
     int index,
@@ -152,18 +206,6 @@ class AppNavigation {
     if (index == currentIndex) {
       return;
     }
-    switch (index) {
-      case 1:
-        goToSection(context, (device) => ServicesPage(device: device));
-      case 2:
-        goToSection(context, (device) => InternalServices());
-      case 3:
-        goToSection(context, (device) => ExternalServices());
-      case 4:
-        goToSection(context, (device) => SettingsPage(device: device));
-      case 0:
-      default:
-        goHome(context);
-    }
+    goToTab(context, index);
   }
 }

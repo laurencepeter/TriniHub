@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/dog_submissions.dart';
-import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
@@ -196,12 +194,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   subtitle: 'Team tools and operational workflows',
                   icon: Icons.apartment_rounded,
                   onTap: () {
-                    AppNavigation.goToDetail(
-                      context,
-                      ResponsiveScaffold(
-                        childBuilder: (device) => InternalServices(),
-                      ),
-                    );
+                    AppNavigation.goToTab(context, AppNavigation.tabInternal);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -212,12 +205,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   subtitle: 'Public-facing utilities and citizen support',
                   icon: Icons.public,
                   onTap: () {
-                    AppNavigation.goToDetail(
-                      context,
-                      ResponsiveScaffold(
-                        childBuilder: (device) => ExternalServices(),
-                      ),
-                    );
+                    AppNavigation.goToTab(context, AppNavigation.tabExternal);
                   },
                 ),
                 const SizedBox(height: 20),
