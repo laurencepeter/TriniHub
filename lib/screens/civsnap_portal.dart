@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/issue_snap.dart';
-import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/services/civsnap_service.dart';
 import 'package:local_app_tt/services/dog_registration_service.dart';
@@ -94,9 +93,9 @@ class _CivSnapPortalScreenState extends State<CivSnapPortalScreen> {
                       BreadcrumbItem('Home', onTap: () => AppNavigation.goHome(context)),
                       BreadcrumbItem(
                         'Services',
-                        onTap: () => AppNavigation.goToSection(
+                        onTap: () => AppNavigation.goToTab(
                           context,
-                          (device) => ServicesPage(device: device),
+                          AppNavigation.tabServices,
                         ),
                       ),
                       const BreadcrumbItem('CivSnap'),

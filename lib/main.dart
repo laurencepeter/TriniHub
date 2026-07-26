@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:local_app_tt/screens/admin_dashboard.dart';
+import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/widgets/auth_shell.dart';
 import 'package:local_app_tt/widgets/admin_gate.dart';
@@ -155,6 +156,7 @@ class _MyAppState extends State<MyApp> {
           themeMode: themeMode,
           initialRoute: initialRoute,
           onGenerateRoute: _buildRoute,
+          navigatorObservers: [SectionRouteObserver.instance],
           builder: (context, child) {
             return Stack(
               fit: StackFit.expand,

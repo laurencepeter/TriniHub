@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
-import 'package:local_app_tt/screens/services.dart';
 import 'package:local_app_tt/widgets/bottom_tab_nav.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 import 'package:local_app_tt/widgets/service_tile.dart';
@@ -42,9 +41,9 @@ class ExternalServices extends StatelessWidget {
                         ),
                         BreadcrumbItem(
                           'Services',
-                          onTap: () => AppNavigation.goToSection(
+                          onTap: () => AppNavigation.goToTab(
                             context,
-                            (device) => ServicesPage(device: device),
+                            AppNavigation.tabServices,
                           ),
                         ),
                         const BreadcrumbItem('External Services'),

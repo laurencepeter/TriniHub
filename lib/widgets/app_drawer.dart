@@ -2,13 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/about.dart';
 import 'package:local_app_tt/screens/admin_dashboard.dart';
 import 'package:local_app_tt/screens/audit_logs.dart';
-import 'package:local_app_tt/screens/externalservices.dart';
-import 'package:local_app_tt/screens/internalservices.dart';
 import 'package:local_app_tt/screens/help_assistant.dart';
 import 'package:local_app_tt/screens/notifications_inbox.dart';
 import 'package:local_app_tt/screens/profile.dart';
-import 'package:local_app_tt/screens/services.dart';
-import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/screens/user_support_hub.dart';
 import 'package:local_app_tt/data/service_catalog.dart';
 import 'package:local_app_tt/navigation/app_navigation.dart';
@@ -218,11 +214,8 @@ class _AppDrawerState extends State<AppDrawer> {
             title: const Text('Settings'),
             leading: const Icon(Icons.settings_rounded),
             onTap: () {
-              navigateTo(
-                ResponsiveScaffold(
-                  childBuilder: (device) => SettingsPage(device: device),
-                ),
-              );
+              closeDrawer();
+              AppNavigation.goToTab(context, AppNavigation.tabSettings);
             },
           ),
           ListTile(
@@ -253,11 +246,8 @@ class _AppDrawerState extends State<AppDrawer> {
             title: const Text('Services'),
             leading: const Icon(Icons.design_services_rounded),
             onTap: () {
-              navigateTo(
-                ResponsiveScaffold(
-                  childBuilder: (device) => ServicesPage(device: device),
-                ),
-              );
+              closeDrawer();
+              AppNavigation.goToTab(context, AppNavigation.tabServices);
             },
           ),
           ExpansionTile(
@@ -269,7 +259,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 onTap: () {
                   closeDrawer();
-                  AppNavigation.goToSection(context, (device) => InternalServices());
+                  AppNavigation.goToTab(context, AppNavigation.tabInternal);
                 },
               ),
               for (final option in internalServiceOptions)
@@ -292,7 +282,7 @@ class _AppDrawerState extends State<AppDrawer> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 onTap: () {
                   closeDrawer();
-                  AppNavigation.goToSection(context, (device) => ExternalServices());
+                  AppNavigation.goToTab(context, AppNavigation.tabExternal);
                 },
               ),
               for (final option in externalServiceOptions)

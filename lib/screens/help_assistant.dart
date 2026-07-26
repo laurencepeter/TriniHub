@@ -3,7 +3,6 @@ import 'package:local_app_tt/navigation/app_navigation.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
 import 'package:local_app_tt/screens/forms/forms_hub.dart';
-import 'package:local_app_tt/screens/settings.dart';
 import 'package:local_app_tt/services/chatbot_service.dart';
 import 'package:local_app_tt/widgets/breadcrumbs.dart';
 
@@ -119,10 +118,7 @@ class _HelpAssistantScreenState extends State<HelpAssistantScreen> {
         );
         break;
       case 'settings':
-        AppNavigation.goToSection(
-          context,
-          (device) => SettingsPage(device: device),
-        );
+        AppNavigation.goToTab(context, AppNavigation.tabSettings);
         break;
       case 'home':
       default:
