@@ -1,4 +1,5 @@
--- SQL schema for CivSnap role-based access control
+-- CivSnap role-based access control: user_roles table and status-update policy.
+-- (Originally supabase_civsnap_access_schema.sql. Depends on 20240101000400_civsnap.sql.)
 
 create extension if not exists "uuid-ossp";
 
@@ -30,14 +31,17 @@ execute procedure public.set_user_roles_updated_at();
 
 alter table public.user_roles enable row level security;
 
+drop policy if exists "Users can read their own role" on public.user_roles;
 create policy "Users can read their own role" on public.user_roles
   for select using (user_id = auth.uid());
 
+drop policy if exists "Admins can manage roles" on public.user_roles;
 create policy "Admins can manage roles" on public.user_roles
   for all using ((auth.jwt() ->> 'app_role') = 'admin')
   with check ((auth.jwt() ->> 'app_role') = 'admin');
 
 -- Allow administrators and corporation staff to update issue statuses
+drop policy if exists "Corp/admin update report status" on public.civsnap_reports;
 create policy "Corp/admin update report status" on public.civsnap_reports
   for update using ((auth.jwt() ->> 'app_role') in ('admin', 'corporation'))
   with check ((auth.jwt() ->> 'app_role') in ('admin', 'corporation'));

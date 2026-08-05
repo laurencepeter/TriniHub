@@ -1,10 +1,27 @@
--- SQL schema for reporting community issues with photos, location, severity, and popularity tracking
+-- Community issue reporting with photos, location, severity, and popularity.
+-- (Originally supabase_issue_schema.sql.)
+--
+-- NOTE: the original script used `create type if not exists ...`, which is not
+-- valid PostgreSQL for enum types and would abort on a clean run. The enum
+-- creation is wrapped in guarded DO blocks below so this migration is safe to
+-- apply to a fresh database.
 
 create extension if not exists "uuid-ossp";
 
 -- Enumerations
-create type if not exists public.issue_severity as enum ('low', 'medium', 'high', 'critical');
-create type if not exists public.issue_status as enum ('open', 'in_progress', 'resolved', 'closed');
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'issue_severity') then
+    create type public.issue_severity as enum ('low', 'medium', 'high', 'critical');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'issue_status') then
+    create type public.issue_status as enum ('open', 'in_progress', 'resolved', 'closed');
+  end if;
+end $$;
 
 -- Table: issues (canonical issue record)
 create table if not exists public.issues (
@@ -96,6 +113,7 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists set_issues_updated_at on public.issues;
 create trigger set_issues_updated_at
 before update on public.issues
 for each row
@@ -107,28 +125,34 @@ alter table public.issue_reports enable row level security;
 alter table public.issue_votes enable row level security;
 
 -- Public read access
+drop policy if exists "Public read access" on public.issues;
 create policy "Public read access" on public.issues
   for select using (true);
 
+drop policy if exists "Public read access" on public.issue_reports;
 create policy "Public read access" on public.issue_reports
   for select using (true);
 
+drop policy if exists "Public read access" on public.issue_votes;
 create policy "Public read access" on public.issue_votes
   for select using (true);
 
 -- Public insert access (for community reporting)
+drop policy if exists "Public insert" on public.issues;
 create policy "Public insert" on public.issues
   for insert with check (
     auth.role() in ('anon', 'authenticated')
     and (created_by is null or created_by = auth.uid())
   );
 
+drop policy if exists "Public insert" on public.issue_reports;
 create policy "Public insert" on public.issue_reports
   for insert with check (
     auth.role() in ('anon', 'authenticated')
     and (reporter_id is null or reporter_id = auth.uid())
   );
 
+drop policy if exists "Public insert" on public.issue_votes;
 create policy "Public insert" on public.issue_votes
   for insert with check (
     auth.role() in ('anon', 'authenticated')
@@ -136,6 +160,7 @@ create policy "Public insert" on public.issue_votes
   );
 
 -- Authenticated updates for owners
+drop policy if exists "Owner update" on public.issues;
 create policy "Owner update" on public.issues
   for update using (
     auth.role() = 'authenticated'

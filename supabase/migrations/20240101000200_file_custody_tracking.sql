@@ -1,8 +1,9 @@
--- Migration: extend file_scans for QR-based file custody tracking.
+-- Extend file_scans for QR-based file custody tracking.
+-- (Originally supabase_file_custody_schema.sql. Depends on 20240101000100_file_scans.sql.)
 --
 -- Adds actor vs. custodian separation so a hand-off can record the person
 -- TAKING the file (scanned via their 60s badge QR) distinctly from the person
--- who performed the scan. Run this after supabase_schema.sql.
+-- who performed the scan.
 
 -- 1. Custody columns -------------------------------------------------------
 alter table public.file_scans
@@ -30,6 +31,7 @@ alter table public.file_scans
 
 -- 6. RLS: the scanning user must be the recorded actor --------------------
 drop policy if exists "Authenticated insert" on public.file_scans;
+drop policy if exists "Authenticated insert custody" on public.file_scans;
 create policy "Authenticated insert custody" on public.file_scans
   for insert
   with check (auth.role() = 'authenticated' and actor_id = auth.uid());

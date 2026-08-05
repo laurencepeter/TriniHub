@@ -1,4 +1,5 @@
--- SQL schema for CivSnap issue reporting in Supabase
+-- CivSnap issue reporting: tables, storage bucket, and base RLS.
+-- (Originally supabase_civsnap_schema.sql.)
 
 create extension if not exists "uuid-ossp";
 
@@ -46,22 +47,28 @@ alter table public.civsnap_reports enable row level security;
 alter table public.civsnap_votes enable row level security;
 
 -- Policies: allow authenticated users to read reports and votes
+drop policy if exists "Authenticated read access" on public.civsnap_reports;
 create policy "Authenticated read access" on public.civsnap_reports
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated read access" on public.civsnap_votes;
 create policy "Authenticated read access" on public.civsnap_votes
   for select using (auth.role() = 'authenticated');
 
 -- Policies: allow authenticated users to insert their own reports and votes
+drop policy if exists "Authenticated insert reports" on public.civsnap_reports;
 create policy "Authenticated insert reports" on public.civsnap_reports
   for insert with check (auth.role() = 'authenticated' and user_id = auth.uid());
 
+drop policy if exists "Authenticated insert votes" on public.civsnap_votes;
 create policy "Authenticated insert votes" on public.civsnap_votes
   for insert with check (auth.role() = 'authenticated' and user_id = auth.uid());
 
 -- Storage policies for civsnap bucket
+drop policy if exists "Authenticated civsnap read" on storage.objects;
 create policy "Authenticated civsnap read" on storage.objects
   for select using (bucket_id = 'civsnap' and auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated civsnap insert" on storage.objects;
 create policy "Authenticated civsnap insert" on storage.objects
   for insert with check (bucket_id = 'civsnap' and auth.role() = 'authenticated');

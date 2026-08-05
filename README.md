@@ -33,24 +33,28 @@
 ❓ 5. TODO
           :exclamation:  Add a page for fun to list all services, maybe services.fireydev.com
 
-## Dog Registration Supabase Setup
+## Supabase schema
 
-To ensure the dog registration form inserts into the Supabase Postgres database correctly, create the required tables and policies in your Supabase project:
+The full database schema lives in [`supabase/`](supabase/) as ordered,
+timestamped migrations. Apply the whole thing to a project with:
 
-1. Open the Supabase SQL Editor for your project.
-2. Run the schema in `supabase_dog_schema.sql` to create the `owners`, `dogs`, `dog_ownerships`, `breeds`, and `regions` tables.
-3. Apply the row-level security policies in `supabase_dog_rls_policies.sql`.
-4. Seed lookup data into `breeds` and `regions` so the dropdowns load in the UI.
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
 
-If you need to point the app at a different Supabase project, update the environment variables in `.env` (see below).
+or, without the CLI, run each file in `supabase/migrations/` in filename order
+in the Supabase SQL Editor. See [`supabase/README.md`](supabase/README.md) for
+the migration order, the old-file → migration mapping, and setup notes.
 
-## CivSnap Supabase Setup
+The dog registry (`owners`, `dogs`, `dog_ownerships`, `breeds`, `regions`) and
+its RLS come from the `..._dog_registry.sql` / `..._dog_rls_policies.sql`
+migrations; seed lookup data into `breeds` and `regions` so the dropdowns load.
+CivSnap (`civsnap_reports`, `civsnap_votes`, the `civsnap` storage bucket and
+policies) comes from the `..._civsnap.sql` migration.
 
-To enable CivSnap issue reporting, create the required tables, storage bucket, and policies:
-
-1. Open the Supabase SQL Editor for your project.
-2. Run the schema in `supabase_civsnap_schema.sql` to create the `civsnap_reports` and `civsnap_votes` tables, plus the `civsnap` storage bucket and policies.
-3. Confirm authenticated users can insert reports, votes, and upload photos to the `civsnap` bucket.
+If you need to point the app at a different Supabase project, update the
+environment variables in `.env` (see below).
 
 ## Role claim refresh (Supabase Auth)
 

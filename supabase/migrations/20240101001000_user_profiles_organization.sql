@@ -1,4 +1,5 @@
 -- Add organization names to user profiles and backfill from corporations.
+-- (Originally supabase_user_profiles_organization.sql. Depends on foundation.)
 
 alter table public.user_profiles
   add column if not exists organization text;
