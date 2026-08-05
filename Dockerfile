@@ -33,5 +33,7 @@ RUN --mount=type=secret,id=supabase_url,required=false \
 
 # Serve stage
 FROM nginx:alpine
+# SPA fallback config so deep links / refreshes / auth redirects don't 404.
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build/web /usr/share/nginx/html
 EXPOSE 80
