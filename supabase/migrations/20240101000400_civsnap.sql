@@ -3,13 +3,12 @@
 
 create extension if not exists "uuid-ossp";
 
--- Create a public storage bucket for CivSnap photos
-do $$
-begin
-  if not exists (select 1 from storage.buckets where id = 'civsnap') then
-    perform storage.create_bucket('civsnap', public := true);
-  end if;
-end $$;
+-- Create a public storage bucket for CivSnap photos.
+-- (Insert directly into storage.buckets -- storage.create_bucket() is a
+--  storage-API/JS helper and is not a SQL function on hosted Supabase.)
+insert into storage.buckets (id, name, public)
+values ('civsnap', 'civsnap', true)
+on conflict (id) do nothing;
 
 -- Table: civsnap_reports
 create table if not exists trinihub.civsnap_reports (
