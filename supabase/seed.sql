@@ -13,7 +13,7 @@ with target_user as (
   from auth.users
   where email = 'admin@example.com'   -- <-- replace with your admin's email
 )
-insert into public.user_profiles (user_id, role, app_role)
+insert into trinihub.user_profiles (user_id, role, app_role)
 select id, 'admin', 'admin'
 from target_user
 on conflict (user_id) do update

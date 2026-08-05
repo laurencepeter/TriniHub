@@ -3,7 +3,7 @@
 
 create extension if not exists "uuid-ossp";
 
-create table if not exists public.user_roles (
+create table if not exists trinihub.user_roles (
     id uuid primary key default uuid_generate_v4(),
     user_id uuid not null references auth.users(id) on delete cascade,
     role text not null check (role in ('admin', 'corporation', 'public')),
@@ -15,7 +15,7 @@ create table if not exists public.user_roles (
     unique (user_id)
 );
 
-create or replace function public.set_user_roles_updated_at()
+create or replace function trinihub.set_user_roles_updated_at()
 returns trigger as $$
 begin
   new.updated_at = now();
@@ -23,25 +23,25 @@ begin
 end;
 $$ language plpgsql;
 
-drop trigger if exists user_roles_updated_at on public.user_roles;
+drop trigger if exists user_roles_updated_at on trinihub.user_roles;
 create trigger user_roles_updated_at
-before update on public.user_roles
+before update on trinihub.user_roles
 for each row
-execute procedure public.set_user_roles_updated_at();
+execute procedure trinihub.set_user_roles_updated_at();
 
-alter table public.user_roles enable row level security;
+alter table trinihub.user_roles enable row level security;
 
-drop policy if exists "Users can read their own role" on public.user_roles;
-create policy "Users can read their own role" on public.user_roles
+drop policy if exists "Users can read their own role" on trinihub.user_roles;
+create policy "Users can read their own role" on trinihub.user_roles
   for select using (user_id = auth.uid());
 
-drop policy if exists "Admins can manage roles" on public.user_roles;
-create policy "Admins can manage roles" on public.user_roles
+drop policy if exists "Admins can manage roles" on trinihub.user_roles;
+create policy "Admins can manage roles" on trinihub.user_roles
   for all using ((auth.jwt() ->> 'app_role') = 'admin')
   with check ((auth.jwt() ->> 'app_role') = 'admin');
 
 -- Allow administrators and corporation staff to update issue statuses
-drop policy if exists "Corp/admin update report status" on public.civsnap_reports;
-create policy "Corp/admin update report status" on public.civsnap_reports
+drop policy if exists "Corp/admin update report status" on trinihub.civsnap_reports;
+create policy "Corp/admin update report status" on trinihub.civsnap_reports
   for update using ((auth.jwt() ->> 'app_role') in ('admin', 'corporation'))
   with check ((auth.jwt() ->> 'app_role') in ('admin', 'corporation'));

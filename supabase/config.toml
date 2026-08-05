@@ -17,6 +17,16 @@ major_version = 15
 # Directory containing timestamped migration files (relative to this file).
 schema_paths = []
 
+[api]
+enabled = true
+# Schemas exposed through the PostgREST API. The app lives in `trinihub`, so it
+# must be listed here (this is the local-dev equivalent of the dashboard's
+# "Exposed schemas" setting). `public` and `graphql_public` are kept for
+# Supabase internals.
+schemas = ["trinihub", "public", "graphql_public"]
+# Schemas added to every request's search_path (unqualified names resolve here).
+extra_search_path = ["trinihub", "public", "extensions"]
+
 [storage]
 enabled = true
 

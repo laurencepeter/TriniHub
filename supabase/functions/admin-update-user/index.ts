@@ -19,6 +19,7 @@ serve(async (req) => {
   const authHeader = req.headers.get("Authorization") ?? "";
 
   const supabaseUser = createClient(supabaseUrl, anonKey, {
+    db: { schema: "trinihub" },
     global: { headers: { Authorization: authHeader } },
   });
 
@@ -91,7 +92,9 @@ serve(async (req) => {
     corporationId = null;
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    db: { schema: "trinihub" },
+  });
 
   if (!corporationId && corporationName) {
     const { data: region, error: regionError } = await supabaseAdmin

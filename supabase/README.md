@@ -8,11 +8,35 @@ migration here (see the mapping table below).
 
 ```
 supabase/
-├── config.toml                 # Supabase CLI project config
+├── config.toml                 # Supabase CLI project config (exposes `trinihub`)
 ├── seed.sql                    # admin bootstrap (edit the email, then run)
 ├── migrations/                 # ordered schema migrations (apply in order)
-└── functions/                  # edge functions (unchanged)
+└── functions/                  # edge functions
 ```
+
+## Schema: everything lives in `trinihub`
+
+All application objects (tables, views, functions, enums) live in a dedicated
+**`trinihub`** schema rather than `public`. Only Supabase-managed objects stay
+where they are — `auth.*` (users, `auth.uid()`, `auth.jwt()`) and `storage.*`
+(buckets and the `storage.objects` policies).
+
+Because a custom schema is not exposed or granted automatically the way
+`public` is, three things outside the raw table DDL are wired up for you:
+
+- **Grants** — `20240101000000_foundation.sql` grants `usage` on the schema and
+  sets default privileges for `anon`, `authenticated`, and `service_role` (RLS
+  still governs row access; grants just make the schema reachable).
+- **The Flutter client** sets the default schema once, at init:
+  `Supabase.initialize(..., postgrestOptions: PostgrestClientOptions(schema: 'trinihub'))`
+  (`lib/main.dart`). Every `.from(...)` / `.rpc(...)` then targets `trinihub`.
+- **The edge functions** pass `db: { schema: 'trinihub' }` to `createClient(...)`.
+
+> **Hosted projects — one manual step the SQL can't do:** expose the schema to
+> the API. In the dashboard go to **Project Settings → API → Exposed schemas**
+> and add **`trinihub`**. Without this, PostgREST returns
+> `PGRST106 / "schema must be one of the following"` even though the grants are
+> correct. Locally, `config.toml` (`[api] schemas`) already does this.
 
 ## Applying the schema
 
@@ -21,6 +45,7 @@ supabase/
 ```bash
 supabase link --project-ref <your-project-ref>
 supabase db push          # applies every migration not yet on the remote
+# then expose `trinihub` in the dashboard (see the note above)
 ```
 
 **To a fresh local stack:**
@@ -98,11 +123,19 @@ other statement was carried over verbatim:
    `create policy` / `create trigger` statements that lacked them, so a
    migration can be re-applied without erroring on already-present objects.
 
+4. **Custom `trinihub` schema.** Every app object was moved out of `public`
+   into `trinihub` (see "Schema" above). `auth.*` and `storage.*` references
+   are unchanged. Functions that pin `search_path` remain fully schema-qualified
+   (e.g. `trinihub.user_profiles`), so they keep working with a locked-down path.
+
 ## Applying to another project
 
-Point the CLI at the other project (`supabase link --project-ref <ref>`) and
-run `supabase db push`. If that project already has some of these objects,
-review migration 1 first and delete or adjust any table it would duplicate —
-the rest use `if not exists` / `if exists` guards and are safe to re-run.
-Remember the app also expects two storage buckets (`civsnap`, `form-uploads`,
-created by migrations 5 and 8) and the two edge functions under `functions/`.
+Point the CLI at the other project (`supabase link --project-ref <ref>`), run
+`supabase db push`, then expose `trinihub` under **Project Settings → API →
+Exposed schemas**. If that project already has some of these objects, review
+migration 1 first and delete or adjust any table it would duplicate — the rest
+use `if not exists` / `if exists` guards and are safe to re-run. Remember the
+app also expects two storage buckets (`civsnap`, `form-uploads`, created by
+migrations 5 and 8) and the two edge functions under `functions/`, and the
+client must set its default schema to `trinihub` (already done in
+`lib/main.dart`).

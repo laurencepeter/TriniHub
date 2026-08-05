@@ -26,6 +26,10 @@ void main() async {
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
+    // App objects live in the `trinihub` schema, not `public`. Setting the
+    // default here means every `.from(...)` / `.rpc(...)` call across the
+    // services targets `trinihub` without per-call `.schema('trinihub')`.
+    postgrestOptions: const PostgrestClientOptions(schema: 'trinihub'),
   );
   runApp(const MyApp());
 }
