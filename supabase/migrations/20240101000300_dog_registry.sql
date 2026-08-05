@@ -1,5 +1,5 @@
--- Schema for the dog registration workflow in Supabase/Postgres.
--- Run this in the Supabase SQL editor before applying supabase_dog_rls_policies.sql.
+-- Dog registration workflow tables.
+-- (Originally supabase_dog_schema.sql. RLS policies live in a later migration.)
 
 create extension if not exists "uuid-ossp";
 

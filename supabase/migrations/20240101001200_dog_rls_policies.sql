@@ -1,5 +1,6 @@
--- RLS policies to allow authenticated users to insert dog registration data.
--- Apply after running the schema migration that creates the dog registry tables.
+-- RLS policies for the dog registration tables.
+-- (Originally supabase_dog_rls_policies.sql. Depends on 20240101000300_dog_registry.sql
+--  for the tables and 20240101001100_admin_policies.sql for public.is_admin().)
 
 begin;
 

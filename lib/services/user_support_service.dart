@@ -108,7 +108,7 @@ class UserSupportService {
   }
 
   Future<List<SupportUser>> fetchUsers() async {
-    // Admin visibility comes from RLS policies (see supabase_admin_policies.sql)
+    // Admin visibility comes from RLS policies (see the admin_policies migration)
     // plus the admin_list_users RPC / admin_users_view for auth.users data —
     // never from a client-side service-role key.
     final readClient = _client;

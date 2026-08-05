@@ -1,8 +1,9 @@
--- Migration: persist corporation assignment on CivSnap reports.
+-- Persist corporation assignment on CivSnap reports.
+-- (Originally supabase_civsnap_corporation_assignment.sql.
+--  Depends on 20240101000000_foundation.sql and 20240101000400_civsnap.sql.)
 --
 -- Both automatic boundary assignment (BoundaryService point-in-polygon at
--- submit time) and manual reassignment write these columns. Run after
--- supabase_civsnap_schema.sql.
+-- submit time) and manual reassignment write these columns.
 
 alter table public.civsnap_reports
   add column if not exists corporation_id uuid,
@@ -30,4 +31,4 @@ create index if not exists civsnap_reports_corporation_idx
   on public.civsnap_reports (corporation_id);
 
 -- Reassignment is an UPDATE; the existing "admin/corporation can update issues"
--- policy (supabase_civsnap_access_schema.sql) already authorizes it.
+-- policy (20240101000500_civsnap_access.sql) already authorizes it.

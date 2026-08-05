@@ -39,5 +39,5 @@ drop in your real boundaries.
 Open the CivSnap corporation dashboard → the report's **Reassign** button →
 pick the correct corporation and add a note. That persists the new
 `corporation_id`, notifies the receiving corporation, and records an audit
-entry. Requires the columns added by
-`supabase_civsnap_corporation_assignment.sql`.
+entry. Requires the columns added by the
+`..._civsnap_corporation_assignment.sql` migration (in `supabase/migrations/`).

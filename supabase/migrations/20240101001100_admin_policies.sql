@@ -1,4 +1,6 @@
--- Admin helpers and policies for user access and support workflows.
+-- Admin helper function and admin-manage policy for user profiles.
+-- (Originally supabase_admin_policies.sql. Defines public.is_admin(), which the
+--  dog RLS migration depends on, so this must run before it.)
 
 create or replace function public.is_admin()
 returns boolean

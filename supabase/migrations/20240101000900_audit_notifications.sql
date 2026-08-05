@@ -1,4 +1,6 @@
--- SQL schema for audit logging, in-app notifications, and CivSnap municipality assignment.
+-- Audit logging, in-app notifications, and CivSnap municipality assignment.
+-- (Originally supabase_audit_notifications_schema.sql. Depends on
+--  foundation, civsnap, and civsnap_corporation_assignment migrations.)
 
 create extension if not exists "uuid-ossp";
 

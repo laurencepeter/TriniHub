@@ -1,4 +1,6 @@
--- SQL schema for dynamic forms and submissions
+-- Dynamic forms and submissions.
+-- (Originally supabase_forms_schema.sql. Depends on 20240101000000_foundation.sql
+--  for public.corporations and public.user_profiles.)
 
 create extension if not exists "uuid-ossp";
 
@@ -107,10 +109,12 @@ alter table public.form_fields enable row level security;
 alter table public.form_submissions enable row level security;
 alter table public.form_submission_media enable row level security;
 
+drop policy if exists "Admin manage templates" on public.form_templates;
 create policy "Admin manage templates" on public.form_templates
   for all using (public.current_app_role() = 'admin')
   with check (public.current_app_role() = 'admin');
 
+drop policy if exists "Read published templates" on public.form_templates;
 create policy "Read published templates" on public.form_templates
   for select using (
     public.current_app_role() = 'admin'
@@ -123,6 +127,7 @@ create policy "Read published templates" on public.form_templates
     )
   );
 
+drop policy if exists "Read form fields" on public.form_fields;
 create policy "Read form fields" on public.form_fields
   for select using (
     exists (
@@ -142,10 +147,12 @@ create policy "Read form fields" on public.form_fields
     )
   );
 
+drop policy if exists "Admin manage fields" on public.form_fields;
 create policy "Admin manage fields" on public.form_fields
   for all using (public.current_app_role() = 'admin')
   with check (public.current_app_role() = 'admin');
 
+drop policy if exists "Read submissions" on public.form_submissions;
 create policy "Read submissions" on public.form_submissions
   for select using (
     public.current_app_role() = 'admin'
@@ -153,6 +160,7 @@ create policy "Read submissions" on public.form_submissions
     or submitter_id = auth.uid()
   );
 
+drop policy if exists "Insert submissions" on public.form_submissions;
 create policy "Insert submissions" on public.form_submissions
   for insert with check (
     submitter_id = auth.uid()
@@ -169,6 +177,7 @@ create policy "Insert submissions" on public.form_submissions
     and (public.current_app_role() <> 'corporation' or region_id = public.current_corporation_id())
   );
 
+drop policy if exists "Update submissions" on public.form_submissions;
 create policy "Update submissions" on public.form_submissions
   for update using (
     public.current_app_role() = 'admin'
@@ -181,6 +190,7 @@ create policy "Update submissions" on public.form_submissions
     or submitter_id = auth.uid()
   );
 
+drop policy if exists "Read submission media" on public.form_submission_media;
 create policy "Read submission media" on public.form_submission_media
   for select using (
     exists (
@@ -195,6 +205,7 @@ create policy "Read submission media" on public.form_submission_media
     )
   );
 
+drop policy if exists "Insert submission media" on public.form_submission_media;
 create policy "Insert submission media" on public.form_submission_media
   for insert with check (
     exists (
@@ -213,12 +224,15 @@ insert into storage.buckets (id, name, public)
 values ('form-uploads', 'form-uploads', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Form uploads read" on storage.objects;
 create policy "Form uploads read" on storage.objects
   for select using (bucket_id = 'form-uploads');
 
+drop policy if exists "Form uploads insert" on storage.objects;
 create policy "Form uploads insert" on storage.objects
   for insert with check (bucket_id = 'form-uploads' and auth.role() = 'authenticated');
 
+drop policy if exists "Form uploads update" on storage.objects;
 create policy "Form uploads update" on storage.objects
   for update using (bucket_id = 'form-uploads' and auth.role() = 'authenticated')
   with check (bucket_id = 'form-uploads' and auth.role() = 'authenticated');

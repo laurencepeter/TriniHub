@@ -1,6 +1,6 @@
--- SQL schema for tracking file scans in Supabase
+-- File scan tracking core tables, plus the admin users view and RPC.
+-- (Originally supabase_schema.sql.)
 
--- Enable the required extension for UUID generation
 create extension if not exists "uuid-ossp";
 
 -- Table: files
@@ -34,23 +34,29 @@ alter table public.departments enable row level security;
 alter table public.file_scans enable row level security;
 
 -- Policies: allow authenticated users to read tables
+drop policy if exists "Authenticated read access" on public.files;
 create policy "Authenticated read access" on public.files
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated read access" on public.departments;
 create policy "Authenticated read access" on public.departments
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated read access" on public.file_scans;
 create policy "Authenticated read access" on public.file_scans
   for select using (auth.role() = 'authenticated');
 
 -- Policies: allow authenticated users to insert scan events
+drop policy if exists "Authenticated insert" on public.file_scans;
 create policy "Authenticated insert" on public.file_scans
   for insert with check (auth.role() = 'authenticated' and user_id = auth.uid());
 
 -- Optional: allow authenticated users to insert files and departments
+drop policy if exists "Authenticated insert" on public.files;
 create policy "Authenticated insert" on public.files
   for insert with check (auth.role() = 'authenticated');
 
+drop policy if exists "Authenticated insert" on public.departments;
 create policy "Authenticated insert" on public.departments
   for insert with check (auth.role() = 'authenticated');
 

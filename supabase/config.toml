@@ -1,0 +1,30 @@
+# Supabase CLI project configuration.
+# Docs: https://supabase.com/docs/guides/cli/config
+#
+# `project_id` is the local reference name for this project. When you link a
+# hosted project with `supabase link --project-ref <ref>`, the CLI stores the
+# real project ref separately; this value only needs to be unique locally.
+project_id = "trinihub"
+
+[db]
+# Port for the local Postgres started by `supabase start`.
+port = 54322
+# Postgres major version. Match your hosted project (Supabase currently
+# provisions Postgres 15). Bump this if your project uses a newer version.
+major_version = 15
+
+[db.migrations]
+# Directory containing timestamped migration files (relative to this file).
+schema_paths = []
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[functions.admin-create-user]
+verify_jwt = false
+
+[functions.admin-update-user]
+verify_jwt = false
