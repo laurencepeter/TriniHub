@@ -85,10 +85,10 @@ class UserRoleService {
     if (user == null) {
       return AppRole.public;
     }
-    final metadataRole = user.appMetadata['role'] ??
-        user.appMetadata['app_role'] ??
-        user.userMetadata?['role'] ??
-        user.userMetadata?['app_role'];
+    // Role is read from the server-controlled JWT app metadata ONLY. userMetadata
+    // is editable by the user via updateUser() and must never grant a role, or a
+    // user could self-assign 'admin'. Falls back to 'public' when absent.
+    final metadataRole = user.appMetadata['role'] ?? user.appMetadata['app_role'];
     if (metadataRole != null) {
       return AppRoleX.fromValue(metadataRole.toString());
     }
@@ -104,10 +104,10 @@ class UserRoleService {
     if (user == null) {
       return AppRole.public;
     }
-    final metadataRole = user.appMetadata['role'] ??
-        user.appMetadata['app_role'] ??
-        user.userMetadata?['role'] ??
-        user.userMetadata?['app_role'];
+    // Server-controlled JWT claim only (see cachedRole). If the JWT carries no
+    // role yet, fall through to the RLS-protected user_profiles table, which is
+    // the authoritative store — never to user-editable userMetadata.
+    final metadataRole = user.appMetadata['role'] ?? user.appMetadata['app_role'];
     if (metadataRole != null) {
       return AppRoleX.fromValue(metadataRole.toString());
     }

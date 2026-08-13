@@ -51,6 +51,7 @@ is the correct apply order).
 | 11 | `20240101001000_user_profiles_organization.sql` | `user_profiles.organization` + backfill |
 | 12 | `20240101001100_admin_policies.sql` | `is_admin()` + admin-manage policy on `user_profiles` |
 | 13 | `20240101001200_dog_rls_policies.sql` | RLS for the dog registry (uses `is_admin()`) |
+| 14 | `20240101001300_bug_reports.sql` | `bug_reports` (Internal/External "Report a Bug"), severity/status enums, reporter + admin RLS |
 
 Dependencies are why the order matters — e.g. `is_admin()` (12) must exist
 before the dog policies (13) that call it; `corporations`/`user_profiles` (1)
