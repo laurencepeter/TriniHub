@@ -74,9 +74,9 @@ class AuditLogService {
     final payload = <String, dynamic>{
       'actor_id': user?.id,
       'actor_email': user?.email,
-      'actor_role': user?.appMetadata['role'] ??
-          user?.appMetadata['app_role'] ??
-          user?.userMetadata?['role'],
+      // Server-controlled JWT claim only — userMetadata is user-editable and
+      // could be spoofed to misattribute an action's role in the audit trail.
+      'actor_role': user?.appMetadata['role'] ?? user?.appMetadata['app_role'],
       'action': action,
       'entity_type': entityType,
       'entity_id': entityId,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:local_app_tt/screens/civsnap_portal.dart';
 import 'package:local_app_tt/screens/dog_registration.dart';
 import 'package:local_app_tt/screens/forms/forms_hub.dart';
+import 'package:local_app_tt/screens/report_bug.dart';
 import 'package:local_app_tt/screens/scan/file_custody_hub.dart';
 import 'package:local_app_tt/screens/service_detail.dart';
 import 'package:local_app_tt/widgets/responsive_scaffold.dart';
@@ -208,6 +209,10 @@ void handleExternalServiceTap(BuildContext context, ServiceOption option) {
     );
     return;
   }
+  if (option.label == 'Report a Bug') {
+    Navigator.of(context).push(ReportBugScreen.route(option));
+    return;
+  }
 
   Navigator.of(context).push(ServiceDetailScreen.route(option));
 }
@@ -232,6 +237,10 @@ void handleInternalServiceTap(BuildContext context, ServiceOption option) {
         ),
       ),
     );
+    return;
+  }
+  if (option.label == 'Report a Bug') {
+    Navigator.of(context).push(ReportBugScreen.route(option));
     return;
   }
   Navigator.of(context).push(ServiceDetailScreen.route(option));

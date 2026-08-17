@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_app_tt/utils/error_mapper.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -63,7 +64,11 @@ class _QRScannerPageState extends State<QRScannerPage> {
           ).showSnackBar(SnackBar(content: Text('Failed to record scan: ${mapSupabaseError(e)}')));
         }
       }
-      print('Scanned QR Code: $code');
+      // Never log scanned file identifiers to the system console in release
+      // builds — device logs are readable by other apps / MDM tooling.
+      if (kDebugMode) {
+        debugPrint('Scanned QR Code: $code');
+      }
     }
   }
 
