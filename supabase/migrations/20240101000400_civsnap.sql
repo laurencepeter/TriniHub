@@ -4,12 +4,9 @@
 create extension if not exists "uuid-ossp";
 
 -- Create a public storage bucket for CivSnap photos
-do $$
-begin
-  if not exists (select 1 from storage.buckets where id = 'civsnap') then
-    perform storage.create_bucket('civsnap', public := true);
-  end if;
-end $$;
+insert into storage.buckets (id, name, public)
+values ('civsnap', 'civsnap', true)
+on conflict (id) do nothing;
 
 -- Table: civsnap_reports
 create table if not exists public.civsnap_reports (
