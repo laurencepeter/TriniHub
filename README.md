@@ -126,3 +126,4 @@ do update set role = 'admin';
    Auth logs instead of embedding admin keys in the app.)
           
           
+\n<!-- test commit by Laurence Peter -->
